@@ -48,7 +48,7 @@ contract Vault is ERC20, AccessControlEnumerable {
         address referral
     ) external payable {
         amount = _trimToLimit(address(this), amount);
-        _transferToVaultAndConvertToWsteth(token, amount, referral);
+        amount = _transferToVaultAndConvertToWsteth(token, amount, referral);
         push();
         _mint(recipient, amount);
         emit Deposit(recipient, amount, referral);
@@ -79,7 +79,7 @@ contract Vault is ERC20, AccessControlEnumerable {
         address token,
         uint256 amount,
         address referral
-    ) internal {
+    ) internal returns (uint256) {
         if (amount == 0) {
             revert("Vault: amount must be greater than 0");
         }
@@ -96,12 +96,13 @@ contract Vault is ERC20, AccessControlEnumerable {
         }
         if (token == stETH) {
             IERC20(stETH).safeIncreaseAllowance(wstETH, amount);
-            IWSTETH(wstETH).submit(amount);
+            amount = IWSTETH(wstETH).wrap(amount);
             token = wstETH;
         }
         if (token != wstETH) {
             revert("Vault: invalid token");
         }
+        return amount;
     }
 
     function _trimToLimit(

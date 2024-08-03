@@ -4,4 +4,4 @@ out = "out"
 libs = ["lib"]
 
 [dependencies]
-openzeppelin = { git = "https://github.com/OpenZeppelin/openzeppelin-contracts.git" }
+openzeppelin = { git = "https://github.com/OpenZeppelin/openzeppelin-contracts.git", version = "5.0.2" }
