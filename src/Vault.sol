@@ -38,6 +38,7 @@ contract Vault is ERC20, AccessControlEnumerable {
             "Vault: must have admin role to set limit"
         );
         limit = _limit;
+        emit NewLimit(_limit);
     }
 
     function deposit(
@@ -113,4 +114,5 @@ contract Vault is ERC20, AccessControlEnumerable {
 
     event Deposit(address indexed user, uint256 amount, address referral);
     event Withdrawal(address indexed user, uint256 amount);
+    event NewLimit(uint256 limit);
 }
