@@ -16,16 +16,18 @@ contract Vault is ERC20, AccessControlEnumerable {
     address public constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public constant stETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    address public constant DEFAULT_BOND =
-        0xC329400492c6ff2438472D4651Ad17389fCb843a;
 
     using SafeERC20 for IERC20;
 
     // @notice The maximum amount of LRT that can be minted
     uint256 public limit;
+    // @notice The address of the underlying SymbioticBond
+    address public immutable symbioticBond;
     // @notice The address of the underlying SymbioticVault
     address public immutable symbioticVault;
-
+    // @notice The address of the farms for rewards
+    mapping(address => address) public farms;
+    // @notice Helper info about user's claim from Symbiotic vault
     mapping(address => uint256[]) public claimEpochs;
 
     /**
@@ -33,6 +35,7 @@ contract Vault is ERC20, AccessControlEnumerable {
      *
      * @param _name The name of the LRT token
      * @param _ticker The ticker of the LRT token
+     * @param _symbioticBond The address of the underlying SymbioticBond
      * @param _symbioticVault The address of the underlying SymbioticVault
      * @param _limit The maximum amount of LRT that can be minted
      * @param _admin The address of the admin
@@ -46,12 +49,14 @@ contract Vault is ERC20, AccessControlEnumerable {
     constructor(
         string memory _name,
         string memory _ticker,
+        address _symbioticBond,
         address _symbioticVault,
         uint256 _limit,
         address _admin
     ) ERC20(_name, _ticker) {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         symbioticVault = _symbioticVault;
+        symbioticBond = _symbioticBond;
         limit = _limit;
     }
 
@@ -69,12 +74,35 @@ contract Vault is ERC20, AccessControlEnumerable {
      * - Emits NewLimit event
      */
     function setLimit(uint256 _limit) external {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "Vault: must have admin role to set limit"
-        );
+        _requireAdmin();
         limit = _limit;
         emit NewLimit(_limit);
+    }
+
+    /**
+     * @notice Set the farm for the reward token
+     *
+     * @param rewardToken The address of the reward token
+     * @param farm The address of the farm
+     *
+     * @custom:requirements
+     * - MUST have admin role to set farm
+     * - The reward token MUST NOT be stETH, wstETH or WETH
+     *
+     * @custom:effects
+     * - Updates the `farms` mapping
+     *
+     */
+    function setFarm(address rewardToken, address farm) external {
+        _requireAdmin();
+        if (
+            (rewardToken == WETH) ||
+            (rewardToken == stETH) ||
+            (rewardToken == wstETH)
+        ) {
+            revert("Vault: cannot set farm for stETH, wstETH or WETH");
+        }
+        farms[rewardToken] = farm;
     }
 
     /**
@@ -144,13 +172,13 @@ contract Vault is ERC20, AccessControlEnumerable {
         emit Withdrawal(msg.sender, amount);
 
         uint256 wsethBalance = IERC20(wstETH).balanceOf(address(this));
-        uint256 bondBalance = IERC20(DEFAULT_BOND).balanceOf(address(this));
+        uint256 bondBalance = IERC20(symbioticBond).balanceOf(address(this));
         uint256 sharesBalance = IERC20(symbioticVault).balanceOf(address(this));
         uint256 amountToClaim = ((wsethBalance + bondBalance + sharesBalance) *
             amount) / totalSupply();
 
         uint256 wstEthClaimAmount = amountToClaim > wsethBalance
-            ? wsethBalance
+            ? wsethBalance // @notice The address of the underlying SymbioticBond
             : amountToClaim;
         IERC20(wstETH).safeTransfer(msg.sender, wstEthClaimAmount);
         amountToClaim -= wstEthClaimAmount;
@@ -158,13 +186,14 @@ contract Vault is ERC20, AccessControlEnumerable {
         uint256 bondClaimAmount = amountToClaim > bondBalance
             ? bondBalance
             : amountToClaim;
-        IDefaultBond(DEFAULT_BOND).withdraw(msg.sender, bondClaimAmount);
+        IDefaultBond(symbioticBond).withdraw(msg.sender, bondClaimAmount);
         amountToClaim -= bondClaimAmount;
 
         if (amountToClaim == 0) {
             return;
         }
 
+        // @notice The address of the underlying SymbioticBond
         ISymbioticVault(symbioticVault).withdraw(msg.sender, amountToClaim);
         claimEpochs[msg.sender].push(
             ISymbioticVault(symbioticVault).currentEpoch()
@@ -209,15 +238,37 @@ contract Vault is ERC20, AccessControlEnumerable {
         _pushToSymbioticVault();
     }
 
+    /**
+     * @notice Pushes all rewards from the vault to the farm
+     *
+     * @param token The address of the token to push
+     *
+     * @custom:requirements
+     * - The farm for the `token` MUST be set
+     *
+     * @custom:effects
+     * - Send all the balance of `token` from the vault to the farm
+     */
+    function pushRewards(address token) external {
+        address farm = farms[token];
+        require(farm != address(0), "Vault: farm not set");
+        IERC20(token).safeTransfer(
+            farm,
+            IERC20(token).balanceOf(address(this))
+        );
+    }
+
     function _pushToSymbioticVault() internal {
-        uint256 bondAmount = IERC20(DEFAULT_BOND).balanceOf(address(this));
-        IERC20(DEFAULT_BOND).safeIncreaseAllowance(symbioticVault, bondAmount);
+        uint256 bondAmount = IERC20(symbioticBond).balanceOf(address(this));
+        IERC20(symbioticBond).safeIncreaseAllowance(symbioticVault, bondAmount);
         (uint256 amount, uint256 shares) = ISymbioticVault(symbioticVault)
             .deposit(address(this), bondAmount);
         emit PushToSymbioticVault(bondAmount, amount, shares);
     }
 
+    // @notice The address of the underlying SymbioticBond
     /**
+    // @notice The address of the underlying SymbioticBond
      *@notice Pushes all wstETH from the vault balance to the Symbiotic default bond (up to its limit)
      *
      *@dev This function is called after a deposit to the vault and can be called by
@@ -229,18 +280,21 @@ contract Vault is ERC20, AccessControlEnumerable {
      */
     function _pushToSymbioticBond() internal {
         uint256 amount = IERC20(wstETH).balanceOf(address(this));
-        amount = _trimToLimit(DEFAULT_BOND, amount);
+        amount = _trimToLimit(symbioticBond, amount);
         if (amount == 0) {
             return;
         }
-        IERC20(wstETH).safeIncreaseAllowance(DEFAULT_BOND, amount);
-        IDefaultBond(DEFAULT_BOND).deposit(address(this), amount);
+        IERC20(wstETH).safeIncreaseAllowance(symbioticBond, amount);
+        IDefaultBond(symbioticBond).deposit(address(this), amount);
         emit PushToSymbioticBond(amount);
+        // @notice The address of the underlying SymbioticBond
     }
 
     /**
-     * @dev Internal function to transfer the token to the vault and convert it to wstETH
+     * @dev Internal function to transfer the token to the
+     // @notice The address of the underlying SymbioticBond vault and convert it to wstETH
      */
+    // @notice The address of the underlying SymbioticBond
     function _transferToVaultAndConvertToWsteth(
         address token,
         uint256 amount,
@@ -282,6 +336,13 @@ contract Vault is ERC20, AccessControlEnumerable {
     ) internal view returns (uint256) {
         uint256 leftover = ILimit(vault).limit() - ILimit(vault).totalSupply();
         return amount > leftover ? leftover : amount;
+    }
+
+    function _requireAdmin() internal view {
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            "Vault: must have admin role to set limit"
+        );
     }
 
     event Deposit(address indexed user, uint256 amount, address referral);
