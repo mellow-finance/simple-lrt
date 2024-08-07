@@ -26,14 +26,16 @@ contract Vault is ERC20, AccessControlEnumerable {
     // @notice The address of the underlying SymbioticVault
     address public immutable symbioticVault;
 
+    mapping(address => uint256[]) public claimEpochs;
+
     /**
      * @notice The constructor
      *
-     * @param name The name of the LRT token
-     * @param ticker The ticker of the LRT token
-     * @param symbioticVault The address of the underlying SymbioticVault
-     * @param limit The maximum amount of LRT that can be minted
-     * @param admin The address of the admin
+     * @param _name The name of the LRT token
+     * @param _ticker The ticker of the LRT token
+     * @param _symbioticVault The address of the underlying SymbioticVault
+     * @param _limit The maximum amount of LRT that can be minted
+     * @param _admin The address of the admin
      *
      * @dev Admin should be a timelock contract
      *
@@ -109,20 +111,67 @@ contract Vault is ERC20, AccessControlEnumerable {
     ) external payable {
         amount = _trimToLimit(address(this), amount);
         amount = _transferToVaultAndConvertToWsteth(token, amount, referral);
-        _pushToSymbioticBond();
-        _pushToSymbioticVault();
+        push();
         _mint(recipient, amount);
         emit Deposit(recipient, amount, referral);
     }
 
     function withdraw(uint256 amount) external {
-        // revert on overflow
         uint256 balance = IERC20(address(this)).balanceOf(msg.sender);
         amount = amount > balance ? amount : balance;
-        IDefaultBond(DEFAULT_BOND).withdraw(msg.sender, amount);
-        IERC20(wstETH).safeTransfer(msg.sender, amount);
+        if (amount == 0) {
+            return;
+        }
         _burn(msg.sender, amount);
         emit Withdrawal(msg.sender, amount);
+
+        uint256 wsethBalance = IERC20(wstETH).balanceOf(address(this));
+        uint256 bondBalance = IERC20(DEFAULT_BOND).balanceOf(address(this));
+        uint256 sharesBalance = IERC20(symbioticVault).balanceOf(address(this));
+        uint256 amountToClaim = ((wsethBalance + bondBalance + sharesBalance) *
+            amount) / totalSupply();
+
+        uint256 wstEthClaimAmount = amountToClaim > wsethBalance
+            ? wsethBalance
+            : amountToClaim;
+        IERC20(wstETH).safeTransfer(msg.sender, wstEthClaimAmount);
+        amountToClaim -= wstEthClaimAmount;
+
+        uint256 bondClaimAmount = amountToClaim > bondBalance
+            ? bondBalance
+            : amountToClaim;
+        IDefaultBond(DEFAULT_BOND).withdraw(msg.sender, bondClaimAmount);
+        amountToClaim -= bondClaimAmount;
+
+        if (amountToClaim == 0) {
+            return;
+        }
+
+        ISymbioticVault(symbioticVault).withdraw(msg.sender, amountToClaim);
+        claimEpochs[msg.sender].push(
+            ISymbioticVault(symbioticVault).currentEpoch()
+        );
+    }
+
+    function claim() external {
+        for (uint256 i = 0; i < claimEpochs[msg.sender].length; i++) {
+            try
+                ISymbioticVault(symbioticVault).claim(
+                    msg.sender,
+                    claimEpochs[msg.sender][i]
+                )
+            {
+                delete claimEpochs[msg.sender][i];
+            } catch {
+                continue;
+            }
+        }
+        delete claimEpochs[msg.sender];
+    }
+
+    function push() public {
+        _pushToSymbioticBond();
+        _pushToSymbioticVault();
     }
 
     function _pushToSymbioticVault() internal {
