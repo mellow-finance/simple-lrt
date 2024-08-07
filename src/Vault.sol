@@ -9,6 +9,7 @@ import "./interfaces/ISTETH.sol";
 import "./interfaces/IWSTETH.sol";
 import "./interfaces/IDefaultBond.sol";
 import "./interfaces/ILimit.sol";
+import "./interfaces/ISymbioticVault.sol";
 
 contract Vault is ERC20, AccessControlEnumerable {
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -21,13 +22,17 @@ contract Vault is ERC20, AccessControlEnumerable {
     using SafeERC20 for IERC20;
 
     // @notice The maximum amount of LRT that can be minted
-    uint256 limit;
+    uint256 public limit;
+    // @notice The address of the underlying SymbioticVault
+    address public immutable symbioticVault;
 
     /**
      * @notice The constructor
      *
      * @param name The name of the LRT token
      * @param ticker The ticker of the LRT token
+     * @param symbioticVault The address of the underlying SymbioticVault
+     * @param limit The maximum amount of LRT that can be minted
      * @param admin The address of the admin
      *
      * @dev Admin should be a timelock contract
@@ -37,11 +42,15 @@ contract Vault is ERC20, AccessControlEnumerable {
      * - Grants the DEFAULT_ADMIN_ROLE to the `admin` param
      */
     constructor(
-        string memory name,
-        string memory ticker,
-        address admin
-    ) ERC20(name, ticker) {
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        string memory _name,
+        string memory _ticker,
+        address _symbioticVault,
+        uint256 _limit,
+        address _admin
+    ) ERC20(_name, _ticker) {
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        symbioticVault = _symbioticVault;
+        limit = _limit;
     }
 
     /**
@@ -89,7 +98,7 @@ contract Vault is ERC20, AccessControlEnumerable {
      * @custom:effects
      * - Transfers the `token` with `amount` from the sender to the vault
      * - Mints the `amount` of LRT to the `recipient`
-     * - Calls `push()` to transfer the wstETH to the Symbiotic default bond
+     * - Calls `_pushSymbioticBond()` to transfer the wstETH to the Symbiotic default bond
      * - Emits Deposit event
      */
     function deposit(
@@ -100,7 +109,8 @@ contract Vault is ERC20, AccessControlEnumerable {
     ) external payable {
         amount = _trimToLimit(address(this), amount);
         amount = _transferToVaultAndConvertToWsteth(token, amount, referral);
-        push();
+        _pushToSymbioticBond();
+        _pushToSymbioticVault();
         _mint(recipient, amount);
         emit Deposit(recipient, amount, referral);
     }
@@ -115,6 +125,14 @@ contract Vault is ERC20, AccessControlEnumerable {
         emit Withdrawal(msg.sender, amount);
     }
 
+    function _pushToSymbioticVault() internal {
+        uint256 bondAmount = IERC20(DEFAULT_BOND).balanceOf(address(this));
+        IERC20(DEFAULT_BOND).safeIncreaseAllowance(symbioticVault, bondAmount);
+        (uint256 amount, uint256 shares) = ISymbioticVault(symbioticVault)
+            .deposit(address(this), bondAmount);
+        emit PushToSymbioticVault(bondAmount, amount, shares);
+    }
+
     /**
      *@notice Pushes all wstETH from the vault balance to the Symbiotic default bond (up to its limit)
      *
@@ -123,9 +141,9 @@ contract Vault is ERC20, AccessControlEnumerable {
      *
      *@custom:effects
      * - calls IDefaultBond#deposit with the vault's balance of wstETH (up to the limit of the bond)
-     * - Emits Push event
+     * - Emits _PushSymbioticBond event
      */
-    function push() public {
+    function _pushToSymbioticBond() internal {
         uint256 amount = IERC20(wstETH).balanceOf(address(this));
         amount = _trimToLimit(DEFAULT_BOND, amount);
         if (amount == 0) {
@@ -133,7 +151,7 @@ contract Vault is ERC20, AccessControlEnumerable {
         }
         IERC20(wstETH).safeIncreaseAllowance(DEFAULT_BOND, amount);
         IDefaultBond(DEFAULT_BOND).deposit(address(this), amount);
-        emit Push(amount);
+        emit PushToSymbioticBond(amount);
     }
 
     /**
@@ -185,5 +203,10 @@ contract Vault is ERC20, AccessControlEnumerable {
     event Deposit(address indexed user, uint256 amount, address referral);
     event Withdrawal(address indexed user, uint256 amount);
     event NewLimit(uint256 limit);
-    event Push(uint256 amount);
+    event PushToSymbioticBond(uint256 amount);
+    event PushToSymbioticVault(
+        uint256 initialAmount,
+        uint256 amount,
+        uint256 shares
+    );
 }
