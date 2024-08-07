@@ -100,7 +100,8 @@ contract Vault is ERC20, AccessControlEnumerable {
      * @custom:effects
      * - Transfers the `token` with `amount` from the sender to the vault
      * - Mints the `amount` of LRT to the `recipient`
-     * - Calls `_pushSymbioticBond()` to transfer the wstETH to the Symbiotic default bond
+     * - Calls `_pushToSymbioticBond()` to transfer the wstETH to the Symbiotic default bond
+     * - Calls `_pushToSymbioticVault()` to transfer bond tokens to the Symbiotic Vault
      * - Emits Deposit event
      */
     function deposit(
@@ -116,6 +117,23 @@ contract Vault is ERC20, AccessControlEnumerable {
         emit Deposit(recipient, amount, referral);
     }
 
+    /**
+     * @notice Withdraw or schedule withdraw from the vault.
+     * @dev If some amount available in the vault for immmediate withdrawal in the form
+     * of wstETH, it will be withdrawn immediately. Otherwise, the amount will be scheduled
+     * for withdrawal from the symbiotic vault.
+     *
+     * @param amount The amount of the LRT to withdraw
+     *
+     * @custom:effects
+     * - Burns the `amount` of LRT from the sender
+     * - Transfers maximum possible wstETH (to fulfill the request) from the vault to the sender
+     * - Redeems maximum possible bondToken and transfers wstETH proceeds
+     *   (to fulfill the request) from the vault to the sender
+     * - Shedules withdrawal of the remaining amount from the symbiotic vault
+     * - Adds the epoch for withdrawal to the `claimEpochs` mapping
+     * - Emits Withdrawal event
+     */
     function withdraw(uint256 amount) external {
         uint256 balance = IERC20(address(this)).balanceOf(msg.sender);
         amount = amount > balance ? amount : balance;
@@ -153,6 +171,13 @@ contract Vault is ERC20, AccessControlEnumerable {
         );
     }
 
+    /**
+     * @notice Claim the available for withdraw wstETH (from the symbiotic vault)
+     *
+     * @custom:effects
+     * - Calls `ISymbioticVault#claim` for each epoch in the `claimEpochs` mapping
+     * - Clears `claimEpochs` mapping for this user
+     */
     function claim() external {
         for (uint256 i = 0; i < claimEpochs[msg.sender].length; i++) {
             try
@@ -169,6 +194,16 @@ contract Vault is ERC20, AccessControlEnumerable {
         delete claimEpochs[msg.sender];
     }
 
+    /**
+     * @notice Pushes all wstETH from the vault balance to the Symbiotic default bond (up to its limit)
+     *         and all bond tokens to the Symbiotic Vault
+     * @dev This function is called after a deposit to the vault and can be called by
+     *      any external address to ensure that the wstETH is earning yield.
+     *
+     * @custom:effects
+     * - Calls `_pushToSymbioticBond` to transfer the wstETH to the Symbiotic default bond
+     * - Calls `_pushToSymbioticVault` to transfer the bondTokens to the Symbiotic Vault
+     */
     function push() public {
         _pushToSymbioticBond();
         _pushToSymbioticVault();
