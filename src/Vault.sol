@@ -11,6 +11,13 @@ import "./interfaces/IDefaultBond.sol";
 import "./interfaces/ILimit.sol";
 import "./interfaces/ISymbioticVault.sol";
 
+// TODO: Upgradeable ERC20 tokens
+// TODO: Storage initializer
+// TODO: Make an abstract wrap() method in BaseVault and then inherit ETH vault with wrap() implementation
+// TODO: View claimable amount
+// TODO: Off by 1 errors
+// TODO; Tests
+
 contract Vault is ERC20, AccessControlEnumerable {
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
@@ -287,7 +294,6 @@ contract Vault is ERC20, AccessControlEnumerable {
         IERC20(wstETH).safeIncreaseAllowance(symbioticBond, amount);
         IDefaultBond(symbioticBond).deposit(address(this), amount);
         emit PushToSymbioticBond(amount);
-        // @notice The address of the underlying SymbioticBond
     }
 
     /**
