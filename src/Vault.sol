@@ -16,6 +16,7 @@ import "./interfaces/ISymbioticVault.sol";
 // TODO: Make an abstract wrap() method in BaseVault and then inherit ETH vault with wrap() implementation
 // TODO: View claimable amount
 // TODO: Off by 1 errors
+// TODO: Pause / unpause
 // TODO; Tests
 
 contract Vault is ERC20, AccessControlEnumerable {
