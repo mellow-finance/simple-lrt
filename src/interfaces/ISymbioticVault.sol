@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.26;
+pragma solidity 0.8.25;
 
 interface ISymbioticVault {
     function deposit(address onBehalfOf, uint256 amount)
@@ -10,4 +10,5 @@ interface ISymbioticVault {
     function claimBatch(address recipient, uint256[] calldata epochs) external returns (uint256 amount);
 
     function currentEpoch() external view returns (uint256);
+    function withdrawalsOf(uint256 epoch, address account) external view returns (uint256);
 }

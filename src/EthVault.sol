@@ -15,35 +15,63 @@ contract EthVault is BaseVault {
 
     using SafeERC20 for IERC20;
 
-    function _setFarmCallback(address rewardToken, address farm) internal virtual override {
+    constructor(
+        string memory _name,
+        string memory _ticker,
+        address _symbioticBond,
+        address _symbioticVault,
+        uint256 _limit,
+        address _owner
+    ) BaseVault(_name, _ticker, _symbioticBond, _symbioticVault, _limit, _owner) {}
+
+    function convertToToken(address depositToken, uint256 amount) public virtual override returns (uint256) {
+        if (depositToken == wstETH) return amount;
+        return IWSTETH(wstETH).getWstETHByStETH(amount);
+    }
+
+    function convertToDepositToken(address depositToken, uint256 amount) public virtual override returns (uint256) {
+        if (depositToken == wstETH) return amount;
+        return IWSTETH(wstETH).getStETHByWstETH(amount);
+    }
+
+    function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual override {
+        super._setFarmChecks(rewardToken, farmData);
         if (rewardToken == WETH || rewardToken == stETH) {
             revert("EthVault: forbidden reward token");
         }
     }
 
-    function _wrap(address depositToken, uint256 amount) internal override virtual returns (uint256) {
+    function _wrap(address depositToken, uint256 amount) internal virtual override returns (uint256) {
         if (amount == 0) {
             revert("EthVault: amount must be greater than 0");
         }
+
         if (depositToken != ETH) {
             require(msg.value == 0, "EthVault: cannot send ETH with depositToken");
             IERC20(depositToken).safeTransferFrom(msg.sender, address(this), amount);
+        } else {
+            require(msg.value == amount, "EthVault: incorrect amount of ETH");
         }
+
         if (depositToken == WETH) {
             IWETH(WETH).withdraw(amount);
             depositToken = ETH;
         }
+
         if (depositToken == ETH) {
-            require(msg.value == amount, "EthVault: incorrect amount of ETH");
             ISTETH(stETH).submit{value: amount}(address(0));
             depositToken = stETH;
         }
+
         if (depositToken == stETH) {
             IERC20(stETH).safeIncreaseAllowance(wstETH, amount);
-            amount = IWSTETH(wstETH).wrap(amount);
+            IWSTETH(wstETH).wrap(amount);
             depositToken = wstETH;
         }
+
         if (depositToken != wstETH) revert("EthVault: invalid depositToken");
         return amount;
     }
+
+    receive() external payable {}
 }
