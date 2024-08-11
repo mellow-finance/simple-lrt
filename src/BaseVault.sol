@@ -1,26 +1,33 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.25;
 
-import {ERC20Votes, ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20VotesUpgradeable} from
+    "@openzeppelin-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "./interfaces/IDefaultCollateral.sol";
-import "./interfaces/ISymbioticVault.sol";
-import "./interfaces/IStakerRewards.sol";
+import {IDefaultCollateral} from "./interfaces/IDefaultCollateral.sol";
+import {ISymbioticVault} from "./interfaces/ISymbioticVault.sol";
+import {IStakerRewards} from "./interfaces/IStakerRewards.sol";
 
 // TODO: Storage initializer
 // TODO: Off by 1 errors
 // TODO; Tests
-contract BaseVault is ERC20Votes, Pausable, Ownable {
+contract BaseVault is ERC20, ERC20VotesUpgradeable {
     using SafeERC20 for IERC20;
 
-    bytes32 public constant STORAGE_SLOT = keccak256("mellow-finance.simple-lrt.rsc.BaseVault.storage");
+    // keccak256(abi.encode(uint256(keccak256("mellow.storage.BaseVault")) - 1)) & ~bytes32(uint256(0xff))
+    // TODO: FIX THIS
+    bytes32 private constant BaseVaultStorageLocation =
+        0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef;
 
+    /// @param symbioticFarm address of the symbiotic farm
+    /// @param distributionFarm address of the distribution farm (merkle tree or some other farm contract)
+    /// @param curatorFeeD4 curator fee in D4
+    /// @param curatorTreasury address of the curator treasury
     struct FarmData {
         address symbioticFarm;
         address distributionFarm;
@@ -32,14 +39,15 @@ contract BaseVault is ERC20Votes, Pausable, Ownable {
         IDefaultCollateral symbioticCollateral;
         ISymbioticVault symbioticVault;
         address token;
+        address owner;
+        bool paused;
         uint256 limit;
         mapping(address rewardToken => FarmData data) farms;
     }
 
-    function _contractStorage() internal pure returns (Storage storage state) {
-        bytes32 slot = STORAGE_SLOT;
+    function _contractStorage() private pure returns (Storage storage $) {
         assembly {
-            state.slot := slot
+            $.slot := BaseVaultStorageLocation
         }
     }
 
@@ -54,13 +62,14 @@ contract BaseVault is ERC20Votes, Pausable, Ownable {
         // add initialRatio
         ERC20(_name, _ticker)
         EIP712(_name, "1")
-        Ownable(_owner)
     {
         Storage storage s = _contractStorage();
         s.symbioticVault = ISymbioticVault(_symbioticVault);
         s.symbioticCollateral = IDefaultCollateral(_symbioticCollateral);
         s.limit = _limit;
         s.token = IDefaultCollateral(_symbioticCollateral).asset();
+        s.owner = _owner;
+        s.paused = false;
     }
 
     // Permissioned setters
@@ -82,19 +91,18 @@ contract BaseVault is ERC20Votes, Pausable, Ownable {
     }
 
     function pause() external onlyOwner {
-        _pause();
+        _contractStorage().paused = true;
     }
 
     function unpause() external onlyOwner {
-        _unpause();
+        _contractStorage().paused = false;
     }
 
     // 1. claims rewards from symbiotic farm
     // 2. tranfers curators fee to curator treasury
     // 3. tranfers remaining rewards to distribution farm
     function pushRewards(address rewardToken, bytes calldata symbioticRewardsData) external {
-        Storage storage s = _contractStorage();
-        FarmData memory data = s.farms[rewardToken];
+        FarmData memory data = _contractStorage().farms[rewardToken];
         require(data.symbioticFarm != address(0), "Vault: farm not set");
         uint256 amountBefore = IERC20(rewardToken).balanceOf(address(this));
         IStakerRewards(data.symbioticFarm).claimRewards(address(this), rewardToken, symbioticRewardsData);
@@ -128,10 +136,10 @@ contract BaseVault is ERC20Votes, Pausable, Ownable {
 
     // calculates the amount of staked tokens in the symbiotic vault with rouding
     function getSymbioticVaultStake(Math.Rounding rounding) public view returns (uint256 vaultActiveStake) {
-        Storage storage s = _contractStorage();
-        uint256 vaultActiveShares = s.symbioticVault.activeSharesOf(address(this));
-        uint256 activeStake = s.symbioticVault.activeStake();
-        uint256 activeShares = s.symbioticVault.activeShares();
+        ISymbioticVault symbioticVault = _contractStorage().symbioticVault;
+        uint256 vaultActiveShares = symbioticVault.activeSharesOf(address(this));
+        uint256 activeStake = symbioticVault.activeStake();
+        uint256 activeShares = symbioticVault.activeShares();
         vaultActiveStake = Math.mulDiv(activeStake, vaultActiveShares, activeShares, rounding);
     }
 
@@ -143,7 +151,6 @@ contract BaseVault is ERC20Votes, Pausable, Ownable {
     }
 
     function deposit(address depositToken, uint256 amount, address recipient, address referral) external payable {
-        Storage storage s = _contractStorage();
         uint256 totalSupply_ = totalSupply();
         uint256 valueBefore = tvl(Math.Rounding.Ceil);
         _deposit(depositToken, amount, referral);
@@ -153,7 +160,7 @@ contract BaseVault is ERC20Votes, Pausable, Ownable {
         }
         uint256 depositValue = valueAfter - valueBefore;
         uint256 lpAmount = Math.mulDiv(totalSupply_, depositValue, valueBefore);
-        if (lpAmount + totalSupply_ > s.limit) {
+        if (lpAmount + totalSupply_ > _contractStorage().limit) {
             revert("BaseVault: vault limit reached");
         } else if (lpAmount == 0) {
             revert("BaseVault: zero lpAmount");
@@ -206,23 +213,26 @@ contract BaseVault is ERC20Votes, Pausable, Ownable {
     // deposits token into Collateral
     function pushIntoSymbiotic() public {
         Storage storage s = _contractStorage();
-        uint256 assetAmount = IERC20(s.token).balanceOf(address(this));
-        uint256 leftover = s.symbioticCollateral.limit() - s.symbioticCollateral.totalSupply();
+        IERC20 token = IERC20(s.token);
+        uint256 assetAmount = token.balanceOf(address(this));
+        IDefaultCollateral symbioticCollateral = s.symbioticCollateral;
+        ISymbioticVault symbioticVault = s.symbioticVault;
+        uint256 leftover = symbioticCollateral.limit() - symbioticCollateral.totalSupply();
         assetAmount = Math.min(assetAmount, leftover);
         if (assetAmount == 0) {
             return;
         }
-        IERC20(s.token).safeIncreaseAllowance(address(s.symbioticCollateral), assetAmount);
-        uint256 amount = s.symbioticCollateral.deposit(address(this), assetAmount);
+        token.safeIncreaseAllowance(address(symbioticCollateral), assetAmount);
+        uint256 amount = symbioticCollateral.deposit(address(this), assetAmount);
         if (amount != assetAmount) {
-            IERC20(s.token).forceApprove(address(s.symbioticCollateral), 0);
+            token.forceApprove(address(symbioticCollateral), 0);
         }
 
-        uint256 bondAmount = s.symbioticCollateral.balanceOf(address(this));
-        IERC20(s.symbioticCollateral).safeIncreaseAllowance(address(s.symbioticVault), bondAmount);
-        (uint256 stakedAmount,) = s.symbioticVault.deposit(address(this), bondAmount);
+        uint256 bondAmount = symbioticCollateral.balanceOf(address(this));
+        IERC20(symbioticCollateral).safeIncreaseAllowance(address(symbioticVault), bondAmount);
+        (uint256 stakedAmount,) = symbioticVault.deposit(address(this), bondAmount);
         if (bondAmount != stakedAmount) {
-            IERC20(s.symbioticCollateral).forceApprove(address(s.symbioticVault), 0);
+            IERC20(symbioticCollateral).forceApprove(address(symbioticVault), 0);
         }
     }
 
@@ -230,14 +240,19 @@ contract BaseVault is ERC20Votes, Pausable, Ownable {
     // transfers `amount` of `depositToken` from `msg.sender` to the vault
     // requires the deposit token to be the same as the vault token
     function _deposit(address depositToken, uint256 amount, address /* referral */ ) internal virtual {
-        Storage storage s = _contractStorage();
-        if (depositToken != s.token) revert("BaseVault: invalid deposit token");
+        if (depositToken != _contractStorage().token) revert("BaseVault: invalid deposit token");
         IERC20(depositToken).safeTransferFrom(msg.sender, address(this), amount);
     }
 
     // ERC20Votes overrides + Pausable modifier
-    function _update(address from, address to, uint256 value) internal virtual override(ERC20Votes) whenNotPaused {
+    function _update(address from, address to, uint256 value) internal virtual override {
+        require(!_contractStorage().paused, "BaseVault: paused");
         super._update(from, to, value);
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == _contractStorage().owner, "BaseVault: forbidden");
+        _;
     }
 
     event Deposit(address indexed user, uint256 depositValue, uint256 lpAmount, address referral);
