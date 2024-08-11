@@ -24,16 +24,6 @@ contract EthVault is BaseVault {
         address _owner
     ) BaseVault(_name, _ticker, _symbioticBond, _symbioticVault, _limit, _owner) {}
 
-    function convertToToken(address depositToken, uint256 amount) public virtual override returns (uint256) {
-        if (depositToken == wstETH) return amount;
-        return IWSTETH(wstETH).getWstETHByStETH(amount);
-    }
-
-    function convertToDepositToken(address depositToken, uint256 amount) public virtual override returns (uint256) {
-        if (depositToken == wstETH) return amount;
-        return IWSTETH(wstETH).getStETHByWstETH(amount);
-    }
-
     function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual override {
         super._setFarmChecks(rewardToken, farmData);
         if (rewardToken == WETH || rewardToken == stETH) {
@@ -41,7 +31,7 @@ contract EthVault is BaseVault {
         }
     }
 
-    function _wrap(address depositToken, uint256 amount) internal virtual override returns (uint256) {
+    function _deposit(address depositToken, uint256 amount, address referral) internal virtual override {
         if (amount == 0) {
             revert("EthVault: amount must be greater than 0");
         }
@@ -59,7 +49,7 @@ contract EthVault is BaseVault {
         }
 
         if (depositToken == ETH) {
-            ISTETH(stETH).submit{value: amount}(address(0));
+            ISTETH(stETH).submit{value: amount}(referral);
             depositToken = stETH;
         }
 
@@ -70,7 +60,6 @@ contract EthVault is BaseVault {
         }
 
         if (depositToken != wstETH) revert("EthVault: invalid depositToken");
-        return amount;
     }
 
     receive() external payable {}
