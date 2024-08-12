@@ -15,18 +15,33 @@ contract EthVault is BaseVault {
 
     using SafeERC20 for IERC20;
 
-    function _deposit(address depositToken, uint256 amount) internal virtual override {
+    function _deposit(
+        address depositToken,
+        uint256 amount
+    ) internal virtual override {
         if (amount == 0) {
             revert("EthVault: amount must be greater than 0");
         }
 
-        if (depositToken != ETH && depositToken != WETH && depositToken != stETH && depositToken != wstETH) {
+        if (
+            depositToken != ETH &&
+            depositToken != WETH &&
+            depositToken != stETH &&
+            depositToken != wstETH
+        ) {
             revert("EthVault: invalid depositToken");
         }
 
         if (depositToken != ETH) {
-            require(msg.value == 0, "EthVault: cannot send ETH with depositToken");
-            IERC20(depositToken).safeTransferFrom(msg.sender, address(this), amount);
+            require(
+                msg.value == 0,
+                "EthVault: cannot send ETH with depositToken"
+            );
+            IERC20(depositToken).safeTransferFrom(
+                msg.sender,
+                address(this),
+                amount
+            );
         } else {
             require(msg.value == amount, "EthVault: incorrect amount of ETH");
         }

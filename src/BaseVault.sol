@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import {ERC20VotesUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {ERC20VotesUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -30,7 +29,8 @@ contract BaseVault is ERC20VotesUpgradeable {
 
     // ERC20 slots
     mapping(address account => uint256) private _balances;
-    mapping(address account => mapping(address spender => uint256)) private _allowances;
+    mapping(address account => mapping(address spender => uint256))
+        private _allowances;
     uint256 private _totalSupply;
     string private _name;
     string private _symbol;
@@ -64,10 +64,12 @@ contract BaseVault is ERC20VotesUpgradeable {
         }
     }
 
-    function initialize(address _symbioticCollateral, address _symbioticVault, uint256 _limit, address _owner)
-        external
-        initializer
-    {
+    function initialize(
+        address _symbioticCollateral,
+        address _symbioticVault,
+        uint256 _limit,
+        address _owner
+    ) external initializer {
         __EIP712_init(name(), "1");
 
         Storage storage s = _contractStorage();
@@ -88,7 +90,10 @@ contract BaseVault is ERC20VotesUpgradeable {
         emit NewLimit(_limit);
     }
 
-    function setFarmData(address rewardToken, FarmData memory farmData) external onlyOwner {
+    function setFarmData(
+        address rewardToken,
+        FarmData memory farmData
+    ) external onlyOwner {
         Storage storage s = _contractStorage();
         _setFarmChecks(rewardToken, farmData);
         s.farms[rewardToken] = farmData;
@@ -110,12 +115,20 @@ contract BaseVault is ERC20VotesUpgradeable {
         _contractStorage().paused = false;
     }
 
-    function pushRewards(IERC20 rewardToken, bytes calldata symbioticRewardsData) external {
+    function pushRewards(
+        IERC20 rewardToken,
+        bytes calldata symbioticRewardsData
+    ) external {
         FarmData memory data = _contractStorage().farms[address(rewardToken)];
         require(data.symbioticFarm != address(0), "Vault: farm not set");
         uint256 amountBefore = rewardToken.balanceOf(address(this));
-        IStakerRewards(data.symbioticFarm).claimRewards(address(this), address(rewardToken), symbioticRewardsData);
-        uint256 rewardAmount = rewardToken.balanceOf(address(this)) - amountBefore;
+        IStakerRewards(data.symbioticFarm).claimRewards(
+            address(this),
+            address(rewardToken),
+            symbioticRewardsData
+        );
+        uint256 rewardAmount = rewardToken.balanceOf(address(this)) -
+            amountBefore;
         if (rewardAmount == 0) return;
 
         uint256 curatorFee = Math.mulDiv(rewardAmount, data.curatorFeeD4, 1e4);
@@ -123,16 +136,24 @@ contract BaseVault is ERC20VotesUpgradeable {
             rewardToken.safeTransfer(data.curatorTreasury, curatorFee);
         }
         if (rewardAmount != curatorFee) {
-            rewardToken.safeTransfer(data.distributionFarm, rewardAmount - curatorFee);
+            rewardToken.safeTransfer(
+                data.distributionFarm,
+                rewardAmount - curatorFee
+            );
         }
         emit RewardsPushed(address(rewardToken), rewardAmount, block.timestamp);
     }
 
-    function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
+    function _setFarmChecks(
+        address rewardToken,
+        FarmData memory farmData
+    ) internal virtual {
         Storage storage s = _contractStorage();
         if (
-            rewardToken == s.token || rewardToken == address(this) || rewardToken == address(s.symbioticCollateral)
-                || rewardToken == address(s.symbioticVault)
+            rewardToken == s.token ||
+            rewardToken == address(this) ||
+            rewardToken == address(s.symbioticCollateral) ||
+            rewardToken == address(s.symbioticVault)
         ) {
             revert("Vault: forbidden reward token");
         }
@@ -141,21 +162,39 @@ contract BaseVault is ERC20VotesUpgradeable {
         }
     }
 
-    function getSymbioticVaultStake(Math.Rounding rounding) public view returns (uint256 vaultActiveStake) {
+    function getSymbioticVaultStake(
+        Math.Rounding rounding
+    ) public view returns (uint256 vaultActiveStake) {
         ISymbioticVault symbioticVault = _contractStorage().symbioticVault;
-        uint256 vaultActiveShares = symbioticVault.activeSharesOf(address(this));
+        uint256 vaultActiveShares = symbioticVault.activeSharesOf(
+            address(this)
+        );
         uint256 activeStake = symbioticVault.activeStake();
         uint256 activeShares = symbioticVault.activeShares();
-        vaultActiveStake = Math.mulDiv(activeStake, vaultActiveShares, activeShares, rounding);
+        vaultActiveStake = Math.mulDiv(
+            activeStake,
+            vaultActiveShares,
+            activeShares,
+            rounding
+        );
     }
 
-    function tvl(Math.Rounding rounding) public view returns (uint256 totalValueLocked) {
+    function tvl(
+        Math.Rounding rounding
+    ) public view returns (uint256 totalValueLocked) {
         Storage storage s = _contractStorage();
-        return IERC20(s.token).balanceOf(address(this)) + s.symbioticCollateral.balanceOf(address(this))
-            + getSymbioticVaultStake(rounding);
+        return
+            IERC20(s.token).balanceOf(address(this)) +
+            s.symbioticCollateral.balanceOf(address(this)) +
+            getSymbioticVaultStake(rounding);
     }
 
-    function deposit(address depositToken, uint256 amount, address recipient, address referral) external payable {
+    function deposit(
+        address depositToken,
+        uint256 amount,
+        address recipient,
+        address referral
+    ) external payable {
         uint256 totalSupply_ = totalSupply();
         uint256 valueBefore = tvl(Math.Rounding.Ceil);
         _deposit(depositToken, amount);
@@ -176,15 +215,21 @@ contract BaseVault is ERC20VotesUpgradeable {
         emit Deposit(recipient, depositValue, lpAmount, referral);
     }
 
-    function withdraw(uint256 lpAmount) external returns (uint256 withdrawnAmount, uint256 amountToClaim) {
+    function withdraw(
+        uint256 lpAmount
+    ) external returns (uint256 withdrawnAmount, uint256 amountToClaim) {
         Storage storage s = _contractStorage();
         lpAmount = Math.min(lpAmount, balanceOf(msg.sender));
         if (lpAmount == 0) return (0, 0);
         _burn(msg.sender, lpAmount);
 
         uint256 tokenValue = IERC20(s.token).balanceOf(address(this));
-        uint256 collateralValue = s.symbioticCollateral.balanceOf(address(this));
-        uint256 symbioticVaultStake = getSymbioticVaultStake(Math.Rounding.Floor);
+        uint256 collateralValue = s.symbioticCollateral.balanceOf(
+            address(this)
+        );
+        uint256 symbioticVaultStake = getSymbioticVaultStake(
+            Math.Rounding.Floor
+        );
 
         uint256 totalValue = tokenValue + collateralValue + symbioticVaultStake;
         amountToClaim = Math.mulDiv(lpAmount, totalValue, totalSupply());
@@ -207,7 +252,10 @@ contract BaseVault is ERC20VotesUpgradeable {
         }
 
         uint256 sharesAmount = Math.mulDiv(
-            amountToClaim, s.symbioticVault.activeShares(), s.symbioticVault.activeStake(), Math.Rounding.Floor
+            amountToClaim,
+            s.symbioticVault.activeShares(),
+            s.symbioticVault.activeStake(),
+            Math.Rounding.Floor
         );
 
         s.symbioticVault.withdraw(msg.sender, sharesAmount);
@@ -219,28 +267,46 @@ contract BaseVault is ERC20VotesUpgradeable {
         uint256 assetAmount = token.balanceOf(address(this));
         IDefaultCollateral symbioticCollateral = s.symbioticCollateral;
         ISymbioticVault symbioticVault = s.symbioticVault;
-        uint256 leftover = symbioticCollateral.limit() - symbioticCollateral.totalSupply();
+        uint256 leftover = symbioticCollateral.limit() -
+            symbioticCollateral.totalSupply();
         assetAmount = Math.min(assetAmount, leftover);
         if (assetAmount == 0) {
             return;
         }
         token.safeIncreaseAllowance(address(symbioticCollateral), assetAmount);
-        uint256 amount = symbioticCollateral.deposit(address(this), assetAmount);
+        uint256 amount = symbioticCollateral.deposit(
+            address(this),
+            assetAmount
+        );
         if (amount != assetAmount) {
             token.forceApprove(address(symbioticCollateral), 0);
         }
 
         uint256 bondAmount = symbioticCollateral.balanceOf(address(this));
-        IERC20(symbioticCollateral).safeIncreaseAllowance(address(symbioticVault), bondAmount);
-        (uint256 stakedAmount,) = symbioticVault.deposit(address(this), bondAmount);
+        IERC20(symbioticCollateral).safeIncreaseAllowance(
+            address(symbioticVault),
+            bondAmount
+        );
+        (uint256 stakedAmount, ) = symbioticVault.deposit(
+            address(this),
+            bondAmount
+        );
         if (bondAmount != stakedAmount) {
-            IERC20(symbioticCollateral).forceApprove(address(symbioticVault), 0);
+            IERC20(symbioticCollateral).forceApprove(
+                address(symbioticVault),
+                0
+            );
         }
     }
 
     function _deposit(address depositToken, uint256 amount) internal virtual {
-        if (depositToken != _contractStorage().token) revert("BaseVault: invalid deposit token");
-        IERC20(depositToken).safeTransferFrom(msg.sender, address(this), amount);
+        if (depositToken != _contractStorage().token)
+            revert("BaseVault: invalid deposit token");
+        IERC20(depositToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
     }
 
     modifier onlyOwner() {
@@ -261,17 +327,26 @@ contract BaseVault is ERC20VotesUpgradeable {
         return _totalSupply;
     }
 
-    function balanceOf(address account) public view virtual override returns (uint256) {
+    function balanceOf(
+        address account
+    ) public view virtual override returns (uint256) {
         return _balances[account];
     }
 
-    function allowance(address owner, address spender) public view virtual override returns (uint256) {
+    function allowance(
+        address owner,
+        address spender
+    ) public view virtual override returns (uint256) {
         return _allowances[owner][spender];
     }
 
     /// @dev added early revert for paused state
     /// @dev merged ERC20 -> ERC20VotesUpgradeable: in ERC20VotesUpgradeable/ERC20Upgradeable replaces all $ -> direct storage access
-    function _update(address from, address to, uint256 value) internal virtual override {
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal virtual override {
         // ERC20Pausable
         if (_contractStorage().paused) revert("BaseVault: paused");
         // ERC20
@@ -313,7 +388,12 @@ contract BaseVault is ERC20VotesUpgradeable {
         _transferVotingUnits(from, to, value);
     }
 
-    function _approve(address owner, address spender, uint256 value, bool emitEvent) internal virtual override {
+    function _approve(
+        address owner,
+        address spender,
+        uint256 value,
+        bool emitEvent
+    ) internal virtual override {
         if (owner == address(0)) {
             revert ERC20InvalidApprover(address(0));
         }
@@ -326,9 +406,18 @@ contract BaseVault is ERC20VotesUpgradeable {
         }
     }
 
-    event Deposit(address indexed user, uint256 depositValue, uint256 lpAmount, address referral);
+    event Deposit(
+        address indexed user,
+        uint256 depositValue,
+        uint256 lpAmount,
+        address referral
+    );
     event NewLimit(uint256 limit);
     event PushToSymbioticBond(uint256 amount);
     event FarmSet(address rewardToken, FarmData farmData);
-    event RewardsPushed(address rewardToken, uint256 rewardAmount, uint256 timestamp);
+    event RewardsPushed(
+        address rewardToken,
+        uint256 rewardAmount,
+        uint256 timestamp
+    );
 }

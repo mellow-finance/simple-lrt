@@ -9,7 +9,11 @@ interface IStakerRewards {
      * @param data some data to use
      * @return amount of claimable tokens
      */
-    function claimable(address token, address account, bytes calldata data) external view returns (uint256);
+    function claimable(
+        address token,
+        address account,
+        bytes calldata data
+    ) external view returns (uint256);
 
     /**
      * @notice Claim rewards using a given token.
@@ -17,5 +21,9 @@ interface IStakerRewards {
      * @param token address of the token
      * @param data some data to use
      */
-    function claimRewards(address recipient, address token, bytes calldata data) external;
+    function claimRewards(
+        address recipient,
+        address token,
+        bytes calldata data
+    ) external;
 }
