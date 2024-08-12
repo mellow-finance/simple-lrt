@@ -237,70 +237,15 @@ abstract contract Vault is VaultStorage {
         );
     }
 
-    function name() public view virtual returns (string memory);
-
-    function symbol() public view virtual returns (string memory);
-
     function totalSupply() public view virtual returns (uint256);
 
     function balanceOf(address account) public view virtual returns (uint256);
-
-    function allowance(
-        address owner,
-        address spender
-    ) public view virtual returns (uint256);
 
     function _mint(address account, uint256 amount) internal virtual;
 
     function _burn(address account, uint256 amount) internal virtual;
 
-    // /// @dev added early revert for paused state
-    // /// @dev merged ERC20 -> ERC20VotesUpgradeable: in ERC20VotesUpgradeable/ERC20Upgradeable replaces all $ -> direct storage access
-    // function _update(
-    //     address from,
-    //     address to,
-    //     uint256 value
-    // ) internal virtual override {
-    //     // ERC20Pausable
-    //     if (_contractStorage().paused) revert("BaseVault: paused");
-    //     // ERC20
-    //     if (from == address(0)) {
-    //         // Overflow check required: The rest of the code assumes that totalSupply never overflows
-    //         _totalSupply += value;
-    //     } else {
-    //         uint256 fromBalance = _balances[from];
-    //         if (fromBalance < value) {
-    //             revert ERC20InsufficientBalance(from, fromBalance, value);
-    //         }
-    //         unchecked {
-    //             // Overflow not possible: value <= fromBalance <= totalSupply.
-    //             _balances[from] = fromBalance - value;
-    //         }
-    //     }
-
-    //     if (to == address(0)) {
-    //         unchecked {
-    //             // Overflow not possible: value <= totalSupply or value <= fromBalance <= totalSupply.
-    //             _totalSupply -= value;
-    //         }
-    //     } else {
-    //         unchecked {
-    //             // Overflow not possible: balance + value is at most totalSupply, which we know fits into a uint256.
-    //             _balances[to] += value;
-    //         }
-    //     }
-
-    //     emit Transfer(from, to, value);
-    //     // ERC20Votes
-    //     if (from == address(0)) {
-    //         uint256 supply = totalSupply();
-    //         uint256 cap = _maxSupply();
-    //         if (supply > cap) {
-    //             revert ERC20ExceededSafeSupply(supply, cap);
-    //         }
-    //     }
-    //     _transferVotingUnits(from, to, value);
-    // }
+    function _preDeposit(address depositToken, uint256 amount) internal virtual;
 
     event Deposit(
         address indexed user,
