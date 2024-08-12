@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.25;
 
 interface ISymbioticVault {
     struct ActiveBalanceOfHints {
@@ -15,12 +15,7 @@ interface ISymbioticVault {
      * @param amount amount of the collateral deposited
      * @param shares amount of the active shares minted
      */
-    event Deposit(
-        address indexed depositor,
-        address indexed onBehalfOf,
-        uint256 amount,
-        uint256 shares
-    );
+    event Deposit(address indexed depositor, address indexed onBehalfOf, uint256 amount, uint256 shares);
 
     /**
      * @notice Emitted when a withdrawal is made.
@@ -31,11 +26,7 @@ interface ISymbioticVault {
      * @param mintedShares amount of the epoch withdrawal shares minted
      */
     event Withdraw(
-        address indexed withdrawer,
-        address indexed claimer,
-        uint256 amount,
-        uint256 burnedShares,
-        uint256 mintedShares
+        address indexed withdrawer, address indexed claimer, uint256 amount, uint256 burnedShares, uint256 mintedShares
     );
 
     /**
@@ -45,12 +36,7 @@ interface ISymbioticVault {
      * @param epoch epoch the collateral was claimed for
      * @param amount amount of the collateral claimed
      */
-    event Claim(
-        address indexed claimer,
-        address indexed recipient,
-        uint256 epoch,
-        uint256 amount
-    );
+    event Claim(address indexed claimer, address indexed recipient, uint256 epoch, uint256 amount);
 
     /**
      * @notice Emitted when a batch claim is made.
@@ -59,12 +45,7 @@ interface ISymbioticVault {
      * @param epochs epochs the collateral was claimed for
      * @param amount amount of the collateral claimed
      */
-    event ClaimBatch(
-        address indexed claimer,
-        address indexed recipient,
-        uint256[] epochs,
-        uint256 amount
-    );
+    event ClaimBatch(address indexed claimer, address indexed recipient, uint256[] epochs, uint256 amount);
 
     /**
      * @notice Emitted when a slash happened.
@@ -99,11 +80,10 @@ interface ISymbioticVault {
      * @param hints hints for checkpoints' indexes
      * @return active balance for the account at the timestamp
      */
-    function activeBalanceOfAt(
-        address account,
-        uint48 timestamp,
-        bytes calldata hints
-    ) external view returns (uint256);
+    function activeBalanceOfAt(address account, uint48 timestamp, bytes calldata hints)
+        external
+        view
+        returns (uint256);
 
     /**
      * @notice Get an active balance for a particular account.
@@ -118,10 +98,7 @@ interface ISymbioticVault {
      * @param account account to get the withdrawals for
      * @return withdrawals for the account at the epoch
      */
-    function withdrawalsOf(
-        uint256 epoch,
-        address account
-    ) external view returns (uint256);
+    function withdrawalsOf(uint256 epoch, address account) external view returns (uint256);
 
     /**
      * @notice Get a total amount of the collateral that can be slashed for a given account.
@@ -136,10 +113,9 @@ interface ISymbioticVault {
      * @return depositedAmount amount of the collateral deposited
      * @return mintedShares amount of the active shares minted
      */
-    function deposit(
-        address onBehalfOf,
-        uint256 amount
-    ) external returns (uint256 depositedAmount, uint256 mintedShares);
+    function deposit(address onBehalfOf, uint256 amount)
+        external
+        returns (uint256 depositedAmount, uint256 mintedShares);
 
     /**
      * @notice Withdraw collateral from the vault (it will be claimable after the next epoch).
@@ -148,10 +124,7 @@ interface ISymbioticVault {
      * @return burnedShares amount of the active shares burned
      * @return mintedShares amount of the epoch withdrawal shares minted
      */
-    function withdraw(
-        address claimer,
-        uint256 amount
-    ) external returns (uint256 burnedShares, uint256 mintedShares);
+    function withdraw(address claimer, uint256 amount) external returns (uint256 burnedShares, uint256 mintedShares);
 
     /**
      * @notice Claim collateral from the vault.
@@ -159,10 +132,7 @@ interface ISymbioticVault {
      * @param epoch epoch to claim the collateral for
      * @return amount amount of the collateral claimed
      */
-    function claim(
-        address recipient,
-        uint256 epoch
-    ) external returns (uint256 amount);
+    function claim(address recipient, uint256 epoch) external returns (uint256 amount);
 
     /**
      * @notice Claim collateral from the vault for multiple epochs.
@@ -170,10 +140,7 @@ interface ISymbioticVault {
      * @param epochs epochs to claim the collateral for
      * @return amount amount of the collateral claimed
      */
-    function claimBatch(
-        address recipient,
-        uint256[] calldata epochs
-    ) external returns (uint256 amount);
+    function claimBatch(address recipient, uint256[] calldata epochs) external returns (uint256 amount);
 
     /**
      * @notice Slash callback for burning collateral.
@@ -302,9 +269,7 @@ interface ISymbioticVault {
      * @param account address to check
      * @return if the account is whitelisted as a depositor
      */
-    function isDepositorWhitelisted(
-        address account
-    ) external view returns (bool);
+    function isDepositorWhitelisted(address account) external view returns (bool);
 
     /**
      * @notice Get a total number of active shares in the vault at a given timestamp using a hint.
@@ -312,10 +277,7 @@ interface ISymbioticVault {
      * @param hint hint for the checkpoint index
      * @return total number of active shares at the timestamp
      */
-    function activeSharesAt(
-        uint48 timestamp,
-        bytes memory hint
-    ) external view returns (uint256);
+    function activeSharesAt(uint48 timestamp, bytes memory hint) external view returns (uint256);
 
     /**
      * @notice Get a total number of active shares in the vault.
@@ -329,10 +291,7 @@ interface ISymbioticVault {
      * @param hint hint for the checkpoint index
      * @return total amount of active stake at the timestamp
      */
-    function activeStakeAt(
-        uint48 timestamp,
-        bytes memory hint
-    ) external view returns (uint256);
+    function activeStakeAt(uint48 timestamp, bytes memory hint) external view returns (uint256);
 
     /**
      * @notice Get a total amount of active stake in the vault.
@@ -347,11 +306,7 @@ interface ISymbioticVault {
      * @param hint hint for the checkpoint index
      * @return number of active shares for the account at the timestamp
      */
-    function activeSharesOfAt(
-        address account,
-        uint48 timestamp,
-        bytes memory hint
-    ) external view returns (uint256);
+    function activeSharesOfAt(address account, uint48 timestamp, bytes memory hint) external view returns (uint256);
 
     /**
      * @notice Get a number of active shares for a particular account.
@@ -380,10 +335,7 @@ interface ISymbioticVault {
      * @param account account to get the number of withdrawal shares for
      * @return number of withdrawal shares for the account at the epoch
      */
-    function withdrawalSharesOf(
-        uint256 epoch,
-        address account
-    ) external view returns (uint256);
+    function withdrawalSharesOf(uint256 epoch, address account) external view returns (uint256);
 
     /**
      * @notice Get if the withdrawals are claimed for a particular account at a given epoch.
@@ -391,8 +343,5 @@ interface ISymbioticVault {
      * @param account account to check the withdrawals for
      * @return if the withdrawals are claimed for the account at the epoch
      */
-    function isWithdrawalsClaimed(
-        uint256 epoch,
-        address account
-    ) external view returns (bool);
+    function isWithdrawalsClaimed(uint256 epoch, address account) external view returns (bool);
 }

@@ -1,54 +1,35 @@
 // SPDX-License-Identifier: BSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.25;
 
-import {IDefaultCollateral} from "./interfaces/IDefaultCollateral.sol";
-import {ISymbioticVault} from "./interfaces/ISymbioticVault.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "./interfaces/vaults/IVaultStorage.sol";
 
-contract VaultStorage {
+contract VaultStorage is IVaultStorage, Initializable {
     using EnumerableSet for EnumerableSet.AddressSet;
-    uint256 public constant VERSION = 1;
-    bytes32 public NAME = keccak256("Vault");
+
+    bytes32 public immutable NAME;
+    uint256 public immutable VERSION;
     bytes32 public immutable storageSlotRef;
 
-    constructor() {
+    constructor(bytes32 name_, uint256 version_) {
+        NAME = name_;
+        VERSION = version_;
         storageSlotRef = keccak256(
-            abi.encodePacked("VaultStorage", NAME, VERSION)
-        );
+            abi.encode(
+                uint256(keccak256(abi.encodePacked("mellow.simple-lrt.storage.VaultStorage", name_, version_))) - 1
+            )
+        ) & ~bytes32(uint256(0xff)) & ~bytes32(uint256(0xff));
     }
 
-    struct FarmData {
-        address symbioticFarm;
-        address distributionFarm;
-        address curatorTreasury;
-        uint256 curatorFeeD4;
-    }
-
-    struct Storage {
-        IDefaultCollateral symbioticCollateral;
-        ISymbioticVault symbioticVault;
-        address token;
-        address owner;
-        bool paused;
-        uint256 limit;
-        EnumerableSet.AddressSet rewardTokens;
-        mapping(address rewardToken => FarmData data) farms;
-    }
-
-    function initialize(
-        address _symbioticCollateral,
-        address _symbioticVault,
-        uint256 _limit,
-        address _owner,
-        bool _paused
-    ) public {
-        // TODO: Add one-time lock
+    function initializeStorage(address _symbioticCollateral, address _symbioticVault, uint256 _limit, bool _paused)
+        public
+        initializer
+    {
         _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
         _setLimit(_limit);
-        _setOwner(_owner);
         _setToken(IDefaultCollateral(_symbioticCollateral).asset());
-        _setPaused(_paused);
+        _setDepositPause(_paused);
+        _setTransferPause(_paused);
     }
 
     function symbioticCollateral() public view returns (IDefaultCollateral) {
@@ -63,12 +44,12 @@ contract VaultStorage {
         return _contractStorage().token;
     }
 
-    function owner() public view returns (address) {
-        return _contractStorage().owner;
+    function depositPause() public view returns (bool) {
+        return _contractStorage().depositPause;
     }
 
-    function paused() public view returns (bool) {
-        return _contractStorage().paused;
+    function transferPause() public view returns (bool) {
+        return _contractStorage().transferPause;
     }
 
     function limit() public view returns (uint256) {
@@ -79,9 +60,7 @@ contract VaultStorage {
         return _contractStorage().rewardTokens.values();
     }
 
-    function symbioticFarm(
-        address rewardToken
-    ) public view returns (FarmData memory) {
+    function symbioticFarm(address rewardToken) public view returns (FarmData memory) {
         return _contractStorage().farms[rewardToken];
     }
 
@@ -90,14 +69,17 @@ contract VaultStorage {
         s.limit = _limit;
     }
 
-    function _setPaused(bool _paused) internal {
+    function _setDepositPause(bool _paused) internal {
         Storage storage s = _contractStorage();
-        s.paused = _paused;
+        s.depositPause = _paused;
     }
 
-    function _setSymbioticCollateral(
-        IDefaultCollateral _symbioticCollateral
-    ) internal {
+    function _setTransferPause(bool _paused) internal {
+        Storage storage s = _contractStorage();
+        s.transferPause = _paused;
+    }
+
+    function _setSymbioticCollateral(IDefaultCollateral _symbioticCollateral) internal {
         Storage storage s = _contractStorage();
         s.symbioticCollateral = _symbioticCollateral;
     }
@@ -112,15 +94,7 @@ contract VaultStorage {
         s.token = _token;
     }
 
-    function _setOwner(address _owner) internal {
-        Storage storage s = _contractStorage();
-        s.owner = _owner;
-    }
-
-    function _setSymbioticFarm(
-        address rewardToken,
-        FarmData memory farmData
-    ) internal {
+    function _setSymbioticFarm(address rewardToken, FarmData memory farmData) internal {
         Storage storage s = _contractStorage();
         s.farms[rewardToken] = farmData;
         s.rewardTokens.add(rewardToken);
@@ -133,9 +107,9 @@ contract VaultStorage {
     }
 
     function _contractStorage() private view returns (Storage storage $) {
-        bytes32 loc = storageSlotRef;
+        bytes32 slot = storageSlotRef;
         assembly {
-            $.slot := loc
+            $.slot := slot
         }
     }
 }
