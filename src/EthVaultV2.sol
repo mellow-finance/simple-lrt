@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: BSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.25;
 
-import "./interfaces/IWETH.sol";
-import "./interfaces/ISTETH.sol";
-import "./interfaces/IWSTETH.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 
 import "./Vault.sol";
@@ -21,18 +18,15 @@ contract EthVaultV2 is ERC20VotesUpgradeable, Vault, EthWrapper {
     ) external {
         initialize(_symbioticCollateral, _symbioticVault, _limit, _owner, _paused);
         __ERC20_init(name, symbol);
+        __EIP712_init(name, "1");
+    }
+
+    function _update(address from, address to, uint256 amount) internal override(Vault, ERC20VotesUpgradeable) {
+        super._update(from, to, amount);
     }
 
     function _deposit(address depositToken, uint256 amount) internal override {
         _wrap(depositToken, amount);
-    }
-
-    function _doBurn(address account, uint256 amount) internal override {
-        ERC20Upgradeable._burn(account, amount);
-    }
-
-    function _doMint(address account, uint256 amount) internal override {
-        ERC20Upgradeable._mint(account, amount);
     }
 
     function balanceOf(address account) public view override(Vault, ERC20Upgradeable) returns (uint256) {

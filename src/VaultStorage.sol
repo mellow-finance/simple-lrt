@@ -1,38 +1,15 @@
 // SPDX-License-Identifier: BSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.25;
 
-import {IDefaultCollateral} from "./interfaces/IDefaultCollateral.sol";
-import {ISymbioticVault} from "./interfaces/ISymbioticVault.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "./interfaces/IVaultStorage.sol";
 
-contract VaultStorage {
+contract VaultStorage is IVaultStorage {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     uint256 public constant VERSION = 1;
-    bytes32 public NAME = keccak256("Vault");
-    bytes32 public immutable storageSlotRef;
-
-    constructor() {
-        storageSlotRef = keccak256(abi.encodePacked("VaultStorage", NAME, VERSION));
-    }
-
-    struct FarmData {
-        address symbioticFarm;
-        address distributionFarm;
-        address curatorTreasury;
-        uint256 curatorFeeD4;
-    }
-
-    struct Storage {
-        IDefaultCollateral symbioticCollateral;
-        ISymbioticVault symbioticVault;
-        address token;
-        address owner;
-        bool paused;
-        uint256 limit;
-        EnumerableSet.AddressSet rewardTokens;
-        mapping(address rewardToken => FarmData data) farms;
-    }
+    bytes32 public constant NAME = keccak256("Vault");
+    // keccak256(abi.encode(uint256(keccak256("mellow.simple-lrt.storage.VaultStorage")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 public constant storageSlotRef = 0x1f29c05ab79b0f5912eb538f64277220bb5e44f5c0d8d47a80a4de692e2a2200;
 
     function initialize(
         address _symbioticCollateral,
@@ -41,7 +18,9 @@ contract VaultStorage {
         address _owner,
         bool _paused
     ) public {
-        // TODO: Add one-time lock
+        if (owner() != address(0)) {
+            revert("VaultStorage: already initialized");
+        }
         _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
         _setLimit(_limit);
@@ -124,10 +103,9 @@ contract VaultStorage {
         s.rewardTokens.remove(rewardToken);
     }
 
-    function _contractStorage() private view returns (Storage storage $) {
-        bytes32 loc = storageSlotRef;
+    function _contractStorage() private pure returns (Storage storage $) {
         assembly {
-            $.slot := loc
+            $.slot := storageSlotRef
         }
     }
 }

@@ -1,21 +1,13 @@
 // SPDX-License-Identifier: BSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.25;
 
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-
-import {IDefaultCollateral} from "./interfaces/IDefaultCollateral.sol";
-import {ISymbioticVault} from "./interfaces/ISymbioticVault.sol";
-import {IStakerRewards} from "./interfaces/IStakerRewards.sol";
+import "./interfaces/IVault.sol";
 import {VaultStorage} from "./VaultStorage.sol";
 
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
 // 2. Tests (unit, int, e2e, migration)
-
-abstract contract Vault is VaultStorage {
+abstract contract Vault is IVault, VaultStorage {
     using SafeERC20 for IERC20;
 
     modifier onlyOwner() {
@@ -88,14 +80,13 @@ abstract contract Vault is VaultStorage {
         }
         pushIntoSymbiotic();
 
-        _doMint(recipient, lpAmount);
+        _update(address(0), recipient, lpAmount);
         emit Deposit(recipient, depositValue, lpAmount, referral);
     }
 
     function withdraw(uint256 lpAmount) external returns (uint256 withdrawnAmount, uint256 amountToClaim) {
         lpAmount = Math.min(lpAmount, balanceOf(msg.sender));
         if (lpAmount == 0) return (0, 0);
-        _doBurn(msg.sender, lpAmount);
 
         address token = token();
         IDefaultCollateral symbioticCollateral = symbioticCollateral();
@@ -171,15 +162,11 @@ abstract contract Vault is VaultStorage {
 
     function balanceOf(address account) public view virtual returns (uint256);
 
-    function _doMint(address account, uint256 amount) internal virtual;
-
-    function _doBurn(address account, uint256 amount) internal virtual;
+    function _update(address, /* from */ address, /* to */ uint256 /* amount */ ) internal virtual {
+        if (paused()) {
+            revert("Vault: paused");
+        }
+    }
 
     function _deposit(address depositToken, uint256 amount) internal virtual;
-
-    event Deposit(address indexed user, uint256 depositValue, uint256 lpAmount, address referral);
-    event NewLimit(uint256 limit);
-    event PushToSymbioticBond(uint256 amount);
-    event FarmSet(address rewardToken, FarmData farmData);
-    event RewardsPushed(address rewardToken, uint256 rewardAmount, uint256 timestamp);
 }
