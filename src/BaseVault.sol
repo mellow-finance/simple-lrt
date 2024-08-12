@@ -1,7 +1,8 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20VotesUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -12,22 +13,33 @@ import {IDefaultCollateral} from "./interfaces/IDefaultCollateral.sol";
 import {ISymbioticVault} from "./interfaces/ISymbioticVault.sol";
 import {IStakerRewards} from "./interfaces/IStakerRewards.sol";
 
-// TODO: Storage initializer
-// TODO: Off by 1 errors
-// TODO; Tests
-contract BaseVault is ERC20 {
+// TODO:
+// 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
+// 2. Tests (unit, int, e2e, migration)
+
+/*
+    ERC20 Merge Logic:
+    Current Symbiotic deployments use ERC20 of oz, while having a few other non-zero slots.
+    Slots: https://github.com/mellow-finance/mellow-lrt/blob/main/src/Vault.sol#L12-L28
+
+    The idea is to override all required ERC20Upgradable functions with identical ERC20 functions, by explicitly implementing them in this BaseVault.sol contact.
+*/
+contract BaseVault is ERC20VotesUpgradeable {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
+
+    // ERC20 slots
+    mapping(address account => uint256) private _balances;
+    mapping(address account => mapping(address spender => uint256)) private _allowances;
+    uint256 private _totalSupply;
+    string private _name;
+    string private _symbol;
 
     // keccak256(abi.encode(uint256(keccak256("mellow.storage.BaseVault")) - 1)) & ~bytes32(uint256(0xff))
     // TODO: FIX THIS
     bytes32 private constant BaseVaultStorageLocation =
         0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef;
 
-    /// @param symbioticFarm address of the symbiotic farm
-    /// @param distributionFarm address of the distribution farm (merkle tree or some other farm contract)
-    /// @param curatorTreasury address of the curator treasury
-    /// @param curatorFeeD4 curator fee in D4
     struct FarmData {
         address symbioticFarm;
         address distributionFarm;
@@ -35,14 +47,6 @@ contract BaseVault is ERC20 {
         uint256 curatorFeeD4;
     }
 
-    /// @param symbioticCollateral address of the symbiotic collateral, base token for the symbiotic vault
-    /// @param symbioticVault address of the symbiotic vault, used for (re) staking and unstaking
-    /// @param token address of the vault token, used for deposits, withdrawals and tvl calculations
-    /// @param owner address of the owner, can set farms, pause the vault and set the limit
-    /// @param paused whether the vault is paused (no deposits, withdrawals or transfers)
-    /// @param limit maximum amount of LP tokens that can be minted
-    /// @param rewardTokens set of reward tokens
-    /// @param farms mapping of reward token to farm data
     struct Storage {
         IDefaultCollateral symbioticCollateral;
         ISymbioticVault symbioticVault;
@@ -60,23 +64,13 @@ contract BaseVault is ERC20 {
         }
     }
 
-    constructor(string memory _name, string memory _ticker) ERC20(_name, _ticker) {}
+    function initialize(address _symbioticCollateral, address _symbioticVault, uint256 _limit, address _owner)
+        external
+        initializer
+    {
+        __EIP712_init(name(), "1");
 
-    function initialize(
-        bytes32[] calldata _slotsForNullification,
-        address _symbioticCollateral,
-        address _symbioticVault,
-        uint256 _limit,
-        address _owner
-    ) external {
         Storage storage s = _contractStorage();
-        if (s.owner != address(0)) revert("BaseVault: already initialized");
-        for (uint256 i = 0; i < _slotsForNullification.length; i++) {
-            bytes32 slot = _slotsForNullification[i];
-            assembly {
-                sstore(slot, 0)
-            }
-        }
         s.symbioticVault = ISymbioticVault(_symbioticVault);
         s.symbioticCollateral = IDefaultCollateral(_symbioticCollateral);
         s.limit = _limit;
@@ -84,8 +78,6 @@ contract BaseVault is ERC20 {
         s.owner = _owner;
         s.paused = false;
     }
-
-    // Permissioned setters
 
     function setLimit(uint256 _limit) external onlyOwner {
         Storage storage s = _contractStorage();
@@ -118,9 +110,6 @@ contract BaseVault is ERC20 {
         _contractStorage().paused = false;
     }
 
-    // 1. claims rewards from symbiotic farm
-    // 2. tranfers curators fee to curator treasury
-    // 3. tranfers remaining rewards to distribution farm
     function pushRewards(address rewardToken, bytes calldata symbioticRewardsData) external {
         FarmData memory data = _contractStorage().farms[rewardToken];
         require(data.symbioticFarm != address(0), "Vault: farm not set");
@@ -139,8 +128,6 @@ contract BaseVault is ERC20 {
         emit RewardsPushed(rewardToken, rewardAmount, block.timestamp);
     }
 
-    // Virtual functions
-
     function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
         Storage storage s = _contractStorage();
         if (
@@ -154,7 +141,6 @@ contract BaseVault is ERC20 {
         }
     }
 
-    // calculates the amount of staked tokens in the symbiotic vault with rouding
     function getSymbioticVaultStake(Math.Rounding rounding) public view returns (uint256 vaultActiveStake) {
         ISymbioticVault symbioticVault = _contractStorage().symbioticVault;
         uint256 vaultActiveShares = symbioticVault.activeSharesOf(address(this));
@@ -163,7 +149,6 @@ contract BaseVault is ERC20 {
         vaultActiveStake = Math.mulDiv(activeStake, vaultActiveShares, activeShares, rounding);
     }
 
-    // calculates the total value locked in the vault in `token`
     function tvl(Math.Rounding rounding) public view returns (uint256 totalValueLocked) {
         Storage storage s = _contractStorage();
         return IERC20(s.token).balanceOf(address(this)) + s.symbioticCollateral.balanceOf(address(this))
@@ -190,8 +175,6 @@ contract BaseVault is ERC20 {
         _mint(recipient, lpAmount);
         emit Deposit(recipient, depositValue, lpAmount, referral);
     }
-
-    // Withdrawal related functions
 
     function withdraw(uint256 lpAmount) external returns (uint256 withdrawnAmount, uint256 amountToClaim) {
         Storage storage s = _contractStorage();
@@ -230,7 +213,6 @@ contract BaseVault is ERC20 {
         s.symbioticVault.withdraw(msg.sender, sharesAmount);
     }
 
-    // deposits token into Collateral
     function pushIntoSymbiotic() public {
         Storage storage s = _contractStorage();
         IERC20 token = IERC20(s.token);
@@ -256,18 +238,9 @@ contract BaseVault is ERC20 {
         }
     }
 
-    // base implementation of deposit
-    // transfers `amount` of `depositToken` from `msg.sender` to the vault
-    // requires the deposit token to be the same as the vault token
     function _deposit(address depositToken, uint256 amount, address /* referral */ ) internal virtual {
         if (depositToken != _contractStorage().token) revert("BaseVault: invalid deposit token");
         IERC20(depositToken).safeTransferFrom(msg.sender, address(this), amount);
-    }
-
-    // ERC20Votes overrides + Pausable modifier
-    function _update(address from, address to, uint256 value) internal virtual override {
-        require(!_contractStorage().paused, "BaseVault: paused");
-        super._update(from, to, value);
     }
 
     modifier onlyOwner() {
@@ -275,12 +248,87 @@ contract BaseVault is ERC20 {
         _;
     }
 
+    // ERC20 && ERC20Upgradeable merge
+    function name() public view virtual override returns (string memory) {
+        return _name;
+    }
+
+    function symbol() public view virtual override returns (string memory) {
+        return _symbol;
+    }
+
+    function totalSupply() public view virtual override returns (uint256) {
+        return _totalSupply;
+    }
+
+    function balanceOf(address account) public view virtual override returns (uint256) {
+        return _balances[account];
+    }
+
+    function allowance(address owner, address spender) public view virtual override returns (uint256) {
+        return _allowances[owner][spender];
+    }
+
+    /// @dev added early revert for paused state
+    /// @dev merged ERC20 -> ERC20VotesUpgradeable: in ERC20VotesUpgradeable/ERC20Upgradeable replaces all $ -> direct storage access
+    function _update(address from, address to, uint256 value) internal virtual override {
+        // ERC20Pausable
+        if (_contractStorage().paused) revert("BaseVault: paused");
+        // ERC20
+        if (from == address(0)) {
+            // Overflow check required: The rest of the code assumes that totalSupply never overflows
+            _totalSupply += value;
+        } else {
+            uint256 fromBalance = _balances[from];
+            if (fromBalance < value) {
+                revert ERC20InsufficientBalance(from, fromBalance, value);
+            }
+            unchecked {
+                // Overflow not possible: value <= fromBalance <= totalSupply.
+                _balances[from] = fromBalance - value;
+            }
+        }
+
+        if (to == address(0)) {
+            unchecked {
+                // Overflow not possible: value <= totalSupply or value <= fromBalance <= totalSupply.
+                _totalSupply -= value;
+            }
+        } else {
+            unchecked {
+                // Overflow not possible: balance + value is at most totalSupply, which we know fits into a uint256.
+                _balances[to] += value;
+            }
+        }
+
+        emit Transfer(from, to, value);
+        // ERC20Votes
+        if (from == address(0)) {
+            uint256 supply = totalSupply();
+            uint256 cap = _maxSupply();
+            if (supply > cap) {
+                revert ERC20ExceededSafeSupply(supply, cap);
+            }
+        }
+        _transferVotingUnits(from, to, value);
+    }
+
+    function _approve(address owner, address spender, uint256 value, bool emitEvent) internal virtual override {
+        if (owner == address(0)) {
+            revert ERC20InvalidApprover(address(0));
+        }
+        if (spender == address(0)) {
+            revert ERC20InvalidSpender(address(0));
+        }
+        _allowances[owner][spender] = value;
+        if (emitEvent) {
+            emit Approval(owner, spender, value);
+        }
+    }
+
     event Deposit(address indexed user, uint256 depositValue, uint256 lpAmount, address referral);
-    event Withdrawal(address indexed user, uint256 amount);
     event NewLimit(uint256 limit);
     event PushToSymbioticBond(uint256 amount);
-    event PushToSymbioticVault(uint256 initialAmount, uint256 amount, uint256 shares);
     event FarmSet(address rewardToken, FarmData farmData);
-
     event RewardsPushed(address rewardToken, uint256 rewardAmount, uint256 timestamp);
 }

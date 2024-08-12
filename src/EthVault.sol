@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
 import "./interfaces/IWETH.sol";
@@ -15,18 +15,13 @@ contract EthVault is BaseVault {
 
     using SafeERC20 for IERC20;
 
-    constructor(string memory _name, string memory _ticker) BaseVault(_name, _ticker) {}
-
-    function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual override {
-        super._setFarmChecks(rewardToken, farmData);
-        if (rewardToken == WETH || rewardToken == stETH) {
-            revert("EthVault: forbidden reward token");
-        }
-    }
-
     function _deposit(address depositToken, uint256 amount, address referral) internal virtual override {
         if (amount == 0) {
             revert("EthVault: amount must be greater than 0");
+        }
+
+        if (depositToken != ETH && depositToken != WETH && depositToken != stETH && depositToken != wstETH) {
+            revert("EthVault: invalid depositToken");
         }
 
         if (depositToken != ETH) {
@@ -51,8 +46,6 @@ contract EthVault is BaseVault {
             IWSTETH(wstETH).wrap(amount);
             depositToken = wstETH;
         }
-
-        if (depositToken != wstETH) revert("EthVault: invalid depositToken");
     }
 
     receive() external payable {}
