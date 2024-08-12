@@ -23,7 +23,7 @@ import {IStakerRewards} from "./interfaces/IStakerRewards.sol";
 
     The idea is to override all required ERC20Upgradable functions with identical ERC20 functions, by explicitly implementing them in this BaseVault.sol contact.
 */
-contract Vault {
+contract BaseVault is ERC20VotesUpgradeable {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -47,16 +47,6 @@ contract Vault {
         uint256 curatorFeeD4;
     }
 
-    struct Storage {
-        IDefaultCollateral symbioticCollateral;
-        ISymbioticVault symbioticVault;
-        address token;
-        address owner;
-        bool paused;
-        uint256 limit;
-        EnumerableSet.AddressSet rewardTokens;
-        mapping(address rewardToken => FarmData data) farms;
-    }
 
     function _contractStorage() private pure returns (Storage storage $) {
         assembly {
