@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./interfaces/IVaultStorage.sol";
+import "./interfaces/vaults/IVaultStorage.sol";
 
-contract VaultStorage is IVaultStorage {
+contract VaultStorage is IVaultStorage, Initializable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     bytes32 public immutable NAME;
@@ -20,22 +20,16 @@ contract VaultStorage is IVaultStorage {
         ) & ~bytes32(uint256(0xff)) & ~bytes32(uint256(0xff));
     }
 
-    function initialize(
-        address _symbioticCollateral,
-        address _symbioticVault,
-        uint256 _limit,
-        address _owner,
-        bool _paused
-    ) public {
-        if (owner() != address(0)) {
-            revert("VaultStorage: already initialized");
-        }
+    function initializeStorage(address _symbioticCollateral, address _symbioticVault, uint256 _limit, bool _paused)
+        public
+        initializer
+    {
         _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
         _setLimit(_limit);
-        _setOwner(_owner);
         _setToken(IDefaultCollateral(_symbioticCollateral).asset());
-        _setPaused(_paused);
+        _setDepositPause(_paused);
+        _setTransferPause(_paused);
     }
 
     function symbioticCollateral() public view returns (IDefaultCollateral) {
@@ -50,12 +44,12 @@ contract VaultStorage is IVaultStorage {
         return _contractStorage().token;
     }
 
-    function owner() public view returns (address) {
-        return _contractStorage().owner;
+    function depositPause() public view returns (bool) {
+        return _contractStorage().depositPause;
     }
 
-    function paused() public view returns (bool) {
-        return _contractStorage().paused;
+    function transferPause() public view returns (bool) {
+        return _contractStorage().transferPause;
     }
 
     function limit() public view returns (uint256) {
@@ -75,9 +69,14 @@ contract VaultStorage is IVaultStorage {
         s.limit = _limit;
     }
 
-    function _setPaused(bool _paused) internal {
+    function _setDepositPause(bool _paused) internal {
         Storage storage s = _contractStorage();
-        s.paused = _paused;
+        s.depositPause = _paused;
+    }
+
+    function _setTransferPause(bool _paused) internal {
+        Storage storage s = _contractStorage();
+        s.transferPause = _paused;
     }
 
     function _setSymbioticCollateral(IDefaultCollateral _symbioticCollateral) internal {
@@ -93,11 +92,6 @@ contract VaultStorage is IVaultStorage {
     function _setToken(address _token) internal {
         Storage storage s = _contractStorage();
         s.token = _token;
-    }
-
-    function _setOwner(address _owner) internal {
-        Storage storage s = _contractStorage();
-        s.owner = _owner;
     }
 
     function _setSymbioticFarm(address rewardToken, FarmData memory farmData) internal {

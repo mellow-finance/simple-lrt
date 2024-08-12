@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./interfaces/IWETH.sol";
-import "./interfaces/ISTETH.sol";
-import "./interfaces/IWSTETH.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./Vault.sol";
+import {IWETH} from "./interfaces/tokens/IWETH.sol";
+import {ISTETH} from "./interfaces/tokens/ISTETH.sol";
+import {IWSTETH} from "./interfaces/tokens/IWSTETH.sol";
 
 contract EthWrapper {
+    using SafeERC20 for IERC20;
+
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public constant stETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-    using SafeERC20 for IERC20;
 
     function _wrap(address depositToken, uint256 amount) internal {
         if (amount == 0) {

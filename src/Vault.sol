@@ -1,34 +1,65 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./interfaces/IVault.sol";
+import "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
+
+import "./interfaces/vaults/IVault.sol";
 import {VaultStorage} from "./VaultStorage.sol";
 
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
 // 2. Tests (unit, int, e2e, migration)
-abstract contract Vault is IVault, VaultStorage {
+abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradeable {
     using SafeERC20 for IERC20;
 
-    modifier onlyOwner() {
-        require(msg.sender == owner(), "BaseVault: forbidden");
+    bytes32 constant OWNER_ROLE = keccak256("OWNER_ROLE");
+    bytes32 constant PAUSE_TRANSFERS_ROLE = keccak256("PAUSE_TRANSFERS_ROLE");
+    bytes32 constant UNPAUSE_TRANSFERS_ROLE = keccak256("UNPAUSE_TRANSFERS_ROLE");
+    bytes32 constant PAUSE_DEPOSITS_ROLE = keccak256("PAUSE_DEPOSITS_ROLE");
+    bytes32 constant UNPAUSE_DEPOSITS_ROLE = keccak256("UNPAUSE_DEPOSITS_ROLE");
+
+    modifier requireRole(bytes32 role) {
+        require(hasRole(role, _msgSender()), "Vault: caller is not a role");
         _;
     }
 
-    function setLimit(uint256 _limit) external onlyOwner {
+    function initializeRoles(address admin) public initializer {
+        _grantRole(OWNER_ROLE, admin);
+        _grantRole(PAUSE_TRANSFERS_ROLE, admin);
+        _grantRole(UNPAUSE_TRANSFERS_ROLE, admin);
+        _grantRole(PAUSE_DEPOSITS_ROLE, admin);
+        _grantRole(UNPAUSE_DEPOSITS_ROLE, admin);
+
+        _setRoleAdmin(PAUSE_TRANSFERS_ROLE, OWNER_ROLE);
+        _setRoleAdmin(UNPAUSE_TRANSFERS_ROLE, OWNER_ROLE);
+        _setRoleAdmin(PAUSE_DEPOSITS_ROLE, OWNER_ROLE);
+        _setRoleAdmin(UNPAUSE_DEPOSITS_ROLE, OWNER_ROLE);
+    }
+
+    function setLimit(uint256 _limit) external requireRole(OWNER_ROLE) {
         if (totalSupply() > _limit) {
-            revert("BaseVault: totalSupply exceeds new limit");
+            revert("Vault: totalSupply exceeds new limit");
         }
         _setLimit(_limit);
         emit NewLimit(_limit);
     }
 
-    function pause() external onlyOwner {
-        _setPaused(true);
+    function pauseTransfers() external requireRole(PAUSE_TRANSFERS_ROLE) {
+        _setTransferPause(true);
+        _revokeRole(PAUSE_TRANSFERS_ROLE, _msgSender());
     }
 
-    function unpause() external onlyOwner {
-        _setPaused(false);
+    function unpauseTransfers() external requireRole(UNPAUSE_TRANSFERS_ROLE) {
+        _setTransferPause(false);
+    }
+
+    function pauseDeposits() external requireRole(PAUSE_DEPOSITS_ROLE) {
+        _setDepositPause(true);
+        _revokeRole(PAUSE_DEPOSITS_ROLE, _msgSender());
+    }
+
+    function unpauseDeposits() external requireRole(UNPAUSE_DEPOSITS_ROLE) {
+        _setDepositPause(false);
     }
 
     function pushRewards(IERC20 rewardToken, bytes calldata symbioticRewardsData) external {
@@ -63,20 +94,21 @@ abstract contract Vault is IVault, VaultStorage {
     }
 
     function deposit(address depositToken, uint256 amount, address recipient, address referral) external payable {
+        if (depositPause()) revert("Vault: paused");
         uint256 totalSupply_ = totalSupply();
         uint256 valueBefore = tvl(Math.Rounding.Ceil);
         _deposit(depositToken, amount);
-        if (depositToken != token()) revert("BaseVault: invalid deposit token");
+        if (depositToken != token()) revert("Vault: invalid deposit token");
         uint256 valueAfter = tvl(Math.Rounding.Floor);
         if (valueAfter <= valueBefore) {
-            revert("BaseVault: invalid deposit amount");
+            revert("Vault: invalid deposit amount");
         }
         uint256 depositValue = valueAfter - valueBefore;
         uint256 lpAmount = Math.mulDiv(totalSupply_, depositValue, valueBefore);
         if (lpAmount + totalSupply_ > limit()) {
-            revert("BaseVault: vault limit reached");
+            revert("Vault: vault limit reached");
         } else if (lpAmount == 0) {
-            revert("BaseVault: zero lpAmount");
+            revert("Vault: zero lpAmount");
         }
         pushIntoSymbiotic();
 
@@ -84,8 +116,11 @@ abstract contract Vault is IVault, VaultStorage {
         emit Deposit(recipient, depositValue, lpAmount, referral);
     }
 
-    function withdraw(uint256 lpAmount) external returns (uint256 withdrawnAmount, uint256 amountToClaim) {
-        lpAmount = Math.min(lpAmount, balanceOf(msg.sender));
+    function withdraw(uint256 lpAmount, address recipient)
+        external
+        returns (uint256 withdrawnAmount, uint256 amountToClaim)
+    {
+        lpAmount = Math.min(lpAmount, balanceOf(_msgSender()));
         if (lpAmount == 0) return (0, 0);
 
         address token = token();
@@ -98,7 +133,7 @@ abstract contract Vault is IVault, VaultStorage {
         amountToClaim = Math.mulDiv(lpAmount, totalValue, totalSupply());
         if (tokenValue != 0) {
             uint256 tokenAmount = Math.min(amountToClaim, tokenValue);
-            IERC20(token).safeTransfer(msg.sender, tokenAmount);
+            IERC20(token).safeTransfer(recipient, tokenAmount);
             amountToClaim -= tokenAmount;
             withdrawnAmount += tokenAmount;
             if (amountToClaim == 0) return (withdrawnAmount, 0);
@@ -106,11 +141,9 @@ abstract contract Vault is IVault, VaultStorage {
 
         if (collateralValue != 0) {
             uint256 collateralAmount = Math.min(amountToClaim, collateralValue);
-            symbioticCollateral.withdraw(msg.sender, collateralAmount);
-
+            symbioticCollateral.withdraw(recipient, collateralAmount);
             amountToClaim -= collateralAmount;
             withdrawnAmount += collateralAmount;
-
             if (amountToClaim == 0) return (withdrawnAmount, 0);
         }
 
@@ -119,7 +152,7 @@ abstract contract Vault is IVault, VaultStorage {
         uint256 sharesAmount =
             Math.mulDiv(amountToClaim, symbioticVault.activeShares(), symbioticVault.activeStake(), Math.Rounding.Floor);
 
-        symbioticVault.withdraw(msg.sender, sharesAmount);
+        symbioticVault.withdraw(recipient, sharesAmount);
     }
 
     function pushIntoSymbiotic() public {
@@ -163,7 +196,7 @@ abstract contract Vault is IVault, VaultStorage {
     function balanceOf(address account) public view virtual returns (uint256);
 
     function _update(address, /* from */ address, /* to */ uint256 /* amount */ ) internal virtual {
-        if (paused()) {
+        if (transferPause()) {
             revert("Vault: paused");
         }
     }
