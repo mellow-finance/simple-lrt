@@ -7,7 +7,7 @@ import "./Vault.sol";
 import "./EthWrapper.sol";
 
 contract EthVaultV1 is ERC20, Vault, EthWrapper {
-    constructor() ERC20("Vault", "Vault") {}
+    constructor() ERC20("Default", "Default") VaultStorage("EthVaultV1", 1) {}
 
     function _update(address from, address to, uint256 value) internal virtual override(Vault, ERC20) {
         super._update(from, to, value);

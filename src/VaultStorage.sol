@@ -6,10 +6,19 @@ import "./interfaces/IVaultStorage.sol";
 contract VaultStorage is IVaultStorage {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint256 public constant VERSION = 1;
-    bytes32 public constant NAME = keccak256("Vault");
-    // keccak256(abi.encode(uint256(keccak256("mellow.simple-lrt.storage.VaultStorage")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 public constant storageSlotRef = 0x1f29c05ab79b0f5912eb538f64277220bb5e44f5c0d8d47a80a4de692e2a2200;
+    bytes32 public immutable NAME;
+    uint256 public immutable VERSION;
+    bytes32 public immutable storageSlotRef;
+
+    constructor(bytes32 name_, uint256 version_) {
+        NAME = name_;
+        VERSION = version_;
+        storageSlotRef = keccak256(
+            abi.encode(
+                uint256(keccak256(abi.encodePacked("mellow.simple-lrt.storage.VaultStorage", name_, version_))) - 1
+            )
+        ) & ~bytes32(uint256(0xff)) & ~bytes32(uint256(0xff));
+    }
 
     function initialize(
         address _symbioticCollateral,
@@ -103,9 +112,10 @@ contract VaultStorage is IVaultStorage {
         s.rewardTokens.remove(rewardToken);
     }
 
-    function _contractStorage() private pure returns (Storage storage $) {
+    function _contractStorage() private view returns (Storage storage $) {
+        bytes32 slot = storageSlotRef;
         assembly {
-            $.slot := storageSlotRef
+            $.slot := slot
         }
     }
 }

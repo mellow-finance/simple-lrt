@@ -7,6 +7,8 @@ import "./Vault.sol";
 import "./EthWrapper.sol";
 
 contract EthVaultV2 is ERC20VotesUpgradeable, Vault, EthWrapper {
+    constructor() VaultStorage("EthVaultV2", 1) {}
+
     function initializeWithERC20(
         address _symbioticCollateral,
         address _symbioticVault,
