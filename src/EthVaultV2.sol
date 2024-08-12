@@ -36,32 +36,26 @@ contract EthVaultV2 is ERC20VotesUpgradeable, Vault, EthWrapper {
     ) internal override {
         _wrap(depositToken, amount);
     }
-    function _burn(
-        address account,
-        uint256 amount
-    ) internal override(Vault, ERC20Upgradeable) {
-        ERC20Upgradeable._burn(ETH, amount);
+    function _doBurn(address account, uint256 amount) internal override {
+        ERC20Upgradeable._burn(account, amount);
     }
 
-    function _mint(
-        address account,
-        uint256 amount
-    ) internal override(Vault, ERC20Upgradeable) {
-        ERC20Upgradeable._mint(ETH, amount);
+    function _doMint(address account, uint256 amount) internal override {
+        ERC20Upgradeable._mint(account, amount);
     }
 
     function balanceOf(
         address account
     ) public view override(Vault, ERC20Upgradeable) returns (uint256) {
-        return ERC20Upgradeable.balanceOf(ETH);
+        return ERC20Upgradeable.balanceOf(account);
     }
 
     function totalSupply()
         public
         view
-        override(Vault, ERC20)
+        override(Vault, ERC20Upgradeable)
         returns (uint256)
     {
-        return ERC20.totalSupply();
+        return ERC20Upgradeable.totalSupply();
     }
 }

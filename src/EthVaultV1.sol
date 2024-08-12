@@ -18,24 +18,18 @@ contract EthVaultV1 is ERC20, Vault, EthWrapper {
     ) internal override {
         _wrap(depositToken, amount);
     }
-    function _burn(
-        address account,
-        uint256 amount
-    ) internal override(Vault, ERC20) {
-        ERC20._burn(ETH, amount);
+    function _doBurn(address account, uint256 amount) internal override {
+        ERC20._burn(account, amount);
     }
 
-    function _mint(
-        address account,
-        uint256 amount
-    ) internal override(Vault, ERC20) {
-        ERC20._mint(ETH, amount);
+    function _doMint(address account, uint256 amount) internal override {
+        ERC20._mint(account, amount);
     }
 
     function balanceOf(
         address account
     ) public view override(Vault, ERC20) returns (uint256) {
-        return ERC20.balanceOf(ETH);
+        return ERC20.balanceOf(account);
     }
 
     function totalSupply()

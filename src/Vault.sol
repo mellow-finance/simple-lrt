@@ -140,7 +140,7 @@ abstract contract Vault is VaultStorage {
         }
         pushIntoSymbiotic();
 
-        _mint(recipient, lpAmount);
+        _doMint(recipient, lpAmount);
         emit Deposit(recipient, depositValue, lpAmount, referral);
     }
 
@@ -149,7 +149,7 @@ abstract contract Vault is VaultStorage {
     ) external returns (uint256 withdrawnAmount, uint256 amountToClaim) {
         lpAmount = Math.min(lpAmount, balanceOf(msg.sender));
         if (lpAmount == 0) return (0, 0);
-        _burn(msg.sender, lpAmount);
+        _doBurn(msg.sender, lpAmount);
 
         address token = token();
         IDefaultCollateral symbioticCollateral = symbioticCollateral();
@@ -241,9 +241,9 @@ abstract contract Vault is VaultStorage {
 
     function balanceOf(address account) public view virtual returns (uint256);
 
-    function _mint(address account, uint256 amount) internal virtual;
+    function _doMint(address account, uint256 amount) internal virtual;
 
-    function _burn(address account, uint256 amount) internal virtual;
+    function _doBurn(address account, uint256 amount) internal virtual;
 
     function _preDeposit(address depositToken, uint256 amount) internal virtual;
 
