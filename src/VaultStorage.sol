@@ -41,8 +41,8 @@ contract VaultStorage {
         uint256 _limit,
         address _owner,
         bool _paused
-    ) external {
-        // TODO: ERC20
+    ) public {
+        // TODO: Add one-time lock
         _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
         _setLimit(_limit);
