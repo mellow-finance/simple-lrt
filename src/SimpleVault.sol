@@ -13,7 +13,7 @@ import {Vault, VaultStorage} from "./Vault.sol";
 contract SimpleVault is ERC20VotesUpgradeable, Vault {
     using SafeERC20 for IERC20;
 
-    constructor() VaultStorage("SimpleVault", 1) {}
+    constructor(string memory name, uint256 version) VaultStorage(keccak256(abi.encodePacked(name)), version) {}
 
     function initializeWithERC20(
         address _symbioticCollateral,
