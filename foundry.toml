@@ -5,3 +5,4 @@ libs = ["lib"]
 
 [dependencies]
 openzeppelin = { git = "https://github.com/OpenZeppelin/openzeppelin-contracts.git", version = "5.0.2" }
+openzeppelin-upgradeable = { git = "https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable.git", version = "5.0.2" }
