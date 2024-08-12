@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
-
 import "./interfaces/vaults/IVault.sol";
 import {VaultStorage} from "./VaultStorage.sol";
 
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
 // 2. Tests (unit, int, e2e, migration)
-// 3. Initial ratio
 abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradeable {
     using SafeERC20 for IERC20;
 
@@ -197,7 +194,7 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
 
     function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
         if (
-            rewardToken == token() || rewardToken == address(this) || rewardToken == address(symbioticCollateral())
+            rewardToken == address(this) || rewardToken == address(symbioticCollateral())
                 || rewardToken == address(symbioticVault())
         ) {
             revert("Vault: forbidden reward token");
