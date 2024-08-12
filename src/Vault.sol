@@ -9,34 +9,36 @@ import {VaultStorage} from "./VaultStorage.sol";
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
 // 2. Tests (unit, int, e2e, migration)
+// 3. Initial ratio
 abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradeable {
     using SafeERC20 for IERC20;
 
-    bytes32 constant OWNER_ROLE = keccak256("OWNER_ROLE");
+    bytes32 constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
     bytes32 constant PAUSE_TRANSFERS_ROLE = keccak256("PAUSE_TRANSFERS_ROLE");
     bytes32 constant UNPAUSE_TRANSFERS_ROLE = keccak256("UNPAUSE_TRANSFERS_ROLE");
     bytes32 constant PAUSE_DEPOSITS_ROLE = keccak256("PAUSE_DEPOSITS_ROLE");
     bytes32 constant UNPAUSE_DEPOSITS_ROLE = keccak256("UNPAUSE_DEPOSITS_ROLE");
 
-    modifier requireRole(bytes32 role) {
-        require(hasRole(role, _msgSender()), "Vault: caller is not a role");
-        _;
-    }
-
     function initializeRoles(address admin) public initializer {
-        _grantRole(OWNER_ROLE, admin);
-        _grantRole(PAUSE_TRANSFERS_ROLE, admin);
-        _grantRole(UNPAUSE_TRANSFERS_ROLE, admin);
-        _grantRole(PAUSE_DEPOSITS_ROLE, admin);
-        _grantRole(UNPAUSE_DEPOSITS_ROLE, admin);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
-        _setRoleAdmin(PAUSE_TRANSFERS_ROLE, OWNER_ROLE);
-        _setRoleAdmin(UNPAUSE_TRANSFERS_ROLE, OWNER_ROLE);
-        _setRoleAdmin(PAUSE_DEPOSITS_ROLE, OWNER_ROLE);
-        _setRoleAdmin(UNPAUSE_DEPOSITS_ROLE, OWNER_ROLE);
+        _grantRole(SET_LIMIT_ROLE, admin);
+        _setRoleAdmin(SET_LIMIT_ROLE, DEFAULT_ADMIN_ROLE);
+
+        _grantRole(PAUSE_TRANSFERS_ROLE, admin);
+        _setRoleAdmin(PAUSE_TRANSFERS_ROLE, DEFAULT_ADMIN_ROLE);
+
+        _grantRole(UNPAUSE_TRANSFERS_ROLE, admin);
+        _setRoleAdmin(UNPAUSE_TRANSFERS_ROLE, DEFAULT_ADMIN_ROLE);
+
+        _grantRole(PAUSE_DEPOSITS_ROLE, admin);
+        _setRoleAdmin(PAUSE_DEPOSITS_ROLE, DEFAULT_ADMIN_ROLE);
+
+        _grantRole(UNPAUSE_DEPOSITS_ROLE, admin);
+        _setRoleAdmin(UNPAUSE_DEPOSITS_ROLE, DEFAULT_ADMIN_ROLE);
     }
 
-    function setLimit(uint256 _limit) external requireRole(OWNER_ROLE) {
+    function setLimit(uint256 _limit) external onlyRole(SET_LIMIT_ROLE) {
         if (totalSupply() > _limit) {
             revert("Vault: totalSupply exceeds new limit");
         }
@@ -44,21 +46,21 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
         emit NewLimit(_limit);
     }
 
-    function pauseTransfers() external requireRole(PAUSE_TRANSFERS_ROLE) {
+    function pauseTransfers() external onlyRole(PAUSE_TRANSFERS_ROLE) {
         _setTransferPause(true);
         _revokeRole(PAUSE_TRANSFERS_ROLE, _msgSender());
     }
 
-    function unpauseTransfers() external requireRole(UNPAUSE_TRANSFERS_ROLE) {
+    function unpauseTransfers() external onlyRole(UNPAUSE_TRANSFERS_ROLE) {
         _setTransferPause(false);
     }
 
-    function pauseDeposits() external requireRole(PAUSE_DEPOSITS_ROLE) {
+    function pauseDeposits() external onlyRole(PAUSE_DEPOSITS_ROLE) {
         _setDepositPause(true);
         _revokeRole(PAUSE_DEPOSITS_ROLE, _msgSender());
     }
 
-    function unpauseDeposits() external requireRole(UNPAUSE_DEPOSITS_ROLE) {
+    function unpauseDeposits() external onlyRole(UNPAUSE_DEPOSITS_ROLE) {
         _setDepositPause(false);
     }
 
@@ -93,7 +95,10 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
             + getSymbioticVaultStake(rounding);
     }
 
-    function deposit(address depositToken, uint256 amount, address recipient, address referral) external payable {
+    function deposit(address depositToken, uint256 amount, uint256 minLpAmount, address recipient, address referral)
+        external
+        payable
+    {
         if (depositPause()) revert("Vault: paused");
         uint256 totalSupply_ = totalSupply();
         uint256 valueBefore = tvl(Math.Rounding.Ceil);
@@ -104,7 +109,18 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
             revert("Vault: invalid deposit amount");
         }
         uint256 depositValue = valueAfter - valueBefore;
-        uint256 lpAmount = Math.mulDiv(totalSupply_, depositValue, valueBefore);
+        uint256 lpAmount;
+        if (totalSupply_ == 0) {
+            // initial deposit only on behalf of admin
+            _checkRole(DEFAULT_ADMIN_ROLE);
+            if (minLpAmount == 0 || depositValue == 0 || recipient != address(this)) {
+                revert("Vault: invalid initial deposit values");
+            }
+            lpAmount = minLpAmount;
+        } else {
+            lpAmount = Math.mulDiv(totalSupply_, depositValue, valueBefore);
+            if (minLpAmount > lpAmount) revert("Vault: minLpAmount > lpAmount");
+        }
         if (lpAmount + totalSupply_ > limit()) {
             revert("Vault: vault limit reached");
         } else if (lpAmount == 0) {
