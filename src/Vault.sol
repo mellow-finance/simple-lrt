@@ -39,20 +39,12 @@ abstract contract Vault is VaultStorage {
         _setPaused(false);
     }
 
-    function pushRewards(
-        IERC20 rewardToken,
-        bytes calldata symbioticRewardsData
-    ) external {
+    function pushRewards(IERC20 rewardToken, bytes calldata symbioticRewardsData) external {
         FarmData memory data = symbioticFarm(address(rewardToken));
         require(data.symbioticFarm != address(0), "Vault: farm not set");
         uint256 amountBefore = rewardToken.balanceOf(address(this));
-        IStakerRewards(data.symbioticFarm).claimRewards(
-            address(this),
-            address(rewardToken),
-            symbioticRewardsData
-        );
-        uint256 rewardAmount = rewardToken.balanceOf(address(this)) -
-            amountBefore;
+        IStakerRewards(data.symbioticFarm).claimRewards(address(this), address(rewardToken), symbioticRewardsData);
+        uint256 rewardAmount = rewardToken.balanceOf(address(this)) - amountBefore;
         if (rewardAmount == 0) return;
 
         uint256 curatorFee = Math.mulDiv(rewardAmount, data.curatorFeeD4, 1e4);
@@ -60,55 +52,29 @@ abstract contract Vault is VaultStorage {
             rewardToken.safeTransfer(data.curatorTreasury, curatorFee);
         }
         if (rewardAmount != curatorFee) {
-            rewardToken.safeTransfer(
-                data.distributionFarm,
-                rewardAmount - curatorFee
-            );
+            rewardToken.safeTransfer(data.distributionFarm, rewardAmount - curatorFee);
         }
         emit RewardsPushed(address(rewardToken), rewardAmount, block.timestamp);
     }
 
-    function getSymbioticVaultStake(
-        Math.Rounding rounding
-    ) public view returns (uint256 vaultActiveStake) {
+    function getSymbioticVaultStake(Math.Rounding rounding) public view returns (uint256 vaultActiveStake) {
         ISymbioticVault symbioticVault = symbioticVault();
-        uint256 vaultActiveShares = symbioticVault.activeSharesOf(
-            address(this)
-        );
+        uint256 vaultActiveShares = symbioticVault.activeSharesOf(address(this));
         uint256 activeStake = symbioticVault.activeStake();
         uint256 activeShares = symbioticVault.activeShares();
-        vaultActiveStake = Math.mulDiv(
-            activeStake,
-            vaultActiveShares,
-            activeShares,
-            rounding
-        );
+        vaultActiveStake = Math.mulDiv(activeStake, vaultActiveShares, activeShares, rounding);
     }
 
-    function tvl(
-        Math.Rounding rounding
-    ) public view returns (uint256 totalValueLocked) {
-        return
-            IERC20(token()).balanceOf(address(this)) +
-            symbioticCollateral().balanceOf(address(this)) +
-            getSymbioticVaultStake(rounding);
+    function tvl(Math.Rounding rounding) public view returns (uint256 totalValueLocked) {
+        return IERC20(token()).balanceOf(address(this)) + symbioticCollateral().balanceOf(address(this))
+            + getSymbioticVaultStake(rounding);
     }
 
-    function deposit(
-        address depositToken,
-        uint256 amount,
-        address recipient,
-        address referral
-    ) external payable {
+    function deposit(address depositToken, uint256 amount, address recipient, address referral) external payable {
         uint256 totalSupply_ = totalSupply();
         uint256 valueBefore = tvl(Math.Rounding.Ceil);
-        _preDeposit(depositToken, amount);
+        _deposit(depositToken, amount);
         if (depositToken != token()) revert("BaseVault: invalid deposit token");
-        IERC20(depositToken).safeTransferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
         uint256 valueAfter = tvl(Math.Rounding.Floor);
         if (valueAfter <= valueBefore) {
             revert("BaseVault: invalid deposit amount");
@@ -126,9 +92,7 @@ abstract contract Vault is VaultStorage {
         emit Deposit(recipient, depositValue, lpAmount, referral);
     }
 
-    function withdraw(
-        uint256 lpAmount
-    ) external returns (uint256 withdrawnAmount, uint256 amountToClaim) {
+    function withdraw(uint256 lpAmount) external returns (uint256 withdrawnAmount, uint256 amountToClaim) {
         lpAmount = Math.min(lpAmount, balanceOf(msg.sender));
         if (lpAmount == 0) return (0, 0);
         _doBurn(msg.sender, lpAmount);
@@ -137,9 +101,7 @@ abstract contract Vault is VaultStorage {
         IDefaultCollateral symbioticCollateral = symbioticCollateral();
         uint256 tokenValue = IERC20(token).balanceOf(address(this));
         uint256 collateralValue = symbioticCollateral.balanceOf(address(this));
-        uint256 symbioticVaultStake = getSymbioticVaultStake(
-            Math.Rounding.Floor
-        );
+        uint256 symbioticVaultStake = getSymbioticVaultStake(Math.Rounding.Floor);
 
         uint256 totalValue = tokenValue + collateralValue + symbioticVaultStake;
         amountToClaim = Math.mulDiv(lpAmount, totalValue, totalSupply());
@@ -163,12 +125,8 @@ abstract contract Vault is VaultStorage {
 
         ISymbioticVault symbioticVault = symbioticVault();
 
-        uint256 sharesAmount = Math.mulDiv(
-            amountToClaim,
-            symbioticVault.activeShares(),
-            symbioticVault.activeStake(),
-            Math.Rounding.Floor
-        );
+        uint256 sharesAmount =
+            Math.mulDiv(amountToClaim, symbioticVault.activeShares(), symbioticVault.activeStake(), Math.Rounding.Floor);
 
         symbioticVault.withdraw(msg.sender, sharesAmount);
     }
@@ -178,47 +136,29 @@ abstract contract Vault is VaultStorage {
         uint256 assetAmount = token.balanceOf(address(this));
         IDefaultCollateral symbioticCollateral = symbioticCollateral();
         ISymbioticVault symbioticVault = symbioticVault();
-        uint256 leftover = symbioticCollateral.limit() -
-            symbioticCollateral.totalSupply();
+        uint256 leftover = symbioticCollateral.limit() - symbioticCollateral.totalSupply();
         assetAmount = Math.min(assetAmount, leftover);
         if (assetAmount == 0) {
             return;
         }
         token.safeIncreaseAllowance(address(symbioticCollateral), assetAmount);
-        uint256 amount = symbioticCollateral.deposit(
-            address(this),
-            assetAmount
-        );
+        uint256 amount = symbioticCollateral.deposit(address(this), assetAmount);
         if (amount != assetAmount) {
             token.forceApprove(address(symbioticCollateral), 0);
         }
 
         uint256 bondAmount = symbioticCollateral.balanceOf(address(this));
-        IERC20(symbioticCollateral).safeIncreaseAllowance(
-            address(symbioticVault),
-            bondAmount
-        );
-        (uint256 stakedAmount, ) = symbioticVault.deposit(
-            address(this),
-            bondAmount
-        );
+        IERC20(symbioticCollateral).safeIncreaseAllowance(address(symbioticVault), bondAmount);
+        (uint256 stakedAmount,) = symbioticVault.deposit(address(this), bondAmount);
         if (bondAmount != stakedAmount) {
-            IERC20(symbioticCollateral).forceApprove(
-                address(symbioticVault),
-                0
-            );
+            IERC20(symbioticCollateral).forceApprove(address(symbioticVault), 0);
         }
     }
 
-    function _setFarmChecks(
-        address rewardToken,
-        FarmData memory farmData
-    ) internal virtual {
+    function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
         if (
-            rewardToken == token() ||
-            rewardToken == address(this) ||
-            rewardToken == address(symbioticCollateral()) ||
-            rewardToken == address(symbioticVault())
+            rewardToken == token() || rewardToken == address(this) || rewardToken == address(symbioticCollateral())
+                || rewardToken == address(symbioticVault())
         ) {
             revert("Vault: forbidden reward token");
         }
@@ -235,20 +175,11 @@ abstract contract Vault is VaultStorage {
 
     function _doBurn(address account, uint256 amount) internal virtual;
 
-    function _preDeposit(address depositToken, uint256 amount) internal virtual;
+    function _deposit(address depositToken, uint256 amount) internal virtual;
 
-    event Deposit(
-        address indexed user,
-        uint256 depositValue,
-        uint256 lpAmount,
-        address referral
-    );
+    event Deposit(address indexed user, uint256 depositValue, uint256 lpAmount, address referral);
     event NewLimit(uint256 limit);
     event PushToSymbioticBond(uint256 amount);
     event FarmSet(address rewardToken, FarmData farmData);
-    event RewardsPushed(
-        address rewardToken,
-        uint256 rewardAmount,
-        uint256 timestamp
-    );
+    event RewardsPushed(address rewardToken, uint256 rewardAmount, uint256 timestamp);
 }

@@ -7,14 +7,13 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 
 contract VaultStorage {
     using EnumerableSet for EnumerableSet.AddressSet;
+
     uint256 public constant VERSION = 1;
     bytes32 public NAME = keccak256("Vault");
     bytes32 public immutable storageSlotRef;
 
     constructor() {
-        storageSlotRef = keccak256(
-            abi.encodePacked("VaultStorage", NAME, VERSION)
-        );
+        storageSlotRef = keccak256(abi.encodePacked("VaultStorage", NAME, VERSION));
     }
 
     struct FarmData {
@@ -79,9 +78,7 @@ contract VaultStorage {
         return _contractStorage().rewardTokens.values();
     }
 
-    function symbioticFarm(
-        address rewardToken
-    ) public view returns (FarmData memory) {
+    function symbioticFarm(address rewardToken) public view returns (FarmData memory) {
         return _contractStorage().farms[rewardToken];
     }
 
@@ -95,9 +92,7 @@ contract VaultStorage {
         s.paused = _paused;
     }
 
-    function _setSymbioticCollateral(
-        IDefaultCollateral _symbioticCollateral
-    ) internal {
+    function _setSymbioticCollateral(IDefaultCollateral _symbioticCollateral) internal {
         Storage storage s = _contractStorage();
         s.symbioticCollateral = _symbioticCollateral;
     }
@@ -117,10 +112,7 @@ contract VaultStorage {
         s.owner = _owner;
     }
 
-    function _setSymbioticFarm(
-        address rewardToken,
-        FarmData memory farmData
-    ) internal {
+    function _setSymbioticFarm(address rewardToken, FarmData memory farmData) internal {
         Storage storage s = _contractStorage();
         s.farms[rewardToken] = farmData;
         s.rewardTokens.add(rewardToken);

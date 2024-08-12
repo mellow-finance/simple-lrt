@@ -10,11 +10,7 @@ interface IDefaultCollateral is IERC20 {
      * @param recipient address that should receive the underlying asset
      * @param debtIssued amount of the debt issued
      */
-    event IssueDebt(
-        address indexed issuer,
-        address indexed recipient,
-        uint256 debtIssued
-    );
+    event IssueDebt(address indexed issuer, address indexed recipient, uint256 debtIssued);
 
     /**
      * @notice Emitted when debt is repaid.
@@ -22,11 +18,7 @@ interface IDefaultCollateral is IERC20 {
      * @param recipient address that received the underlying asset
      * @param debtRepaid amount of the debt repaid
      */
-    event RepayDebt(
-        address indexed issuer,
-        address indexed recipient,
-        uint256 debtRepaid
-    );
+    event RepayDebt(address indexed issuer, address indexed recipient, uint256 debtRepaid);
 
     /**
      * @notice Get the collateral's underlying asset.
@@ -52,9 +44,7 @@ interface IDefaultCollateral is IERC20 {
      * @param recipient address that received the underlying asset
      * @return particular recipient's repaid debt
      */
-    function recipientRepaidDebt(
-        address recipient
-    ) external view returns (uint256);
+    function recipientRepaidDebt(address recipient) external view returns (uint256);
 
     /**
      * @notice Get an amount of repaid debt for a particular issuer-recipient pair.
@@ -62,10 +52,7 @@ interface IDefaultCollateral is IERC20 {
      * @param recipient address that received the underlying asset
      * @return particular pair's repaid debt
      */
-    function repaidDebt(
-        address issuer,
-        address recipient
-    ) external view returns (uint256);
+    function repaidDebt(address issuer, address recipient) external view returns (uint256);
 
     /**
      * @notice Get a total amount of debt.
@@ -93,10 +80,7 @@ interface IDefaultCollateral is IERC20 {
      * @param recipient address that should receive the underlying asset
      * @return particular pair's debt
      */
-    function debt(
-        address issuer,
-        address recipient
-    ) external view returns (uint256);
+    function debt(address issuer, address recipient) external view returns (uint256);
 
     /**
      * @notice Burn a given amount of the collateral, and increase a debt of the underlying asset for the caller.
@@ -117,11 +101,7 @@ interface IDefaultCollateral is IERC20 {
      * @param recipient address of the collateral's recipient
      * @param amount amount of the collateral minted
      */
-    event Deposit(
-        address indexed depositor,
-        address indexed recipient,
-        uint256 amount
-    );
+    event Deposit(address indexed depositor, address indexed recipient, uint256 amount);
 
     /**
      * @notice Emmited when withdrawal happens.
@@ -129,11 +109,7 @@ interface IDefaultCollateral is IERC20 {
      * @param recipient address of the underlying asset's recipient
      * @param amount amount of the collateral burned
      */
-    event Withdraw(
-        address indexed withdrawer,
-        address indexed recipient,
-        uint256 amount
-    );
+    event Withdraw(address indexed withdrawer, address indexed recipient, uint256 amount);
 
     /**
      * @notice Emmited when limit is increased.
@@ -165,10 +141,7 @@ interface IDefaultCollateral is IERC20 {
      * @param amount amount of the underlying asset
      * @return amount of the collateral minted
      */
-    function deposit(
-        address recipient,
-        uint256 amount
-    ) external returns (uint256);
+    function deposit(address recipient, uint256 amount) external returns (uint256);
 
     /**
      * @notice Deposit a given amount of the underlying asset using a permit functionality, and mint the collateral to a particular recipient.
@@ -180,14 +153,9 @@ interface IDefaultCollateral is IERC20 {
      * @param s s component of the signature
      * @return amount of the collateral minted
      */
-    function deposit(
-        address recipient,
-        uint256 amount,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external returns (uint256);
+    function deposit(address recipient, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
+        external
+        returns (uint256);
 
     /**
      * @notice Withdraw a given amount of the underlying asset, and transfer it to a particular recipient.
