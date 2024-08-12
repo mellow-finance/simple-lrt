@@ -110,22 +110,22 @@ contract BaseVault is ERC20VotesUpgradeable {
         _contractStorage().paused = false;
     }
 
-    function pushRewards(address rewardToken, bytes calldata symbioticRewardsData) external {
-        FarmData memory data = _contractStorage().farms[rewardToken];
+    function pushRewards(IERC20 rewardToken, bytes calldata symbioticRewardsData) external {
+        FarmData memory data = _contractStorage().farms[address(rewardToken)];
         require(data.symbioticFarm != address(0), "Vault: farm not set");
-        uint256 amountBefore = IERC20(rewardToken).balanceOf(address(this));
-        IStakerRewards(data.symbioticFarm).claimRewards(address(this), rewardToken, symbioticRewardsData);
-        uint256 rewardAmount = IERC20(rewardToken).balanceOf(address(this)) - amountBefore;
+        uint256 amountBefore = rewardToken.balanceOf(address(this));
+        IStakerRewards(data.symbioticFarm).claimRewards(address(this), address(rewardToken), symbioticRewardsData);
+        uint256 rewardAmount = rewardToken.balanceOf(address(this)) - amountBefore;
         if (rewardAmount == 0) return;
 
         uint256 curatorFee = Math.mulDiv(rewardAmount, data.curatorFeeD4, 1e4);
         if (curatorFee != 0) {
-            IERC20(rewardToken).safeTransfer(data.curatorTreasury, curatorFee);
-            rewardAmount -= curatorFee;
+            rewardToken.safeTransfer(data.curatorTreasury, curatorFee);
         }
-
-        IERC20(rewardToken).safeTransfer(data.distributionFarm, rewardAmount);
-        emit RewardsPushed(rewardToken, rewardAmount, block.timestamp);
+        if (rewardAmount != curatorFee) {
+            rewardToken.safeTransfer(data.distributionFarm, rewardAmount - curatorFee);
+        }
+        emit RewardsPushed(address(rewardToken), rewardAmount, block.timestamp);
     }
 
     function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
