@@ -158,7 +158,7 @@ contract BaseVault is ERC20VotesUpgradeable {
     function deposit(address depositToken, uint256 amount, address recipient, address referral) external payable {
         uint256 totalSupply_ = totalSupply();
         uint256 valueBefore = tvl(Math.Rounding.Ceil);
-        _deposit(depositToken, amount, referral);
+        _deposit(depositToken, amount);
         uint256 valueAfter = tvl(Math.Rounding.Floor);
         if (valueAfter <= valueBefore) {
             revert("BaseVault: invalid deposit amount");
@@ -238,7 +238,7 @@ contract BaseVault is ERC20VotesUpgradeable {
         }
     }
 
-    function _deposit(address depositToken, uint256 amount, address /* referral */ ) internal virtual {
+    function _deposit(address depositToken, uint256 amount) internal virtual {
         if (depositToken != _contractStorage().token) revert("BaseVault: invalid deposit token");
         IERC20(depositToken).safeTransferFrom(msg.sender, address(this), amount);
     }

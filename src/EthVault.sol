@@ -15,7 +15,7 @@ contract EthVault is BaseVault {
 
     using SafeERC20 for IERC20;
 
-    function _deposit(address depositToken, uint256 amount, address referral) internal virtual override {
+    function _deposit(address depositToken, uint256 amount) internal virtual override {
         if (amount == 0) {
             revert("EthVault: amount must be greater than 0");
         }
@@ -37,8 +37,8 @@ contract EthVault is BaseVault {
         }
 
         if (depositToken == ETH) {
-            ISTETH(stETH).submit{value: amount}(referral);
-            depositToken = stETH;
+            payable(wstETH).transfer(amount);
+            depositToken = wstETH;
         }
 
         if (depositToken == stETH) {
