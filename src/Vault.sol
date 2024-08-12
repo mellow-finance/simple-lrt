@@ -15,13 +15,6 @@ import {VaultStorage} from "./VaultStorage.sol";
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
 // 2. Tests (unit, int, e2e, migration)
 
-/*
-    ERC20 Merge Logic:
-    Current Symbiotic deployments use ERC20 of oz, while having a few other non-zero slots.
-    Slots: https://github.com/mellow-finance/mellow-lrt/blob/main/src/Vault.sol#L12-L28
-
-    The idea is to override all required ERC20Upgradable functions with identical ERC20 functions, by explicitly implementing them in this BaseVault.sol contact.
-*/
 abstract contract Vault is VaultStorage {
     using SafeERC20 for IERC20;
 
@@ -75,23 +68,6 @@ abstract contract Vault is VaultStorage {
         emit RewardsPushed(address(rewardToken), rewardAmount, block.timestamp);
     }
 
-    function _setFarmChecks(
-        address rewardToken,
-        FarmData memory farmData
-    ) internal virtual {
-        if (
-            rewardToken == token() ||
-            rewardToken == address(this) ||
-            rewardToken == address(symbioticCollateral()) ||
-            rewardToken == address(symbioticVault())
-        ) {
-            revert("Vault: forbidden reward token");
-        }
-        if (farmData.curatorFeeD4 > 1e4) {
-            revert("Vault: invalid curator fee");
-        }
-    }
-
     function getSymbioticVaultStake(
         Math.Rounding rounding
     ) public view returns (uint256 vaultActiveStake) {
@@ -126,7 +102,13 @@ abstract contract Vault is VaultStorage {
     ) external payable {
         uint256 totalSupply_ = totalSupply();
         uint256 valueBefore = tvl(Math.Rounding.Ceil);
-        _deposit(depositToken, amount);
+        _preDeposit(depositToken, amount);
+        if (depositToken != token()) revert("BaseVault: invalid deposit token");
+        IERC20(depositToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
         uint256 valueAfter = tvl(Math.Rounding.Floor);
         if (valueAfter <= valueBefore) {
             revert("BaseVault: invalid deposit amount");
@@ -228,13 +210,21 @@ abstract contract Vault is VaultStorage {
         }
     }
 
-    function _deposit(address depositToken, uint256 amount) internal virtual {
-        if (depositToken != token()) revert("BaseVault: invalid deposit token");
-        IERC20(depositToken).safeTransferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
+    function _setFarmChecks(
+        address rewardToken,
+        FarmData memory farmData
+    ) internal virtual {
+        if (
+            rewardToken == token() ||
+            rewardToken == address(this) ||
+            rewardToken == address(symbioticCollateral()) ||
+            rewardToken == address(symbioticVault())
+        ) {
+            revert("Vault: forbidden reward token");
+        }
+        if (farmData.curatorFeeD4 > 1e4) {
+            revert("Vault: invalid curator fee");
+        }
     }
 
     function totalSupply() public view virtual returns (uint256);
