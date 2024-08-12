@@ -2,9 +2,8 @@
 pragma solidity 0.8.25;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {ERC20VotesUpgradeable} from
-    "@openzeppelin-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -16,8 +15,9 @@ import {IStakerRewards} from "./interfaces/IStakerRewards.sol";
 // TODO: Storage initializer
 // TODO: Off by 1 errors
 // TODO; Tests
-contract BaseVault is ERC20, ERC20VotesUpgradeable {
+contract BaseVault is ERC20 {
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     // keccak256(abi.encode(uint256(keccak256("mellow.storage.BaseVault")) - 1)) & ~bytes32(uint256(0xff))
     // TODO: FIX THIS
@@ -26,15 +26,23 @@ contract BaseVault is ERC20, ERC20VotesUpgradeable {
 
     /// @param symbioticFarm address of the symbiotic farm
     /// @param distributionFarm address of the distribution farm (merkle tree or some other farm contract)
-    /// @param curatorFeeD4 curator fee in D4
     /// @param curatorTreasury address of the curator treasury
+    /// @param curatorFeeD4 curator fee in D4
     struct FarmData {
         address symbioticFarm;
         address distributionFarm;
-        uint256 curatorFeeD4;
         address curatorTreasury;
+        uint256 curatorFeeD4;
     }
 
+    /// @param symbioticCollateral address of the symbiotic collateral, base token for the symbiotic vault
+    /// @param symbioticVault address of the symbiotic vault, used for (re) staking and unstaking
+    /// @param token address of the vault token, used for deposits, withdrawals and tvl calculations
+    /// @param owner address of the owner, can set farms, pause the vault and set the limit
+    /// @param paused whether the vault is paused (no deposits, withdrawals or transfers)
+    /// @param limit maximum amount of LP tokens that can be minted
+    /// @param rewardTokens set of reward tokens
+    /// @param farms mapping of reward token to farm data
     struct Storage {
         IDefaultCollateral symbioticCollateral;
         ISymbioticVault symbioticVault;
@@ -42,6 +50,7 @@ contract BaseVault is ERC20, ERC20VotesUpgradeable {
         address owner;
         bool paused;
         uint256 limit;
+        EnumerableSet.AddressSet rewardTokens;
         mapping(address rewardToken => FarmData data) farms;
     }
 
@@ -51,19 +60,23 @@ contract BaseVault is ERC20, ERC20VotesUpgradeable {
         }
     }
 
-    constructor(
-        string memory _name,
-        string memory _ticker,
+    constructor(string memory _name, string memory _ticker) ERC20(_name, _ticker) {}
+
+    function initialize(
+        bytes32[] calldata _slotsForNullification,
         address _symbioticCollateral,
         address _symbioticVault,
         uint256 _limit,
         address _owner
-    )
-        // add initialRatio
-        ERC20(_name, _ticker)
-        EIP712(_name, "1")
-    {
+    ) external {
         Storage storage s = _contractStorage();
+        if (s.owner != address(0)) revert("BaseVault: already initialized");
+        for (uint256 i = 0; i < _slotsForNullification.length; i++) {
+            bytes32 slot = _slotsForNullification[i];
+            assembly {
+                sstore(slot, 0)
+            }
+        }
         s.symbioticVault = ISymbioticVault(_symbioticVault);
         s.symbioticCollateral = IDefaultCollateral(_symbioticCollateral);
         s.limit = _limit;
@@ -87,7 +100,14 @@ contract BaseVault is ERC20, ERC20VotesUpgradeable {
         Storage storage s = _contractStorage();
         _setFarmChecks(rewardToken, farmData);
         s.farms[rewardToken] = farmData;
+        s.rewardTokens.add(rewardToken);
         emit FarmSet(rewardToken, farmData);
+    }
+
+    function removeFarmData(address rewardToken) external onlyOwner {
+        Storage storage s = _contractStorage();
+        delete s.farms[rewardToken];
+        s.rewardTokens.remove(rewardToken);
     }
 
     function pause() external onlyOwner {

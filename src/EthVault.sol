@@ -15,14 +15,7 @@ contract EthVault is BaseVault {
 
     using SafeERC20 for IERC20;
 
-    constructor(
-        string memory _name,
-        string memory _ticker,
-        address _symbioticBond,
-        address _symbioticVault,
-        uint256 _limit,
-        address _owner
-    ) BaseVault(_name, _ticker, _symbioticBond, _symbioticVault, _limit, _owner) {}
+    constructor(string memory _name, string memory _ticker) BaseVault(_name, _ticker) {}
 
     function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual override {
         super._setFarmChecks(rewardToken, farmData);
