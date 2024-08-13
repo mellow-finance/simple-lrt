@@ -38,14 +38,13 @@ contract EthWrapper {
 
         if (depositToken == ETH) {
             payable(wstETH).transfer(amount);
-            depositToken = wstETH;
+            return;
         }
 
         if (depositToken == stETH) {
             IERC20(stETH).safeIncreaseAllowance(wstETH, amount);
             IWSTETH(wstETH).wrap(amount);
-            depositToken = wstETH;
-        }
+       }
     }
 
     receive() external payable {}

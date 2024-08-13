@@ -96,11 +96,11 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
         external
         payable
     {
+        if (depositToken != token()) revert("Vault: invalid deposit token");
         if (depositPause()) revert("Vault: paused");
         uint256 totalSupply_ = totalSupply();
         uint256 valueBefore = tvl(Math.Rounding.Ceil);
         _deposit(depositToken, amount);
-        if (depositToken != token()) revert("Vault: invalid deposit token");
         uint256 valueAfter = tvl(Math.Rounding.Floor);
         if (valueAfter <= valueBefore) {
             revert("Vault: invalid deposit amount");
@@ -136,25 +136,30 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
         lpAmount = Math.min(lpAmount, balanceOf(_msgSender()));
         if (lpAmount == 0) return (0, 0);
 
-        address token = token();
+        IERC20 token = IERC20(token());
         IDefaultCollateral symbioticCollateral = symbioticCollateral();
-        uint256 tokenValue = IERC20(token).balanceOf(address(this));
+        uint256 tokenValue = token.balanceOf(address(this));
         uint256 collateralValue = symbioticCollateral.balanceOf(address(this));
         uint256 symbioticVaultStake = getSymbioticVaultStake(Math.Rounding.Floor);
 
         uint256 totalValue = tokenValue + collateralValue + symbioticVaultStake;
         amountToClaim = Math.mulDiv(lpAmount, totalValue, totalSupply());
+        uint256 balanceBefore = token.balanceOf(recipient);
         if (tokenValue != 0) {
             uint256 tokenAmount = Math.min(amountToClaim, tokenValue);
-            IERC20(token).safeTransfer(recipient, tokenAmount);
+            token.safeTransfer(recipient, tokenAmount);
+            require(token.balanceOf(recipient) - balanceBefore == tokenAmount, "Vault: wrong withdrawn token amount");
             amountToClaim -= tokenAmount;
             withdrawnAmount += tokenAmount;
             if (amountToClaim == 0) return (withdrawnAmount, 0);
         }
+        /// @dev update current token balance
+        balanceBefore = token.balanceOf(recipient);
 
         if (collateralValue != 0) {
             uint256 collateralAmount = Math.min(amountToClaim, collateralValue);
             symbioticCollateral.withdraw(recipient, collateralAmount);
+            require(token.balanceOf(recipient) - balanceBefore == collateralAmount, "Vault: wrong withdrawn collateral amount");
             amountToClaim -= collateralAmount;
             withdrawnAmount += collateralAmount;
             if (amountToClaim == 0) return (withdrawnAmount, 0);
@@ -165,6 +170,7 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
         uint256 sharesAmount =
             Math.mulDiv(amountToClaim, symbioticVault.activeShares(), symbioticVault.activeStake(), Math.Rounding.Floor);
 
+        /// @dev withdrawal processes after
         symbioticVault.withdraw(recipient, sharesAmount);
     }
 
