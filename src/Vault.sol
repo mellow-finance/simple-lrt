@@ -9,7 +9,7 @@ import {VaultStorage} from "./VaultStorage.sol";
 // 2. Tests (unit, int, e2e, migration)
 // 3. Add is Multicall
 // 4. Add is ReentrancyGuard
-// 5. Add is ERC4626
+// 5. Add is IDelayedERC4626
 abstract contract Vault is
     IVault,
     VaultStorage,
