@@ -13,17 +13,30 @@ contract VaultStorage is IVaultStorage, Initializable {
     constructor(bytes32 name_, uint256 version_) {
         NAME = name_;
         VERSION = version_;
-        storageSlotRef = keccak256(
-            abi.encode(
-                uint256(keccak256(abi.encodePacked("mellow.simple-lrt.storage.VaultStorage", name_, version_))) - 1
-            )
-        ) & ~bytes32(uint256(0xff)) & ~bytes32(uint256(0xff));
+        storageSlotRef =
+            keccak256(
+                abi.encode(
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                "mellow.simple-lrt.storage.VaultStorage",
+                                name_,
+                                version_
+                            )
+                        )
+                    ) - 1
+                )
+            ) &
+            ~bytes32(uint256(0xff)) &
+            ~bytes32(uint256(0xff));
     }
 
-    function initializeStorage(address _symbioticCollateral, address _symbioticVault, uint256 _limit, bool _paused)
-        public
-        initializer
-    {
+    function initializeStorage(
+        address _symbioticCollateral,
+        address _symbioticVault,
+        uint256 _limit,
+        bool _paused
+    ) public initializer {
         _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
         _setLimit(_limit);
@@ -60,7 +73,9 @@ contract VaultStorage is IVaultStorage, Initializable {
         return _contractStorage().rewardTokens.values();
     }
 
-    function symbioticFarm(address rewardToken) public view returns (FarmData memory) {
+    function symbioticFarm(
+        address rewardToken
+    ) public view returns (FarmData memory) {
         return _contractStorage().farms[rewardToken];
     }
 
@@ -79,7 +94,9 @@ contract VaultStorage is IVaultStorage, Initializable {
         s.transferPause = _paused;
     }
 
-    function _setSymbioticCollateral(IDefaultCollateral _symbioticCollateral) internal {
+    function _setSymbioticCollateral(
+        IDefaultCollateral _symbioticCollateral
+    ) internal {
         Storage storage s = _contractStorage();
         s.symbioticCollateral = _symbioticCollateral;
     }
@@ -94,7 +111,10 @@ contract VaultStorage is IVaultStorage, Initializable {
         s.token = _token;
     }
 
-    function _setSymbioticFarm(address rewardToken, FarmData memory farmData) internal {
+    function _setSymbioticFarm(
+        address rewardToken,
+        FarmData memory farmData
+    ) internal {
         Storage storage s = _contractStorage();
         s.farms[rewardToken] = farmData;
         s.rewardTokens.add(rewardToken);

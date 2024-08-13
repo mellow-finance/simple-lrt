@@ -3,10 +3,7 @@ pragma solidity 0.8.25;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {
-    ERC20VotesUpgradeable,
-    ERC20Upgradeable
-} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {ERC20VotesUpgradeable, ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 
 import {Vault, VaultStorage} from "./Vault.sol";
 
@@ -24,26 +21,49 @@ contract SimpleVault is ERC20VotesUpgradeable, Vault {
         string memory name,
         string memory symbol
     ) external {
-        initializeStorage(_symbioticCollateral, _symbioticVault, _limit, _paused);
+        initializeStorage(
+            _symbioticCollateral,
+            _symbioticVault,
+            _limit,
+            _paused
+        );
         initializeRoles(_admin);
         __ERC20_init(name, symbol);
         __EIP712_init(name, "1");
     }
 
-    function _update(address from, address to, uint256 amount) internal override(Vault, ERC20VotesUpgradeable) {
+    function _update(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override(Vault, ERC20VotesUpgradeable) {
         super._update(from, to, amount);
     }
 
-    function _deposit(address depositToken, uint256 amount) internal virtual override {
+    function _deposit(
+        address depositToken,
+        uint256 amount
+    ) internal virtual override {
         if (depositToken != token()) revert("SimpleVault: invalid token");
-        IERC20(depositToken).safeTransferFrom(_msgSender(), address(this), amount);
+        IERC20(depositToken).safeTransferFrom(
+            _msgSender(),
+            address(this),
+            amount
+        );
     }
 
-    function balanceOf(address account) public view override(Vault, ERC20Upgradeable) returns (uint256) {
+    function balanceOf(
+        address account
+    ) public view override(Vault, ERC20Upgradeable) returns (uint256) {
         return ERC20Upgradeable.balanceOf(account);
     }
 
-    function totalSupply() public view override(Vault, ERC20Upgradeable) returns (uint256) {
+    function totalSupply()
+        public
+        view
+        override(Vault, ERC20Upgradeable)
+        returns (uint256)
+    {
         return ERC20Upgradeable.totalSupply();
     }
 }

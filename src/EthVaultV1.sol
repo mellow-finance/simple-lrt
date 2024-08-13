@@ -10,19 +10,38 @@ import {EthWrapper} from "./EthWrapper.sol";
 contract EthVaultV1 is ERC20, Vault, EthWrapper {
     constructor() ERC20("Default", "Default") VaultStorage("EthVaultV1", 1) {}
 
-    function _msgSender() internal view override(Context, ContextUpgradeable) returns (address) {
+    function _msgSender()
+        internal
+        view
+        override(Context, ContextUpgradeable)
+        returns (address)
+    {
         return Context._msgSender();
     }
 
-    function _msgData() internal view override(Context, ContextUpgradeable) returns (bytes calldata) {
+    function _msgData()
+        internal
+        view
+        override(Context, ContextUpgradeable)
+        returns (bytes calldata)
+    {
         return Context._msgData();
     }
 
-    function _contextSuffixLength() internal view override(Context, ContextUpgradeable) returns (uint256) {
+    function _contextSuffixLength()
+        internal
+        view
+        override(Context, ContextUpgradeable)
+        returns (uint256)
+    {
         return Context._contextSuffixLength();
     }
 
-    function _update(address from, address to, uint256 value) internal virtual override(Vault, ERC20) {
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal virtual override(Vault, ERC20) {
         super._update(from, to, value);
     }
 
@@ -30,11 +49,18 @@ contract EthVaultV1 is ERC20, Vault, EthWrapper {
         _wrap(depositToken, amount);
     }
 
-    function balanceOf(address account) public view override(Vault, ERC20) returns (uint256) {
+    function balanceOf(
+        address account
+    ) public view override(Vault, ERC20) returns (uint256) {
         return ERC20.balanceOf(account);
     }
 
-    function totalSupply() public view override(Vault, ERC20) returns (uint256) {
+    function totalSupply()
+        public
+        view
+        override(Vault, ERC20)
+        returns (uint256)
+    {
         return ERC20.totalSupply();
     }
 }

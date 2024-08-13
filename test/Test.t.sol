@@ -8,8 +8,13 @@ import "../src/EthVaultV2.sol";
 contract Tests is Test {
     function test() external view {
         console2.logBytes32(
-            keccak256(abi.encode(uint256(keccak256("mellow.simple-lrt.storage.VaultStorage")) - 1))
-                & ~bytes32(uint256(0xff))
+            keccak256(
+                abi.encode(
+                    uint256(
+                        keccak256("mellow.simple-lrt.storage.VaultStorage")
+                    ) - 1
+                )
+            ) & ~bytes32(uint256(0xff))
         );
     }
 }
