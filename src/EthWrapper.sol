@@ -16,7 +16,10 @@ contract EthWrapper is IEthWrapper {
             revert("EthWrapper: amount must be greater than 0");
         }
 
-        if (depositToken != ETH && depositToken != WETH && depositToken != stETH && depositToken != wstETH) {
+        if (
+            depositToken != ETH && depositToken != WETH && depositToken != stETH
+                && depositToken != wstETH
+        ) {
             revert("EthWrapper: invalid depositToken");
         }
 

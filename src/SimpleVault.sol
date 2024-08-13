@@ -13,7 +13,9 @@ import {Vault, VaultStorage} from "./Vault.sol";
 contract SimpleVault is ERC20VotesUpgradeable, Vault {
     using SafeERC20 for IERC20;
 
-    constructor(string memory name, uint256 version) VaultStorage(keccak256(abi.encodePacked(name)), version) {}
+    constructor(string memory name, uint256 version)
+        VaultStorage(keccak256(abi.encodePacked(name)), version)
+    {}
 
     function initializeWithERC20(
         address _symbioticCollateral,
@@ -31,16 +33,26 @@ contract SimpleVault is ERC20VotesUpgradeable, Vault {
         __initializeRoles(_admin);
     }
 
-    function _update(address from, address to, uint256 amount) internal override(Vault, ERC20VotesUpgradeable) {
+    function _update(address from, address to, uint256 amount)
+        internal
+        override(Vault, ERC20VotesUpgradeable)
+    {
         super._update(from, to, amount);
     }
 
     function _deposit(address depositToken, uint256 amount) internal virtual override {
-        if (depositToken != token()) revert("SimpleVault: invalid token");
+        if (depositToken != token()) {
+            revert("SimpleVault: invalid token");
+        }
         IERC20(depositToken).safeTransferFrom(_msgSender(), address(this), amount);
     }
 
-    function balanceOf(address account) public view override(Vault, ERC20Upgradeable) returns (uint256) {
+    function balanceOf(address account)
+        public
+        view
+        override(Vault, ERC20Upgradeable)
+        returns (uint256)
+    {
         return ERC20Upgradeable.balanceOf(account);
     }
 

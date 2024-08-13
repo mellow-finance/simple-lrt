@@ -15,15 +15,21 @@ contract VaultStorage is IVaultStorage, Initializable {
         VERSION = version_;
         storageSlotRef = keccak256(
             abi.encode(
-                uint256(keccak256(abi.encodePacked("mellow.simple-lrt.storage.VaultStorage", name_, version_))) - 1
+                uint256(
+                    keccak256(
+                        abi.encodePacked("mellow.simple-lrt.storage.VaultStorage", name_, version_)
+                    )
+                ) - 1
             )
         ) & ~bytes32(uint256(0xff)) & ~bytes32(uint256(0xff));
     }
 
-    function __initializeStorage(address _symbioticCollateral, address _symbioticVault, uint256 _limit, bool _paused)
-        internal
-        initializer
-    {
+    function __initializeStorage(
+        address _symbioticCollateral,
+        address _symbioticVault,
+        uint256 _limit,
+        bool _paused
+    ) internal initializer {
         _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
         _setLimit(_limit);

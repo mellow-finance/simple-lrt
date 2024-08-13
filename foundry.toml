@@ -6,3 +6,15 @@ libs = ["lib"]
 [dependencies]
 openzeppelin = { git = "https://github.com/OpenZeppelin/openzeppelin-contracts.git", version = "5.0.2" }
 openzeppelin-upgradeable = { git = "https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable.git", version = "5.0.2" }
+
+[fmt]
+line_length = 100
+single_line_statement_blocks = 'multi'
+multiline_func_header = 'attributes_first'
+contract_new_lines = false
+override_spacing = false
+tab_width = 4
+bracket_spacing = false
+int_types = 'long'
+quote_style = 'double'
+number_underscore = 'remove'

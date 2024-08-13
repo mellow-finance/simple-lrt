@@ -25,15 +25,29 @@ contract EthVaultV1 is ERC20, Vault, EthWrapper {
         return Context._msgSender();
     }
 
-    function _msgData() internal view override(Context, ContextUpgradeable) returns (bytes calldata) {
+    function _msgData()
+        internal
+        view
+        override(Context, ContextUpgradeable)
+        returns (bytes calldata)
+    {
         return Context._msgData();
     }
 
-    function _contextSuffixLength() internal view override(Context, ContextUpgradeable) returns (uint256) {
+    function _contextSuffixLength()
+        internal
+        view
+        override(Context, ContextUpgradeable)
+        returns (uint256)
+    {
         return Context._contextSuffixLength();
     }
 
-    function _update(address from, address to, uint256 value) internal virtual override(Vault, ERC20) {
+    function _update(address from, address to, uint256 value)
+        internal
+        virtual
+        override(Vault, ERC20)
+    {
         super._update(from, to, value);
     }
 

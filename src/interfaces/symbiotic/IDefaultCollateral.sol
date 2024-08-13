@@ -153,9 +153,14 @@ interface IDefaultCollateral is IERC20 {
      * @param s s component of the signature
      * @return amount of the collateral minted
      */
-    function deposit(address recipient, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
-        external
-        returns (uint256);
+    function deposit(
+        address recipient,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256);
 
     /**
      * @notice Withdraw a given amount of the underlying asset, and transfer it to a particular recipient.
