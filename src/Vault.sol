@@ -7,38 +7,26 @@ import {VaultStorage} from "./VaultStorage.sol";
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
 // 2. Tests (unit, int, e2e, migration)
-// 3. Add is Multicall
-// 4. Add is ReentrancyGuard
-// 5. Add is IDelayedERC4626
-abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradeable {
+// 3. Add is IDelayedERC4626 (WIP)
+abstract contract Vault is
+    IVault,
+    VaultStorage,
+    AccessManagerUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     using SafeERC20 for IERC20;
 
-    bytes32 constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
-    bytes32 constant PAUSE_TRANSFERS_ROLE = keccak256("PAUSE_TRANSFERS_ROLE");
-    bytes32 constant UNPAUSE_TRANSFERS_ROLE = keccak256("UNPAUSE_TRANSFERS_ROLE");
-    bytes32 constant PAUSE_DEPOSITS_ROLE = keccak256("PAUSE_DEPOSITS_ROLE");
-    bytes32 constant UNPAUSE_DEPOSITS_ROLE = keccak256("UNPAUSE_DEPOSITS_ROLE");
+    uint64 public constant SET_LIMIT_ROLE = uint64(uint256(keccak256("SET_LIMIT_ROLE")));
 
-    function __initializeRoles(address admin) internal initializer {
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+    uint64 public constant PAUSE_TRANSFERS_ROLE = uint64(uint256(keccak256("PAUSE_TRANSFERS_ROLE")));
+    uint64 public constant UNPAUSE_TRANSFERS_ROLE =
+        uint64(uint256(keccak256("UNPAUSE_TRANSFERS_ROLE")));
 
-        _grantRole(SET_LIMIT_ROLE, admin);
-        _setRoleAdmin(SET_LIMIT_ROLE, DEFAULT_ADMIN_ROLE);
+    uint64 public constant PAUSE_DEPOSITS_ROLE = uint64(uint256(keccak256("PAUSE_DEPOSITS_ROLE")));
+    uint64 public constant UNPAUSE_DEPOSITS_ROLE =
+        uint64(uint256(keccak256("UNPAUSE_DEPOSITS_ROLE")));
 
-        _grantRole(PAUSE_TRANSFERS_ROLE, admin);
-        _setRoleAdmin(PAUSE_TRANSFERS_ROLE, DEFAULT_ADMIN_ROLE);
-
-        _grantRole(UNPAUSE_TRANSFERS_ROLE, admin);
-        _setRoleAdmin(UNPAUSE_TRANSFERS_ROLE, DEFAULT_ADMIN_ROLE);
-
-        _grantRole(PAUSE_DEPOSITS_ROLE, admin);
-        _setRoleAdmin(PAUSE_DEPOSITS_ROLE, DEFAULT_ADMIN_ROLE);
-
-        _grantRole(UNPAUSE_DEPOSITS_ROLE, admin);
-        _setRoleAdmin(UNPAUSE_DEPOSITS_ROLE, DEFAULT_ADMIN_ROLE);
-    }
-
-    function setLimit(uint256 _limit) external onlyRole(SET_LIMIT_ROLE) {
+    function setLimit(uint256 _limit) external onlyAuthorized {
         if (totalSupply() > _limit) {
             revert("Vault: totalSupply exceeds new limit");
         }
@@ -46,21 +34,21 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
         emit NewLimit(_limit);
     }
 
-    function pauseTransfers() external onlyRole(PAUSE_TRANSFERS_ROLE) {
+    function pauseTransfers() external onlyAuthorized {
         _setTransferPause(true);
         _revokeRole(PAUSE_TRANSFERS_ROLE, _msgSender());
     }
 
-    function unpauseTransfers() external onlyRole(UNPAUSE_TRANSFERS_ROLE) {
+    function unpauseTransfers() external onlyAuthorized {
         _setTransferPause(false);
     }
 
-    function pauseDeposits() external onlyRole(PAUSE_DEPOSITS_ROLE) {
+    function pauseDeposits() external onlyAuthorized {
         _setDepositPause(true);
         _revokeRole(PAUSE_DEPOSITS_ROLE, _msgSender());
     }
 
-    function unpauseDeposits() external onlyRole(UNPAUSE_DEPOSITS_ROLE) {
+    function unpauseDeposits() external onlyAuthorized {
         _setDepositPause(false);
     }
 
@@ -99,8 +87,18 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
     }
 
     function tvl(Math.Rounding rounding) public view returns (uint256 totalValueLocked) {
-        return IERC20(token()).balanceOf(address(this))
+        return IERC20(asset()).balanceOf(address(this))
             + symbioticCollateral().balanceOf(address(this)) + getSymbioticVaultStake(rounding);
+    }
+
+    function initialDeposit(address depositToken, uint256 amount, uint256 initialTotalSupply)
+        external
+        onlyAuthorized
+    {
+        require(totalSupply() == 0, "Vault: not initial deposit");
+        _update(address(0), address(this), initialTotalSupply);
+        _deposit(depositToken, amount);
+        pushIntoSymbiotic();
     }
 
     function deposit(
@@ -116,27 +114,14 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
         uint256 totalSupply_ = totalSupply();
         uint256 valueBefore = tvl(Math.Rounding.Ceil);
         _deposit(depositToken, amount);
-        if (depositToken != token()) {
-            revert("Vault: invalid deposit token");
-        }
         uint256 valueAfter = tvl(Math.Rounding.Floor);
         if (valueAfter <= valueBefore) {
             revert("Vault: invalid deposit amount");
         }
         uint256 depositValue = valueAfter - valueBefore;
-        uint256 lpAmount;
-        if (totalSupply_ == 0) {
-            // initial deposit only on behalf of admin
-            _checkRole(DEFAULT_ADMIN_ROLE);
-            if (minLpAmount == 0 || depositValue == 0 || recipient != address(this)) {
-                revert("Vault: invalid initial deposit values");
-            }
-            lpAmount = minLpAmount;
-        } else {
-            lpAmount = Math.mulDiv(totalSupply_, depositValue, valueBefore);
-            if (minLpAmount > lpAmount) {
-                revert("Vault: minLpAmount > lpAmount");
-            }
+        uint256 lpAmount = Math.mulDiv(totalSupply_, depositValue, valueBefore);
+        if (minLpAmount > lpAmount) {
+            revert("Vault: minLpAmount > lpAmount");
         }
         if (lpAmount + totalSupply_ > limit()) {
             revert("Vault: vault limit reached");
@@ -158,9 +143,9 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
             return (0, 0);
         }
 
-        address token = token();
+        address asset = asset();
         IDefaultCollateral symbioticCollateral = symbioticCollateral();
-        uint256 tokenValue = IERC20(token).balanceOf(address(this));
+        uint256 tokenValue = IERC20(asset).balanceOf(address(this));
         uint256 collateralValue = symbioticCollateral.balanceOf(address(this));
         uint256 symbioticVaultStake = getSymbioticVaultStake(Math.Rounding.Floor);
 
@@ -168,7 +153,7 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
         amountToClaim = Math.mulDiv(lpAmount, totalValue, totalSupply());
         if (tokenValue != 0) {
             uint256 tokenAmount = Math.min(amountToClaim, tokenValue);
-            IERC20(token).safeTransfer(recipient, tokenAmount);
+            IERC20(asset).safeTransfer(recipient, tokenAmount);
             amountToClaim -= tokenAmount;
             withdrawnAmount += tokenAmount;
             if (amountToClaim == 0) {
@@ -199,7 +184,7 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
     }
 
     function pushIntoSymbiotic() public {
-        IERC20 token = IERC20(token());
+        IERC20 token = IERC20(asset());
         uint256 assetAmount = token.balanceOf(address(this));
         IDefaultCollateral symbioticCollateral = symbioticCollateral();
         ISymbioticVault symbioticVault = symbioticVault();

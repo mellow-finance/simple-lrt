@@ -17,8 +17,9 @@ contract EthVaultV1 is ERC20, Vault, EthWrapper {
         bool _paused,
         address _admin
     ) external initializer {
+        __AccessManager_init(_admin);
+
         __initializeStorage(_symbioticCollateral, _symbioticVault, _limit, _paused);
-        __initializeRoles(_admin);
     }
 
     function _msgSender() internal view override(Context, ContextUpgradeable) returns (address) {

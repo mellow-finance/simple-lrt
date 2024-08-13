@@ -18,7 +18,7 @@ interface IVaultStorage {
     struct Storage {
         IDefaultCollateral symbioticCollateral;
         ISymbioticVault symbioticVault;
-        address token;
+        address asset;
         bool depositPause;
         bool transferPause;
         uint256 limit;

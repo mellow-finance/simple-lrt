@@ -33,7 +33,7 @@ contract VaultStorage is IVaultStorage, Initializable {
         _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
         _setLimit(_limit);
-        _setToken(IDefaultCollateral(_symbioticCollateral).asset());
+        _setAsset(IDefaultCollateral(_symbioticCollateral).asset());
         _setDepositPause(_paused);
         _setTransferPause(_paused);
     }
@@ -46,8 +46,8 @@ contract VaultStorage is IVaultStorage, Initializable {
         return _contractStorage().symbioticVault;
     }
 
-    function token() public view returns (address) {
-        return _contractStorage().token;
+    function asset() public view returns (address) {
+        return _contractStorage().asset;
     }
 
     function depositPause() public view returns (bool) {
@@ -95,9 +95,9 @@ contract VaultStorage is IVaultStorage, Initializable {
         s.symbioticVault = _symbioticVault;
     }
 
-    function _setToken(address _token) internal {
+    function _setAsset(address _asset) internal {
         Storage storage s = _contractStorage();
-        s.token = _token;
+        s.asset = _asset;
     }
 
     function _setSymbioticFarm(address rewardToken, FarmData memory farmData) internal {

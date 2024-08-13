@@ -28,9 +28,9 @@ contract SimpleVault is ERC20VotesUpgradeable, Vault {
     ) external initializer {
         __ERC20_init(name, symbol);
         __EIP712_init(name, "1");
+        __AccessManager_init(_admin);
 
         __initializeStorage(_symbioticCollateral, _symbioticVault, _limit, _paused);
-        __initializeRoles(_admin);
     }
 
     function _update(address from, address to, uint256 amount)
@@ -41,7 +41,7 @@ contract SimpleVault is ERC20VotesUpgradeable, Vault {
     }
 
     function _deposit(address depositToken, uint256 amount) internal virtual override {
-        if (depositToken != token()) {
+        if (depositToken != asset()) {
             revert("SimpleVault: invalid token");
         }
         IERC20(depositToken).safeTransferFrom(_msgSender(), address(this), amount);
