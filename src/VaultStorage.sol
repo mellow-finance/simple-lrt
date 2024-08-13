@@ -20,8 +20,8 @@ contract VaultStorage is IVaultStorage, Initializable {
         ) & ~bytes32(uint256(0xff)) & ~bytes32(uint256(0xff));
     }
 
-    function initializeStorage(address _symbioticCollateral, address _symbioticVault, uint256 _limit, bool _paused)
-        public
+    function __initializeStorage(address _symbioticCollateral, address _symbioticVault, uint256 _limit, bool _paused)
+        internal
         initializer
     {
         _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));

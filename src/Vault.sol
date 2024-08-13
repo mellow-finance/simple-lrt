@@ -16,7 +16,7 @@ abstract contract Vault is IVault, VaultStorage, AccessControlEnumerableUpgradea
     bytes32 constant PAUSE_DEPOSITS_ROLE = keccak256("PAUSE_DEPOSITS_ROLE");
     bytes32 constant UNPAUSE_DEPOSITS_ROLE = keccak256("UNPAUSE_DEPOSITS_ROLE");
 
-    function initializeRoles(address admin) public initializer {
+    function __initializeRoles(address admin) internal initializer {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
         _grantRole(SET_LIMIT_ROLE, admin);

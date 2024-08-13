@@ -23,11 +23,12 @@ contract SimpleVault is ERC20VotesUpgradeable, Vault {
         address _admin,
         string memory name,
         string memory symbol
-    ) external {
-        initializeStorage(_symbioticCollateral, _symbioticVault, _limit, _paused);
-        initializeRoles(_admin);
+    ) external initializer {
         __ERC20_init(name, symbol);
         __EIP712_init(name, "1");
+
+        __initializeStorage(_symbioticCollateral, _symbioticVault, _limit, _paused);
+        __initializeRoles(_admin);
     }
 
     function _update(address from, address to, uint256 amount) internal override(Vault, ERC20VotesUpgradeable) {

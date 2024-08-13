@@ -10,6 +10,17 @@ import {EthWrapper} from "./EthWrapper.sol";
 contract EthVaultV1 is ERC20, Vault, EthWrapper {
     constructor() ERC20("Default", "Default") VaultStorage("EthVaultV1", 1) {}
 
+    function initialize(
+        address _symbioticCollateral,
+        address _symbioticVault,
+        uint256 _limit,
+        bool _paused,
+        address _admin
+    ) external initializer {
+        __initializeStorage(_symbioticCollateral, _symbioticVault, _limit, _paused);
+        __initializeRoles(_admin);
+    }
+
     function _msgSender() internal view override(Context, ContextUpgradeable) returns (address) {
         return Context._msgSender();
     }
