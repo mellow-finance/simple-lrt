@@ -260,14 +260,14 @@ abstract contract Vault is
         view
         returns (uint256 claimableRewards)
     {
-        revert();
+        revert("not implemented");
     }
 
     function claimRewards(address rewardToken, address receiver, address owner)
         external
         returns (uint256 claimedRewards)
     {
-        revert();
+        revert("not implemented");
     }
 
     function maxClaimableAssets(address owner) external view returns (uint256 claimableAssets) {
@@ -276,7 +276,12 @@ abstract contract Vault is
         */
     }
 
-    function claim(address receiver, address owner) external returns (uint256 claimedAssets) {}
+    function claimAssets(address receiver, address owner)
+        external
+        returns (uint256 claimedAssets)
+    {
+        revert("not implemented");
+    }
 
     function deposit(
         address depositToken,
