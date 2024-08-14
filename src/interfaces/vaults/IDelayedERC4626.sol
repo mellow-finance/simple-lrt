@@ -234,5 +234,16 @@ interface IDelayedERC4626 {
 
     function maxClaimableAssets(address owner) external view returns (uint256 claimableAssets);
 
-    function claim(address receiver, address owner) external returns (uint256 claimedAssets);
+    function claimAssets(address receiver, address owner)
+        external
+        returns (uint256 claimedAssets);
+
+    function maxClaimableRewards(address rewardToken, address owner)
+        external
+        view
+        returns (uint256 claimableRewards);
+
+    function claimRewards(address rewardToken, address receiver, address owner)
+        external
+        returns (uint256 claimedRewards);
 }
