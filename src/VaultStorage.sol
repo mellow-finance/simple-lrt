@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import "./interfaces/vaults/IVaultStorage.sol";
 
-contract VaultStorage is IVaultStorage, Initializable {
+abstract contract VaultStorage is IVaultStorage {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     bytes32 public immutable NAME;
@@ -29,7 +29,7 @@ contract VaultStorage is IVaultStorage, Initializable {
         address _symbioticVault,
         uint256 _limit,
         bool _paused
-    ) internal initializer {
+    ) internal {
         _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
         _setLimit(_limit);
@@ -46,7 +46,7 @@ contract VaultStorage is IVaultStorage, Initializable {
         return _contractStorage().symbioticVault;
     }
 
-    function asset() public view returns (address) {
+    function asset() public view virtual returns (address) {
         return _contractStorage().asset;
     }
 

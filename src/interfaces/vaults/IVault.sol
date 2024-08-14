@@ -19,7 +19,7 @@ import {IVaultStorage} from "./IVaultStorage.sol";
 
 import {IDelayedERC4626} from "./IDelayedERC4626.sol";
 
-interface IVault is IVaultStorage {
+interface IVault is IVaultStorage, IDelayedERC4626 {
     event Deposit(address indexed user, uint256 depositValue, uint256 lpAmount, address referral);
     event NewLimit(uint256 limit);
     event PushToSymbioticBond(uint256 amount);

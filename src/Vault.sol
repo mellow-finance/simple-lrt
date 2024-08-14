@@ -7,7 +7,6 @@ import {VaultStorage} from "./VaultStorage.sol";
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
 // 2. Tests (unit, int, e2e, migration)
-// 3. Add is IDelayedERC4626 (WIP)
 abstract contract Vault is
     IVault,
     VaultStorage,
@@ -52,7 +51,10 @@ abstract contract Vault is
         _setDepositPause(false);
     }
 
-    function pushRewards(IERC20 rewardToken, bytes calldata symbioticRewardsData) external {
+    function pushRewards(IERC20 rewardToken, bytes calldata symbioticRewardsData)
+        external
+        nonReentrant
+    {
         FarmData memory data = symbioticFarm(address(rewardToken));
         require(data.symbioticFarm != address(0), "Vault: farm not set");
         uint256 amountBefore = rewardToken.balanceOf(address(this));
@@ -86,6 +88,51 @@ abstract contract Vault is
         vaultActiveStake = Math.mulDiv(activeStake, vaultActiveShares, activeShares, rounding);
     }
 
+    function asset() public view override(VaultStorage, IDelayedERC4626) returns (address) {
+        return VaultStorage.asset();
+    }
+
+    function totalAssets() public view returns (uint256) {
+        return tvl(Math.Rounding.Ceil); // rounding up
+    }
+
+    function convertToShares(uint256 asset_) external view returns (uint256) {
+        return Math.mulDiv( // rounding down
+            asset_,
+            totalSupply(),
+            tvl(Math.Rounding.Ceil) // rounding up
+        );
+    }
+
+    function convertToAssets(uint256 shares) external view returns (uint256 assets) {
+        return Math.mulDiv( // rounding down
+            shares,
+            tvl(Math.Rounding.Floor), // rounding down
+            totalSupply()
+        );
+    }
+
+    function maxDeposit(address /* receiver */ ) external view returns (uint256) {
+        uint256 totalSupply_ = totalSupply();
+        uint256 leftover = limit() - totalSupply_;
+        return Math.mulDiv( // rounding down
+            leftover,
+            tvl(Math.Rounding.Floor), // rounding down
+            totalSupply_
+        );
+    }
+
+    function previewDeposit(uint256 assets) external view returns (uint256) {
+        if (assets == 0) {
+            return 0;
+        }
+        return Math.mulDiv( // rounding down
+            totalSupply(),
+            tvl(Math.Rounding.Floor) + assets, // rounding down
+            tvl(Math.Rounding.Ceil) // rounding up
+        );
+    }
+
     function tvl(Math.Rounding rounding) public view returns (uint256 totalValueLocked) {
         return IERC20(asset()).balanceOf(address(this))
             + symbioticCollateral().balanceOf(address(this)) + getSymbioticVaultStake(rounding);
@@ -101,13 +148,143 @@ abstract contract Vault is
         pushIntoSymbiotic();
     }
 
+    function deposit(uint256 assets, address receiver) public returns (uint256 shares) {
+        return deposit(asset(), assets, 0, receiver, address(0));
+    }
+
+    function maxMint(address /* receiver */ ) external view returns (uint256 maxShares) {
+        return limit() - totalSupply();
+    }
+
+    function previewMint(uint256 shares) public view returns (uint256 assets) {
+        if (shares == 0) {
+            return 0;
+        }
+        return Math.mulDiv( // rounding up
+            shares,
+            tvl(Math.Rounding.Ceil), // rounding up
+            totalSupply(),
+            Math.Rounding.Ceil
+        );
+    }
+
+    function mint(uint256 shares, address receiver) external returns (uint256) {
+        uint256 assets = previewMint(shares);
+        return deposit(asset(), assets, shares, receiver, address(0));
+    }
+
+    function maxWithdraw(address owner)
+        external
+        view
+        returns (uint256 maxAssets, uint256 maxClaimableAssets_)
+    {
+        uint256 balance = balanceOf(owner);
+        if (balance == 0) {
+            return (0, 0);
+        }
+
+        uint256 totalSupply_ = totalSupply();
+
+        uint256 assets = IERC20(asset()).balanceOf(address(this));
+        uint256 collateral = symbioticCollateral().balanceOf(address(this));
+        uint256 stake = getSymbioticVaultStake(Math.Rounding.Floor); // rounding down
+
+        maxAssets = Math.mulDiv( // rounding down
+        balance, assets + collateral + stake, totalSupply_);
+
+        if (maxAssets > assets + collateral) {
+            maxClaimableAssets_ = maxAssets - assets + collateral;
+            maxAssets -= maxClaimableAssets_;
+        }
+    }
+
+    function previewWithdraw(uint256 assets_)
+        public
+        view
+        returns (uint256 shares, uint256 claimableAssets)
+    {
+        uint256 assets = IERC20(asset()).balanceOf(address(this));
+        uint256 collateral = symbioticCollateral().balanceOf(address(this));
+        uint256 stake = getSymbioticVaultStake(Math.Rounding.Ceil); // rounding up
+        shares = Math.mulDiv( // rounding up
+            totalSupply(),
+            assets_,
+            assets + collateral + stake, // rounding up
+            Math.Rounding.Ceil
+        );
+        if (assets + collateral < assets_) {
+            claimableAssets = assets_ - assets + collateral;
+        }
+    }
+
+    function withdraw(uint256 assets, address receiver, address owner)
+        external
+        returns (uint256 shares, uint256 claimableAssets)
+    {
+        require(msg.sender == owner, "Vault: forbidden");
+        (shares,) = previewWithdraw(assets);
+        return withdraw(shares, receiver);
+    }
+
+    function maxRedeem(address owner) external view returns (uint256 maxShares) {
+        return balanceOf(owner);
+    }
+
+    function previewRedeem(uint256 shares)
+        external
+        view
+        returns (uint256 assets, uint256 claimableAssets)
+    {
+        uint256 totalSupply_ = totalSupply();
+        uint256 assets_ = IERC20(asset()).balanceOf(address(this));
+        uint256 collateral = symbioticCollateral().balanceOf(address(this));
+        uint256 stake = getSymbioticVaultStake(Math.Rounding.Floor); // rounding down
+        assets = Math.mulDiv( // rounding down
+        shares, assets_ + collateral + stake, totalSupply_);
+        if (assets_ + collateral < assets) {
+            claimableAssets = assets - assets_ + collateral;
+            assets -= claimableAssets;
+        }
+    }
+
+    function redeem(uint256 shares, address receiver, address owner)
+        external
+        returns (uint256 assets, uint256 claimableAssets)
+    {
+        require(msg.sender == owner, "Vault: forbidden");
+        return withdraw(shares, receiver);
+    }
+
+    function maxClaimableRewards(address rewardToken, address owner)
+        external
+        view
+        returns (uint256 claimableRewards)
+    {
+        revert();
+    }
+
+    function claimRewards(address rewardToken, address receiver, address owner)
+        external
+        returns (uint256 claimedRewards)
+    {
+        revert();
+    }
+
+    function maxClaimableAssets(address owner) external view returns (uint256 claimableAssets) {
+        /*
+            we need accounting for claimable and pending for end of epoch assets
+        */
+    }
+
+    function claim(address receiver, address owner) external returns (uint256 claimedAssets) {}
+
     function deposit(
         address depositToken,
         uint256 amount,
-        uint256 minLpAmount,
+        uint256 minShares,
         address recipient,
         address referral
-    ) external payable {
+    ) public payable returns (uint256 shares) {
         if (depositPause()) {
             revert("Vault: paused");
         }
@@ -119,23 +296,23 @@ abstract contract Vault is
             revert("Vault: invalid deposit amount");
         }
         uint256 depositValue = valueAfter - valueBefore;
-        uint256 lpAmount = Math.mulDiv(totalSupply_, depositValue, valueBefore);
-        if (minLpAmount > lpAmount) {
-            revert("Vault: minLpAmount > lpAmount");
+        shares = Math.mulDiv(totalSupply_, depositValue, valueBefore);
+        if (minShares > shares) {
+            revert("Vault: minShares > shares");
         }
-        if (lpAmount + totalSupply_ > limit()) {
+        if (shares + totalSupply_ > limit()) {
             revert("Vault: vault limit reached");
-        } else if (lpAmount == 0) {
-            revert("Vault: zero lpAmount");
+        } else if (shares == 0) {
+            revert("Vault: zero shares");
         }
         pushIntoSymbiotic();
 
-        _update(address(0), recipient, lpAmount);
-        emit Deposit(recipient, depositValue, lpAmount, referral);
+        _update(address(0), recipient, shares);
+        emit Deposit(recipient, depositValue, shares, referral);
     }
 
     function withdraw(uint256 lpAmount, address recipient)
-        external
+        public
         returns (uint256 withdrawnAmount, uint256 amountToClaim)
     {
         lpAmount = Math.min(lpAmount, balanceOf(_msgSender()));
@@ -143,9 +320,9 @@ abstract contract Vault is
             return (0, 0);
         }
 
-        address asset = asset();
+        address asset_ = asset();
         IDefaultCollateral symbioticCollateral = symbioticCollateral();
-        uint256 tokenValue = IERC20(asset).balanceOf(address(this));
+        uint256 tokenValue = IERC20(asset_).balanceOf(address(this));
         uint256 collateralValue = symbioticCollateral.balanceOf(address(this));
         uint256 symbioticVaultStake = getSymbioticVaultStake(Math.Rounding.Floor);
 
@@ -153,7 +330,7 @@ abstract contract Vault is
         amountToClaim = Math.mulDiv(lpAmount, totalValue, totalSupply());
         if (tokenValue != 0) {
             uint256 tokenAmount = Math.min(amountToClaim, tokenValue);
-            IERC20(asset).safeTransfer(recipient, tokenAmount);
+            IERC20(asset_).safeTransfer(recipient, tokenAmount);
             amountToClaim -= tokenAmount;
             withdrawnAmount += tokenAmount;
             if (amountToClaim == 0) {
