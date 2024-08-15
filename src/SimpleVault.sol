@@ -20,6 +20,7 @@ contract SimpleVault is ERC20VotesUpgradeable, Vault {
     function initializeWithERC20(
         address _symbioticCollateral,
         address _symbioticVault,
+        address _withdrawalQueue,
         uint256 _limit,
         bool _paused,
         address _admin,
@@ -30,7 +31,9 @@ contract SimpleVault is ERC20VotesUpgradeable, Vault {
         __EIP712_init(name, "1");
         __AccessManager_init(_admin);
 
-        __initializeStorage(_symbioticCollateral, _symbioticVault, _limit, _paused);
+        __initializeStorage(
+            _symbioticCollateral, _symbioticVault, _withdrawalQueue, _limit, _paused
+        );
     }
 
     function _update(address from, address to, uint256 amount)

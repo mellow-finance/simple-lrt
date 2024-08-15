@@ -13,13 +13,16 @@ contract EthVaultV1 is ERC20, Vault, EthWrapper {
     function initialize(
         address _symbioticCollateral,
         address _symbioticVault,
+        address _withdrawalQueue,
         uint256 _limit,
         bool _paused,
         address _admin
     ) external initializer {
         __AccessManager_init(_admin);
 
-        __initializeStorage(_symbioticCollateral, _symbioticVault, _limit, _paused);
+        __initializeStorage(
+            _symbioticCollateral, _symbioticVault, _withdrawalQueue, _limit, _paused
+        );
     }
 
     function _msgSender() internal view override(Context, ContextUpgradeable) returns (address) {

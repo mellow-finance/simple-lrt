@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 import "./interfaces/vaults/IVault.sol";
 import {VaultStorage} from "./VaultStorage.sol";
+import {SymbioticWithdrawalQueue} from "./SymbioticWithdrawalQueue.sol";
 
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
@@ -217,7 +218,7 @@ abstract contract Vault is
         }
     }
 
-    function getState(address user)
+    function getState(address account)
         external
         view
         returns (
@@ -225,12 +226,13 @@ abstract contract Vault is
             uint256 assets,
             uint256 instantShares,
             uint256 instantAssets,
-            uint256 claimableAssets,
-            uint256 pendingAssets
+            uint256 pendingShares, // these are symbiotic vault shares, not our vault shares. Why do we need them?
+            uint256 pendingAssets,
+            uint256 claimableAssets
         )
     {
         uint256 totalSupply_ = totalSupply();
-        shares = balanceOf(user);
+        shares = balanceOf(account);
 
         uint256 assets_ = IERC20(asset()).balanceOf(address(this));
         uint256 collateral_ = symbioticCollateral().balanceOf(address(this));
@@ -250,59 +252,14 @@ abstract contract Vault is
             Math.Rounding.Ceil // rounding up
         );
 
-        // IWithdrawalQueue withdrawalQueue_ = withdrawalQueue();
-        // claimableAsset = withdrawalQueue_.claimable(user);
-        // pendingAssets = withdrawalQueue_.pending(user);
+        SymbioticWithdrawalQueue withdrawalQueue_ = SymbioticWithdrawalQueue(withdrawalQueue());
+        (pendingShares, pendingAssets) = withdrawalQueue_.pending(account);
+        claimableAssets = withdrawalQueue_.claimable(account);
     }
 
     /*
-        only 5 mutable methods:
-        1. get current state:
-            total share, asset
-            instant share asset
-            claimable share asset
-            pending share asset
-        2. deposit
-        3. withdraw, redeem, claim
-
-        1. сколько у тебя lp shares и assets всего
-        2. сколько у тебя lp shares для мгновенного вывода
-        3. сколько в процессе вывода
-        4. сколько заклеймить
-
-        убрать реворды
-
-    Vault.sol:
-
-    withdraw(...) {
-    ...
-    symbioticVault.withdraw(withdrawalQueue, amount)
-    withdrawalQueue.registerWithdraw(recipient, amount, symbioticVault.currentEpoch() + 1)
-    }
-
-    WithdrawalQueue.sol:
-    function registerWithdrawal(address to, uint256 amount, uint256 epoch) { 
-    registetedAmount[to][epoch] += amount;
-    totalRegisteredAmount[epoch] += amount;
-    }
-
-    function pull(epoch) {
-    uint256 amount = symbioticVault.claim(epoch, address(this))
-    collectedAmounts[epoch] += amount; 
-    }
-
-    function claimEpoch(uint256 epoch) external {
-    uint256 amountToClaim =  collectedAmounts[epoch] * registeredAmount[msg.sender][epoch] / totalRegisteredAmount[epoch];
-    collateral.withdraw(msg.sender, amountToClaim);
-    totalRegisteredAmount[epoch] -= registeredAmount[msg.sender]; 
-    registeredAmount[msg.sender][epoch]  = 0;
-    collectedAmounts[epoch]  -= amountToClaim;
-    }
-
-    function claimEpochs(...) {
-    for (...) {...}
-    }
-
+        1. deposit
+        2. withdraw, redeem, claim
     */
 
     function withdraw(uint256 assets, address receiver, address owner)
@@ -343,34 +300,10 @@ abstract contract Vault is
         }
     }
 
-    function maxClaimableRewards(address rewardToken, address owner)
-        external
-        view
-        returns (uint256 claimableRewards)
-    {
-        revert("not implemented");
-    }
-
-    function claimRewards(address rewardToken, address receiver, address owner)
-        external
-        returns (uint256 claimedRewards)
-    {
-        revert("not implemented");
-    }
-
-    function maxClaimableAssets(address owner) external view returns (uint256 claimableAssets) {
-        /*
-            we need accounting for claimable and pending for end of epoch assets
-        */
-        revert("not implemented");
-    }
-
     function claimAssets(address receiver, address owner)
         external
         returns (uint256 claimedAssets)
-    {
-        revert("not implemented");
-    }
+    {}
 
     function deposit(
         address depositToken,

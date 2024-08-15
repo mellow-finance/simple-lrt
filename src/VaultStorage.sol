@@ -27,11 +27,13 @@ abstract contract VaultStorage is IVaultStorage {
     function __initializeStorage(
         address _symbioticCollateral,
         address _symbioticVault,
+        address _withdrawalQueue,
         uint256 _limit,
         bool _paused
     ) internal {
         _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
+        _setWithdrawalQueue(_withdrawalQueue);
         _setLimit(_limit);
         _setAsset(IDefaultCollateral(_symbioticCollateral).asset());
         _setDepositPause(_paused);
@@ -44,6 +46,10 @@ abstract contract VaultStorage is IVaultStorage {
 
     function symbioticVault() public view returns (ISymbioticVault) {
         return _contractStorage().symbioticVault;
+    }
+
+    function withdrawalQueue() public view returns (address) {
+        return _contractStorage().withdrawalQueue;
     }
 
     function asset() public view virtual returns (address) {
@@ -93,6 +99,11 @@ abstract contract VaultStorage is IVaultStorage {
     function _setSymbioticVault(ISymbioticVault _symbioticVault) internal {
         Storage storage s = _contractStorage();
         s.symbioticVault = _symbioticVault;
+    }
+
+    function _setWithdrawalQueue(address _withdrawalQueue) internal {
+        Storage storage s = _contractStorage();
+        s.withdrawalQueue = _withdrawalQueue;
     }
 
     function _setAsset(address _asset) internal {
