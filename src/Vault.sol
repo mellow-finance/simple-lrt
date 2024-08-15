@@ -4,7 +4,6 @@ pragma solidity 0.8.25;
 import "./interfaces/vaults/IVault.sol";
 import {VaultStorage} from "./VaultStorage.sol";
 import {SymbioticWithdrawalQueue} from "./SymbioticWithdrawalQueue.sol";
-import {ERC4626Math} from "./libraries/ERC4626Math.sol";
 
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
