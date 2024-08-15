@@ -24,4 +24,6 @@ interface IVaultStorage {
         EnumerableSet.AddressSet rewardTokens;
         mapping(address rewardToken => FarmData data) farms;
     }
+
+    function symbioticVault() external view returns (ISymbioticVault);
 }

@@ -228,20 +228,11 @@ interface IDelayedERC4626 {
      * NOTE: some implementations will require pre-requesting to the Vault before a withdrawal may be performed.
      * Those methods should be performed separately.
      */
-    function redeem(uint256 shares, address receiver, address owner)
-        external
-        returns (uint256 assets, uint256 claimableAssets);
+    // function redeem(uint256 shares, address receiver, address owner)
+    //     external
+    //     returns (uint256 assets, uint256 claimableAssets);
 
-    function maxClaimableAssets(address owner) external view returns (uint256 claimableAssets);
+    // function maxClaimableAssets(address owner) external view returns (uint256 claimableAssets);
 
-    function claim(address receiver, address owner) external returns (uint256 claimedAssets);
-
-    function maxClaimableRewards(address rewardToken, address owner)
-        external
-        view
-        returns (uint256 claimableRewards);
-
-    function claimRewards(address rewardToken, address receiver, address owner)
-        external
-        returns (uint256 claimedRewards);
+    // function claim(address receiver, address owner) external returns (uint256 claimedAssets);
 }

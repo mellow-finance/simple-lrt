@@ -217,12 +217,108 @@ abstract contract Vault is
         }
     }
 
+    function getState(address user)
+        external
+        view
+        returns (
+            uint256 shares,
+            uint256 assets,
+            uint256 instantShares,
+            uint256 instantAssets,
+            uint256 claimableAssets,
+            uint256 pendingAssets
+        )
+    {
+        uint256 totalSupply_ = totalSupply();
+        shares = balanceOf(user);
+
+        uint256 assets_ = IERC20(asset()).balanceOf(address(this));
+        uint256 collateral_ = symbioticCollateral().balanceOf(address(this));
+        uint256 stake_ = getSymbioticVaultStake(Math.Rounding.Floor); // rounding down
+        assets = Math.mulDiv(
+            shares,
+            assets_ + collateral_ + stake_,
+            totalSupply_,
+            Math.Rounding.Floor // rounding down
+        );
+
+        instantAssets = Math.min(assets, assets_ + collateral_);
+        instantShares = Math.mulDiv(
+            shares,
+            totalSupply_,
+            totalSupply_ - stake_,
+            Math.Rounding.Ceil // rounding up
+        );
+
+        // IWithdrawalQueue withdrawalQueue_ = withdrawalQueue();
+        // claimableAsset = withdrawalQueue_.claimable(user);
+        // pendingAssets = withdrawalQueue_.pending(user);
+    }
+
+    /*
+        only 5 mutable methods:
+        1. get current state:
+            total share, asset
+            instant share asset
+            claimable share asset
+            pending share asset
+        2. deposit
+        3. withdraw, redeem, claim
+
+        1. сколько у тебя lp shares и assets всего
+        2. сколько у тебя lp shares для мгновенного вывода
+        3. сколько в процессе вывода
+        4. сколько заклеймить
+
+        убрать реворды
+
+    Vault.sol:
+
+    withdraw(...) {
+    ...
+    symbioticVault.withdraw(withdrawalQueue, amount)
+    withdrawalQueue.registerWithdraw(recipient, amount, symbioticVault.currentEpoch() + 1)
+    }
+
+    WithdrawalQueue.sol:
+    function registerWithdrawal(address to, uint256 amount, uint256 epoch) { 
+    registetedAmount[to][epoch] += amount;
+    totalRegisteredAmount[epoch] += amount;
+    }
+
+    function pull(epoch) {
+    uint256 amount = symbioticVault.claim(epoch, address(this))
+    collectedAmounts[epoch] += amount; 
+    }
+
+    function claimEpoch(uint256 epoch) external {
+    uint256 amountToClaim =  collectedAmounts[epoch] * registeredAmount[msg.sender][epoch] / totalRegisteredAmount[epoch];
+    collateral.withdraw(msg.sender, amountToClaim);
+    totalRegisteredAmount[epoch] -= registeredAmount[msg.sender]; 
+    registeredAmount[msg.sender][epoch]  = 0;
+    collectedAmounts[epoch]  -= amountToClaim;
+    }
+
+    function claimEpochs(...) {
+    for (...) {...}
+    }
+
+    */
+
     function withdraw(uint256 assets, address receiver, address owner)
         external
         returns (uint256 shares, uint256 claimableAssets)
     {
         require(msg.sender == owner, "Vault: forbidden");
         (shares,) = previewWithdraw(assets);
+        return withdraw(shares, receiver);
+    }
+
+    function redeem(uint256 shares, address receiver, address owner)
+        external
+        returns (uint256 assets, uint256 claimableAssets)
+    {
+        require(msg.sender == owner, "Vault: forbidden");
         return withdraw(shares, receiver);
     }
 
@@ -247,14 +343,6 @@ abstract contract Vault is
         }
     }
 
-    function redeem(uint256 shares, address receiver, address owner)
-        external
-        returns (uint256 assets, uint256 claimableAssets)
-    {
-        require(msg.sender == owner, "Vault: forbidden");
-        return withdraw(shares, receiver);
-    }
-
     function maxClaimableRewards(address rewardToken, address owner)
         external
         view
@@ -274,6 +362,7 @@ abstract contract Vault is
         /*
             we need accounting for claimable and pending for end of epoch assets
         */
+        revert("not implemented");
     }
 
     function claimAssets(address receiver, address owner)
