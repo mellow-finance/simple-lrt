@@ -8,6 +8,8 @@ import {SymbioticWithdrawalQueue} from "./SymbioticWithdrawalQueue.sol";
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
 // 2. Tests (unit, int, e2e, migration)
+// 3. Make it a Multicall\
+// 4. Pause deposits and withdrawals but not transfers
 abstract contract Vault is
     IVault,
     VaultStorage,
@@ -15,6 +17,8 @@ abstract contract Vault is
     ReentrancyGuardUpgradeable
 {
     using SafeERC20 for IERC20;
+
+    // -------------------------- Guarded params --------------------------
 
     uint64 public constant SET_LIMIT_ROLE = uint64(uint256(keccak256("SET_LIMIT_ROLE")));
 
@@ -52,29 +56,11 @@ abstract contract Vault is
         _setDepositPause(false);
     }
 
-    function pushRewards(IERC20 rewardToken, bytes calldata symbioticRewardsData)
-        external
-        nonReentrant
-    {
-        FarmData memory data = symbioticFarm(address(rewardToken));
-        require(data.symbioticFarm != address(0), "Vault: farm not set");
-        uint256 amountBefore = rewardToken.balanceOf(address(this));
-        IStakerRewards(data.symbioticFarm).claimRewards(
-            address(this), address(rewardToken), symbioticRewardsData
-        );
-        uint256 rewardAmount = rewardToken.balanceOf(address(this)) - amountBefore;
-        if (rewardAmount == 0) {
-            return;
-        }
-
-        uint256 curatorFee = Math.mulDiv(rewardAmount, data.curatorFeeD4, 1e4);
-        if (curatorFee != 0) {
-            rewardToken.safeTransfer(data.curatorTreasury, curatorFee);
-        }
-        if (rewardAmount != curatorFee) {
-            rewardToken.safeTransfer(data.distributionFarm, rewardAmount - curatorFee);
-        }
-        emit RewardsPushed(address(rewardToken), rewardAmount, block.timestamp);
+    // Can we build both tvl and getSymVaultStake from the getState?
+    function tvl(Math.Rounding rounding) public view returns (uint256 totalValueLocked) {
+        // + pending?
+        return IERC20(asset()).balanceOf(address(this))
+            + symbioticCollateral().balanceOf(address(this)) + getSymbioticVaultStake(rounding);
     }
 
     function getSymbioticVaultStake(Math.Rounding rounding)
@@ -88,6 +74,8 @@ abstract contract Vault is
         uint256 activeShares = symbioticVault.activeShares();
         vaultActiveStake = Math.mulDiv(activeStake, vaultActiveShares, activeShares, rounding);
     }
+
+    // -------------------------- ERC4626 --------------------------
 
     function asset() public view override(VaultStorage, IDelayedERC4626) returns (address) {
         return VaultStorage.asset();
@@ -132,11 +120,6 @@ abstract contract Vault is
             tvl(Math.Rounding.Floor) + assets, // rounding down
             tvl(Math.Rounding.Ceil) // rounding up
         );
-    }
-
-    function tvl(Math.Rounding rounding) public view returns (uint256 totalValueLocked) {
-        return IERC20(asset()).balanceOf(address(this))
-            + symbioticCollateral().balanceOf(address(this)) + getSymbioticVaultStake(rounding);
     }
 
     function initialDeposit(address depositToken, uint256 amount, uint256 initialTotalSupply)
@@ -226,6 +209,7 @@ abstract contract Vault is
             uint256 assets,
             uint256 instantShares,
             uint256 instantAssets,
+            // A: should be lrt shares
             uint256 pendingShares, // these are symbiotic vault shares, not our vault shares. Why do we need them?
             uint256 pendingAssets,
             uint256 claimableAssets
@@ -415,17 +399,35 @@ abstract contract Vault is
         }
     }
 
-    function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
-        if (
-            rewardToken == address(this) || rewardToken == address(symbioticCollateral())
-                || rewardToken == address(symbioticVault())
-        ) {
-            revert("Vault: forbidden reward token");
+    function pushRewards(IERC20 rewardToken, bytes calldata symbioticRewardsData)
+        external
+        nonReentrant
+    {
+        FarmData memory data = symbioticFarm(address(rewardToken));
+        require(data.symbioticFarm != address(0), "Vault: farm not set");
+        uint256 amountBefore = rewardToken.balanceOf(address(this));
+        IStakerRewards(data.symbioticFarm).claimRewards(
+            address(this), address(rewardToken), symbioticRewardsData
+        );
+        uint256 rewardAmount = rewardToken.balanceOf(address(this)) - amountBefore;
+        if (rewardAmount == 0) {
+            return;
         }
-        if (farmData.curatorFeeD4 > 1e4) {
-            revert("Vault: invalid curator fee");
+
+        uint256 curatorFee = Math.mulDiv(rewardAmount, data.curatorFeeD4, 1e4);
+        if (curatorFee != 0) {
+            rewardToken.safeTransfer(data.curatorTreasury, curatorFee);
         }
+        // Guranteed to be >= 0 since data.curatorFeeD4 <= 1e4
+        rewardAmount = rewardAmount - curatorFee;
+        if (rewardAmount != 0) {
+            rewardToken.safeTransfer(data.distributionFarm, rewardAmount);
+        }
+        // TODO: Add fees data
+        emit RewardsPushed(address(rewardToken), rewardAmount, block.timestamp);
     }
+
+    // -------------------------- ERC20 Compatibility --------------------------
 
     function totalSupply() public view virtual returns (uint256);
 
@@ -441,4 +443,16 @@ abstract contract Vault is
     }
 
     function _deposit(address depositToken, uint256 amount) internal virtual;
+
+    function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
+        if (
+            rewardToken == address(this) || rewardToken == address(symbioticCollateral())
+                || rewardToken == address(symbioticVault())
+        ) {
+            revert("Vault: forbidden reward token");
+        }
+        if (farmData.curatorFeeD4 > 1e4) {
+            revert("Vault: invalid curator fee");
+        }
+    }
 }
