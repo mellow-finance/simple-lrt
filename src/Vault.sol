@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 import "./interfaces/vaults/IVault.sol";
 import {VaultStorage} from "./VaultStorage.sol";
 import {SymbioticWithdrawalQueue} from "./SymbioticWithdrawalQueue.sol";
+import {ERC4626Math} from "./libraries/ERC4626Math.sol";
 
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
@@ -17,6 +18,7 @@ abstract contract Vault is
     ReentrancyGuardUpgradeable
 {
     using SafeERC20 for IERC20;
+    using Math for uint256;
 
     // -------------------------- Guarded params --------------------------
 
@@ -55,6 +57,106 @@ abstract contract Vault is
     function unpauseDeposits() external onlyAuthorized {
         _setDepositPause(false);
     }
+
+    // -------------------------- BALANCES --------------------------
+
+    struct WithdrawalBalances {
+        uint256 totalShares;
+        // Doesn't include pending and claimable assets
+        uint256 totalAssets;
+        uint256 stakedShares;
+        uint256 stakedAssets;
+        uint256 instantShares;
+        uint256 instantAssets;
+        uint256 pendingAssets;
+        uint256 claimableAssets;
+    }
+
+    function getWithdrawalBalances() public view returns (WithdrawalBalances memory balances) {
+        ISymbioticVault symbioticVault = symbioticVault();
+        uint256 symbioticSharesOfVault = symbioticVault.activeSharesOf(address(this));
+
+        balances.instantAssets = IERC20(asset()).balanceOf(address(this))
+            + symbioticCollateral().balanceOf(address(this));
+        balances.stakedAssets = symbioticVault.activeBalanceOf(address(this));
+        // We consider pending and claimable assets out-of-the-vault entities
+        balances.pendingAssets = 0;
+        balances.claimableAssets = 0;
+        balances.totalAssets = balances.instantAssets + balances.stakedAssets
+            + balances.pendingAssets + balances.claimableAssets;
+
+        balances.totalShares = totalSupply();
+        // We guarantee that this amount of shares is available for instant withdrawal
+        // hence Math.Rounding.Floor
+        balances.instantShares = balances.instantAssets.mulDiv(
+            balances.totalShares, balances.totalAssets, Math.Rounding.Floor
+        );
+        balances.stakedShares = balances.totalShares - balances.instantShares;
+    }
+
+    function getWithdrawalBalance(address account)
+        public
+        view
+        returns (WithdrawalBalances memory balance)
+    {
+        WithdrawalBalances memory totals = getWithdrawalBalances();
+        balance.totalShares = balanceOf(account);
+        balance.totalAssets =
+            balance.totalShares.mulDiv(totals.totalAssets, totals.totalShares, Math.Rounding.Floor);
+        balance.instantAssets = Math.min(balance.totalAssets, totals.instantAssets);
+        balance.stakedAssets = balance.totalAssets - balance.instantAssets;
+        IWithdrawalQueue withdrawalQueue = withdrawalQueue();
+        (, balance.pendingAssets) = withdrawalQueue.pending(account);
+        balance.claimableAssets = withdrawalQueue.claimable(account);
+        balances.instantShares = balances.instantAssets.mulDiv(
+            balances.totalShares, balances.totalAssets, Math.Rounding.Floor
+        );
+        balances.stakedShares = balances.totalShares - balances.instantShares;
+    }
+
+    function previewDeposit(uint256 assets) external view returns (uint256 shares) {
+        if (assets == 0) {
+            return 0;
+        }
+        uint256 totalAssets =
+            asset().balanceOf(address(this)) + symbioticCollateral().balanceOf(address(this));
+        ISymbioticVault symbioticVault = symbioticVault();
+
+        uint256 activeStake = symbioticVault.activeStake();
+        uint256 activeShares = symbioticVault.activeShares();
+        uint256 vaultShares = symbioticVault.activeSharesOf(address(this));
+        uint256 symbioticAssets = vaultShares.mulDiv(activeStake, activeShares, Math.Rounding.Ceil);
+
+        totalAssets += symbioticAssets;
+
+        shares = assets.mulDiv(totalSupply(), totalAssets, Math.Rounding.Floor);
+    }
+
+    // function getBalances(address account) external view returns (Balances memory state) {
+    //     uint256 totalSupply_ = totalSupply();
+    //     state.stakedShares = balanceOf(account);
+
+    //     uint256 assets_ = IERC20(asset()).balanceOf(address(this));
+    //     uint256 collateral_ = symbioticCollateral().balanceOf(address(this));
+    //     uint256 stake_ = getSymbioticVaultStake(Math.Rounding.Floor); // rounding down
+    //     state.stakedAssets = Math.mulDiv(
+    //         state.shares,
+    //         assets_ + collateral_ + stake_,
+    //         totalSupply_,
+    //         Math.Rounding.Floor // rounding down
+    //     );
+
+    //     instantAssets = Math.min(assets, assets_ + collateral_);
+    //     instantShares = Math.mulDiv(
+    //         shares,
+    //         totalSupply_,
+    //         totalSupply_ - stake_,
+    //         Math.Rounding.Ceil // rounding up
+    //     );
+
+    //     (pendingShares, pendingAssets) = withdrawalQueue().pending(account);
+    //     claimableAssets = withdrawalQueue().claimable(account);
+    // }
 
     // Can we build both tvl and getSymVaultStake from the getState?
     function tvl(Math.Rounding rounding) public view returns (uint256 totalValueLocked) {
@@ -199,45 +301,6 @@ abstract contract Vault is
         if (assets + collateral < assets_) {
             claimableAssets = assets_ - assets + collateral;
         }
-    }
-
-    function getState(address account)
-        external
-        view
-        returns (
-            uint256 shares,
-            uint256 assets,
-            uint256 instantShares,
-            uint256 instantAssets,
-            // A: should be lrt shares
-            uint256 pendingShares, // these are symbiotic vault shares, not our vault shares. Why do we need them?
-            uint256 pendingAssets,
-            uint256 claimableAssets
-        )
-    {
-        uint256 totalSupply_ = totalSupply();
-        shares = balanceOf(account);
-
-        uint256 assets_ = IERC20(asset()).balanceOf(address(this));
-        uint256 collateral_ = symbioticCollateral().balanceOf(address(this));
-        uint256 stake_ = getSymbioticVaultStake(Math.Rounding.Floor); // rounding down
-        assets = Math.mulDiv(
-            shares,
-            assets_ + collateral_ + stake_,
-            totalSupply_,
-            Math.Rounding.Floor // rounding down
-        );
-
-        instantAssets = Math.min(assets, assets_ + collateral_);
-        instantShares = Math.mulDiv(
-            shares,
-            totalSupply_,
-            totalSupply_ - stake_,
-            Math.Rounding.Ceil // rounding up
-        );
-
-        (pendingShares, pendingAssets) = withdrawalQueue().pending(account);
-        claimableAssets = withdrawalQueue().claimable(account);
     }
 
     function withdraw(uint256 assets, address receiver, address account)
