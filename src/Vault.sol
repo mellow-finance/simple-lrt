@@ -391,7 +391,7 @@ abstract contract Vault is
         symbioticVault.withdraw(recipient, sharesAmount);
     }
 
-    function pushIntoSymbiotic() public {
+    function pushIntoSymbiotic() public virtual {
         IERC20 token = IERC20(asset());
         uint256 assetAmount = token.balanceOf(address(this));
         IDefaultCollateral symbioticCollateral = symbioticCollateral();
