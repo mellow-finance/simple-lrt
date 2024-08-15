@@ -5,6 +5,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 
 import {IDefaultCollateral} from "../symbiotic/IDefaultCollateral.sol";
 import {ISymbioticVault} from "../symbiotic/ISymbioticVault.sol";
+import {IWithdrawalQueue} from "../utils/IWithdrawalQueue.sol";
 
 interface IVaultStorage {
     struct FarmData {
@@ -17,7 +18,7 @@ interface IVaultStorage {
     struct Storage {
         IDefaultCollateral symbioticCollateral;
         ISymbioticVault symbioticVault;
-        address withdrawalQueue;
+        IWithdrawalQueue withdrawalQueue;
         address asset;
         bool depositPause;
         bool transferPause;

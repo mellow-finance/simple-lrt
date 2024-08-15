@@ -174,12 +174,12 @@ abstract contract Vault is
         return deposit(asset(), assets, shares, receiver, address(0));
     }
 
-    function maxWithdraw(address owner)
+    function maxWithdraw(address account)
         external
         view
         returns (uint256 maxAssets, uint256 maxClaimableAssets_)
     {
-        uint256 balance = balanceOf(owner);
+        uint256 balance = balanceOf(account);
         if (balance == 0) {
             return (0, 0);
         }
@@ -252,35 +252,29 @@ abstract contract Vault is
             Math.Rounding.Ceil // rounding up
         );
 
-        SymbioticWithdrawalQueue withdrawalQueue_ = SymbioticWithdrawalQueue(withdrawalQueue());
-        (pendingShares, pendingAssets) = withdrawalQueue_.pending(account);
-        claimableAssets = withdrawalQueue_.claimable(account);
+        (pendingShares, pendingAssets) = withdrawalQueue().pending(account);
+        claimableAssets = withdrawalQueue().claimable(account);
     }
 
-    /*
-        1. deposit
-        2. withdraw, redeem, claim
-    */
-
-    function withdraw(uint256 assets, address receiver, address owner)
+    function withdraw(uint256 assets, address receiver, address account)
         external
         returns (uint256 shares, uint256 claimableAssets)
     {
-        require(msg.sender == owner, "Vault: forbidden");
+        require(msg.sender == account, "Vault: forbidden");
         (shares,) = previewWithdraw(assets);
-        return withdraw(shares, receiver);
+        return redeem(shares, receiver);
     }
 
-    function redeem(uint256 shares, address receiver, address owner)
+    function redeem(uint256 shares, address receiver, address account)
         external
         returns (uint256 assets, uint256 claimableAssets)
     {
-        require(msg.sender == owner, "Vault: forbidden");
-        return withdraw(shares, receiver);
+        require(msg.sender == account, "Vault: forbidden");
+        return redeem(shares, receiver);
     }
 
-    function maxRedeem(address owner) external view returns (uint256 maxShares) {
-        return balanceOf(owner);
+    function maxRedeem(address account) external view returns (uint256 maxShares) {
+        return balanceOf(account);
     }
 
     function previewRedeem(uint256 shares)
@@ -300,10 +294,20 @@ abstract contract Vault is
         }
     }
 
-    function claimAssets(address receiver, address owner)
+    function maxClaimableAssets(address account) external view returns (uint256 claimableAssets_) {
+        claimableAssets_ = withdrawalQueue().claimable(account);
+    }
+
+    function claimAssets(address recipient, address account)
         external
         returns (uint256 claimedAssets)
-    {}
+    {
+        claimedAssets = withdrawalQueue().claim(account, recipient);
+    }
+
+    function maxPendingAssets(address account) external view returns (uint256 pendingAssets_) {
+        (, pendingAssets_) = withdrawalQueue().pending(account);
+    }
 
     function deposit(
         address depositToken,
@@ -338,7 +342,7 @@ abstract contract Vault is
         emit Deposit(recipient, depositValue, shares, referral);
     }
 
-    function withdraw(uint256 lpAmount, address recipient)
+    function redeem(uint256 lpAmount, address recipient)
         public
         returns (uint256 withdrawnAmount, uint256 amountToClaim)
     {

@@ -9,5 +9,5 @@ interface IWithdrawalQueue {
         view
         returns (uint256 pendingShares_, uint256 pendingAssets_);
     function claimable(address account) external view returns (uint256 claimableAssets_);
-    function claim(address recipient) external returns (uint256 amount);
+    function claim(address account, address recipient) external returns (uint256 amount);
 }

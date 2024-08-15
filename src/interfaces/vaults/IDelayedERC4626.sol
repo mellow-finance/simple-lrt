@@ -2,12 +2,12 @@
 pragma solidity 0.8.25;
 
 interface IDelayedERC4626 {
-    event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares);
+    event Deposit(address indexed sender, address indexed account, uint256 assets, uint256 shares);
 
     event Withdraw(
         address indexed sender,
         address indexed receiver,
-        address indexed owner,
+        address indexed account,
         uint256 assets,
         uint256 shares
     );
@@ -138,13 +138,13 @@ interface IDelayedERC4626 {
     function mint(uint256 shares, address receiver) external returns (uint256 assets);
 
     /**
-     * @dev Returns the maximum amount of the underlying asset that can be withdrawn from the owner balance in the
+     * @dev Returns the maximum amount of the underlying asset that can be withdrawn from the account balance in the
      * Vault, through a withdraw call.
      *
-     * - MUST return a limited value if owner is subject to some withdrawal limit or timelock.
+     * - MUST return a limited value if account is subject to some withdrawal limit or timelock.
      * - MUST NOT revert.
      */
-    function maxWithdraw(address owner)
+    function maxWithdraw(address account)
         external
         view
         returns (uint256 maxAssets, uint256 maxClaimableAssets);
@@ -171,30 +171,30 @@ interface IDelayedERC4626 {
         returns (uint256 shares, uint256 claimableAssets);
 
     /**
-     * @dev Burns shares from owner and sends exactly assets of underlying tokens to receiver.
+     * @dev Burns shares from account and sends exactly assets of underlying tokens to receiver.
      *
      * - MUST emit the Withdraw event.
      * - MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the
      *   withdraw execution, and are accounted for during withdraw.
-     * - MUST revert if all of assets cannot be withdrawn (due to withdrawal limit being reached, slippage, the owner
+     * - MUST revert if all of assets cannot be withdrawn (due to withdrawal limit being reached, slippage, the account
      *   not having enough shares, etc).
      *
      * Note that some implementations will require pre-requesting to the Vault before a withdrawal may be performed.
      * Those methods should be performed separately.
      */
-    function withdraw(uint256 assets, address receiver, address owner)
+    function withdraw(uint256 assets, address receiver, address account)
         external
         returns (uint256 shares, uint256 claimableAssets);
 
     /**
-     * @dev Returns the maximum amount of Vault shares that can be redeemed from the owner balance in the Vault,
+     * @dev Returns the maximum amount of Vault shares that can be redeemed from the account balance in the Vault,
      * through a redeem call.
      *
-     * - MUST return a limited value if owner is subject to some withdrawal limit or timelock.
-     * - MUST return balanceOf(owner) if owner is not subject to any withdrawal limit or timelock.
+     * - MUST return a limited value if account is subject to some withdrawal limit or timelock.
+     * - MUST return balanceOf(account) if account is not subject to any withdrawal limit or timelock.
      * - MUST NOT revert.
      */
-    function maxRedeem(address owner) external view returns (uint256 maxShares);
+    function maxRedeem(address account) external view returns (uint256 maxShares);
 
     /**
      * @dev Allows an on-chain or off-chain user to simulate the effects of their redeemption at the current block,
@@ -217,22 +217,26 @@ interface IDelayedERC4626 {
         returns (uint256 assets, uint256 claimableAssets);
 
     /**
-     * @dev Burns exactly shares from owner and sends assets of underlying tokens to receiver.
+     * @dev Burns exactly shares from account and sends assets of underlying tokens to receiver.
      *
      * - MUST emit the Withdraw event.
      * - MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the
      *   redeem execution, and are accounted for during redeem.
-     * - MUST revert if all of shares cannot be redeemed (due to withdrawal limit being reached, slippage, the owner
+     * - MUST revert if all of shares cannot be redeemed (due to withdrawal limit being reached, slippage, the account
      *   not having enough shares, etc).
      *
      * NOTE: some implementations will require pre-requesting to the Vault before a withdrawal may be performed.
      * Those methods should be performed separately.
      */
-    // function redeem(uint256 shares, address receiver, address owner)
-    //     external
-    //     returns (uint256 assets, uint256 claimableAssets);
+    function redeem(uint256 shares, address receiver, address account)
+        external
+        returns (uint256 assets, uint256 claimableAssets);
 
-    // function maxClaimableAssets(address owner) external view returns (uint256 claimableAssets);
+    function maxClaimableAssets(address account) external view returns (uint256 claimableAssets_);
 
-    // function claim(address receiver, address owner) external returns (uint256 claimedAssets);
+    function claimAssets(address account, address receiver)
+        external
+        returns (uint256 claimedAssets);
+
+    function maxPendingAssets(address account) external view returns (uint256 pendingAssets_);
 }

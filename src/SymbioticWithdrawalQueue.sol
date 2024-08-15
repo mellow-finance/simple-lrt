@@ -144,8 +144,8 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         return symbioticVault.withdrawalsOf(epoch_, account);
     }
 
-    function claim(address recipient) external returns (uint256 amount) {
-        address account = msg.sender;
+    function claim(address account, address recipient) external returns (uint256 amount) {
+        require(msg.sender == account || msg.sender == vault, "SymbioticWithdrawalQueue: forbidden");
         AccountData storage accountData = _accountData[account];
         _handlePendingEpochs(accountData, currentEpoch());
         amount = accountData.claimableAssets;
