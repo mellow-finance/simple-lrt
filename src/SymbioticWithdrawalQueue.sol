@@ -15,6 +15,12 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     mapping(uint256 epoch => EpochData data) private _epochData;
     mapping(address account => AccountData data) private _accountData;
 
+    constructor(address _vault) {
+        vault = _vault;
+        symbioticVault = IVault(_vault).symbioticVault();
+        collateral = IDefaultCollateral(symbioticVault.collateral());
+    }
+
     function currentEpoch() public view returns (uint256) {
         return symbioticVault.currentEpoch();
     }
@@ -30,12 +36,6 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
 
     function balance() external view returns (uint256) {
         return claimableAssets + pendingAssets();
-    }
-
-    constructor(address _vault) {
-        vault = _vault;
-        symbioticVault = IVault(_vault).symbioticVault();
-        collateral = IDefaultCollateral(symbioticVault.collateral());
     }
 
     function request(address account, uint256 amount) external {
@@ -82,9 +82,12 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         EpochData storage epochData = _epochData[epoch_];
         _pull(epoch_, epochData);
 
-        uint256 assets_ = Math.mulDiv(shares_, epochData.claimedAssets, epochData.pendingShares); // rounding down
+        uint256 assets_ = Math.mulDiv(
+            shares_, epochData.claimedAssets, epochData.pendingShares, Math.Rounding.Floor
+        );
 
         epochData.pendingShares -= shares_;
+        // += ?
         epochData.claimedAssets -= assets_;
 
         accountData.claimableAssets += assets_;

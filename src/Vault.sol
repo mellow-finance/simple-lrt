@@ -7,6 +7,7 @@ import {SymbioticWithdrawalQueue, IWithdrawalQueue} from "./SymbioticWithdrawalQ
 
 import {ERC4626Upgradeable} from
     "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
@@ -174,7 +175,6 @@ abstract contract Vault is
 
         require(owner == caller, "Vault: owner != caller");
         address this_ = address(this);
-        address assetAddress = asset();
         uint256 assets_ = IERC20(asset()).balanceOf(this_);
         if (assets_ >= assets) {
             return super._withdraw(caller, receiver, owner, assets, shares);
@@ -186,18 +186,14 @@ abstract contract Vault is
         if (assets_ >= assets) {
             return super._withdraw(caller, receiver, owner, assets, shares);
         }
-        super._withdraw(caller, receiver, owner, assets_, shares);
-        assets -= assets_;
-
         // Migrated from ERC4626
         if (caller != owner) {
             super._spendAllowance(owner, caller, shares);
         }
-
+        // Check that it works correctly
+        symbioticVault().withdraw(address(withdrawalQueue()), assets - assets_);
         super._burn(owner, shares);
-        SafeERC20.safeTransfer(IERC20(assetAddress), receiver, assets);
-
-        emit ERC4626Upgradeable.Withdraw(caller, receiver, owner, assets, shares);
+        emit IERC4626.Withdraw(caller, receiver, owner, assets, shares);
 
         // require(owner == caller, "Vault: owner != caller");
         // address this_ = address(this);
