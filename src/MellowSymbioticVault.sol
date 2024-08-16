@@ -8,9 +8,8 @@ import "./interfaces/vaults/IMellowSymbioticVault.sol";
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
 // 2. Tests (unit, int, e2e, migration)
-// 3. add factory on TransparentUpgradeableProxy
-// 4. add events
-// 5. check initializers
+// 3. add events
+// 4. check initializers
 contract MellowSymbioticVault is
     IMellowSymbioticVault,
     VaultControl,

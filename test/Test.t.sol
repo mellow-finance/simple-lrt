@@ -3,13 +3,14 @@ pragma solidity 0.8.25;
 
 import "forge-std/Test.sol";
 
-// import "../src/EthVaultV2.sol";
+import "../src/MellowSymbioticVotesVault.sol";
+import "../src/MellowSymbioticVotesVaultFactory.sol";
 
 contract Tests is Test {
-    function test() external view {
-        console2.logBytes32(
-            keccak256(abi.encode(uint256(keccak256("mellow.simple-lrt.storage.VaultStorage")) - 1))
-                & ~bytes32(uint256(0xff))
-        );
+    function test() external {
+        MellowSymbioticVotesVault singleton =
+            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVotesVaultFactory factory =
+            new MellowSymbioticVotesVaultFactory(address(singleton));
     }
 }
