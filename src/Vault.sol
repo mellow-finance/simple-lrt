@@ -129,7 +129,7 @@ abstract contract Vault is
     function totalAssets() public view virtual override(ERC4626Upgradeable) returns (uint256) {
         return IERC20(asset()).balanceOf(address(this))
             + symbioticCollateral().balanceOf(address(this))
-            + symbioticVault().activeBalanceOf(address(this)) + withdrawalQueue().balance();
+            + symbioticVault().activeBalanceOf(address(this));
     }
 
     function maxDeposit(address account) public view virtual override returns (uint256) {
@@ -137,17 +137,19 @@ abstract contract Vault is
     }
 
     function maxMint(address /* account */ ) public view virtual override returns (uint256) {
-        return limit() - totalSupply();
+        // TODO: Add whitelist
+        uint256 limit_ = limit();
+        uint256 totalSupply_ = totalSupply();
+        return limit_ >= totalSupply_ ? limit_ - totalSupply_ : 0;
     }
 
     function maxRedeem(address account) public view virtual override returns (uint256) {
-        return getWithdrawalBalance(account).instantShares
-            + convertToShares(withdrawalQueue().claimableAssetsOf(account));
+        return convertToShares(maxWithdrawal(account));
     }
 
     function maxWithdrawal(address account) public view virtual returns (uint256) {
-        return getWithdrawalBalance(account).instantAssets
-            + withdrawalQueue().claimableAssetsOf(account);
+        // Dont use claimable here as it distorts the share price
+        return getWithdrawalBalance(account).instantAssets;
     }
 
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
@@ -166,23 +168,54 @@ abstract contract Vault is
         uint256 assets,
         uint256 shares
     ) internal virtual override {
+        // We cannot claim from withdrawalQueue here, as it distorts the share price.
+        // By that moment the user can have 0 shares but still have pending assets.
+        // So this is only for instant + staked.
+
         require(owner == caller, "Vault: owner != caller");
         address this_ = address(this);
+        address assetAddress = asset();
         uint256 assets_ = IERC20(asset()).balanceOf(this_);
-        if (assets_ < assets) {
-            uint256 collaterals_ = symbioticCollateral().balanceOf(this_);
-            if (assets_ + collaterals_ < assets) {
-                collaterals_ +=
-                    withdrawalQueue().claim(owner, this_, assets - assets_ - collaterals_);
-                if (assets_ + collaterals_ < assets) {
-                    revert("Vault: insufficient assets");
-                }
-                symbioticCollateral().withdraw(this_, collaterals_);
-            } else {
-                symbioticCollateral().withdraw(this_, assets - assets_);
-            }
+        if (assets_ >= assets) {
+            return super._withdraw(caller, receiver, owner, assets, shares);
         }
-        super._withdraw(caller, receiver, owner, assets, shares);
+        uint256 collaterals_ = symbioticCollateral().balanceOf(this_);
+        // Check if it makes sense to convert everything
+        symbioticCollateral().withdraw(this_, collaterals_);
+        assets_ = IERC20(asset()).balanceOf(this_);
+        if (assets_ >= assets) {
+            return super._withdraw(caller, receiver, owner, assets, shares);
+        }
+        super._withdraw(caller, receiver, owner, assets_, shares);
+        assets -= assets_;
+
+        // Migrated from ERC4626
+        if (caller != owner) {
+            super._spendAllowance(owner, caller, shares);
+        }
+
+        super._burn(owner, shares);
+        SafeERC20.safeTransfer(IERC20(assetAddress), receiver, assets);
+
+        emit ERC4626Upgradeable.Withdraw(caller, receiver, owner, assets, shares);
+
+        // require(owner == caller, "Vault: owner != caller");
+        // address this_ = address(this);
+        // uint256 assets_ = IERC20(asset()).balanceOf(this_);
+        // if (assets_ < assets) {
+        //     uint256 collaterals_ = symbioticCollateral().balanceOf(this_);
+        //     if (assets_ + collaterals_ < assets) {
+        //         collaterals_ +=
+        //             withdrawalQueue().claim(owner, this_, assets - assets_ - collaterals_);
+        //         if (assets_ + collaterals_ < assets) {
+        //             revert("Vault: insufficient assets");
+        //         }
+        //         symbioticCollateral().withdraw(this_, collaterals_);
+        //     } else {
+        //         symbioticCollateral().withdraw(this_, assets - assets_);
+        //     }
+        // }
+        // super._withdraw(caller, receiver, owner, assets, shares);
     }
 
     function pushIntoSymbiotic() public virtual {
