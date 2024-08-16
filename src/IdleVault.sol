@@ -22,8 +22,8 @@ contract IdleVault is VaultControl, ERC20VotesUpgradeable {
     ) external initializer {
         __ERC20_init(name, symbol);
         __EIP712_init(name, "1");
-        __AccessManager_init(_admin);
 
+        __initializeRoles(_admin);
         __initializeVaultControlStorage(_limit, _depositPause, _withdrawalPause, _depositWhitelist);
     }
 

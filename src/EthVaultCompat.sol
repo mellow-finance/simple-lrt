@@ -24,8 +24,7 @@ contract EthVaultCompat is MellowSymbioticVault {
 
     constructor() MellowSymbioticVault("EthVaultV1", 1) {}
 
-    function initializeWithERC20(
-        address _symbioticCollateral,
+    function initializeEthVaultCompat(
         address _symbioticVault,
         address _withdrawalQueue,
         uint256 _limit,
@@ -34,11 +33,17 @@ contract EthVaultCompat is MellowSymbioticVault {
         bool _depositWhitelist,
         address _admin
     ) external initializer {
-        __AccessManager_init(_admin);
-        __initializeMellowSymbioticVaultStorage(
-            _symbioticCollateral, _symbioticVault, _withdrawalQueue
+        initializeMellowSymbioticVault(
+            _symbioticVault,
+            _withdrawalQueue,
+            _limit,
+            _depositPause,
+            _withdrawalPause,
+            _depositWhitelist,
+            _admin,
+            _name,
+            _symbol
         );
-        __initializeVaultControlStorage(_limit, _depositPause, _withdrawalPause, _depositWhitelist);
     }
 
     // ERC20Upgradeable override

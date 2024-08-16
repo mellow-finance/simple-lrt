@@ -27,12 +27,11 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage {
     }
 
     function __initializeMellowSymbioticVaultStorage(
-        address _symbioticCollateral,
         address _symbioticVault,
         address _withdrawalQueue
     ) internal {
-        _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
+        _setSymbioticCollateral(IDefaultCollateral(symbioticVault().collateral()));
         _setWithdrawalQueue(IWithdrawalQueue(_withdrawalQueue));
     }
 

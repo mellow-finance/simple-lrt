@@ -24,19 +24,42 @@ contract MellowSymbioticVault is
         VaultControlStorage(name_, version_)
     {}
 
+    // initializer
+
+    function initializeMellowSymbioticVault(
+        address _symbioticVault,
+        address _withdrawalQueue,
+        uint256 _limit,
+        bool _depositPause,
+        bool _withdrawalPause,
+        bool _depositWhitelist,
+        address _admin,
+        string memory name,
+        string memory symbol
+    ) public initializer {
+        __ERC20_init(name, symbol);
+
+        __initializeRoles(_admin);
+        __initializeMellowSymbioticVaultStorage(_symbioticVault, _withdrawalQueue);
+        __initializeVaultControlStorage(_limit, _depositPause, _withdrawalPause, _depositWhitelist);
+    }
+
     // roles
 
-    uint64 public constant SET_FARM_ROLE = uint64(uint256(keccak256("SET_FARM_ROLE")));
-    uint64 public constant REMOVE_FARM_ROLE = uint64(uint256(keccak256("REMOVE_FARM_ROLE")));
+    bytes32 public constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
+    bytes32 public constant REMOVE_FARM_ROLE = keccak256("REMOVE_FARM_ROLE");
 
     // setters getters
 
-    function setFarm(address rewardToken, FarmData memory farmData) external onlyAuthorized {
+    function setFarm(address rewardToken, FarmData memory farmData)
+        external
+        onlyAuthorized(SET_FARM_ROLE)
+    {
         _setFarmChecks(rewardToken, farmData);
         _setFarm(rewardToken, farmData);
     }
 
-    function removeFarm(address rewardToken) external onlyAuthorized {
+    function removeFarm(address rewardToken) external onlyAuthorized(REMOVE_FARM_ROLE) {
         _removeFarmChecks(rewardToken);
         _removeFarm(rewardToken);
     }

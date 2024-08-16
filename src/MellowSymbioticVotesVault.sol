@@ -9,15 +9,14 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 
 import {ERC4626Upgradeable, MellowSymbioticVault} from "./MellowSymbioticVault.sol";
 
-contract VotesVault is MellowSymbioticVault, ERC20VotesUpgradeable {
+contract MellowSymbioticVotesVault is MellowSymbioticVault, ERC20VotesUpgradeable {
     using SafeERC20 for IERC20;
 
     constructor(string memory name, uint256 version)
         MellowSymbioticVault(keccak256(abi.encodePacked(name)), version)
     {}
 
-    function initializeWithERC20(
-        address _symbioticCollateral,
+    function initializeMellowSymbioticVotesVault(
         address _symbioticVault,
         address _withdrawalQueue,
         uint256 _limit,
@@ -25,18 +24,22 @@ contract VotesVault is MellowSymbioticVault, ERC20VotesUpgradeable {
         bool _withdrawalPause,
         bool _depositWhitelist,
         address _admin,
-        string memory name,
-        string memory symbol
+        string memory _name,
+        string memory _symbol
     ) external initializer {
-        __ERC20_init(name, symbol);
-        __EIP712_init(name, "1");
-        __AccessManager_init(_admin);
-
-        __initializeMellowSymbioticVaultStorage(
-            _symbioticCollateral, _symbioticVault, _withdrawalQueue
+        initializeMellowSymbioticVault(
+            _symbioticVault,
+            _withdrawalQueue,
+            _limit,
+            _depositPause,
+            _withdrawalPause,
+            _depositWhitelist,
+            _admin,
+            _name,
+            _symbol
         );
 
-        __initializeVaultControlStorage(_limit, _depositPause, _withdrawalPause, _depositWhitelist);
+        __EIP712_init(_name, "1");
     }
 
     function decimals()
