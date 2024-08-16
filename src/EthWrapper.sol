@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IVaultControl} from "./interfaces/vaults/IVaultControl.sol";
 
-import {IWETH} from "./interfaces/tokens/IWETH.sol";
-import {ISTETH} from "./interfaces/tokens/ISTETH.sol";
-import {IWSTETH} from "./interfaces/tokens/IWSTETH.sol";
+import "./interfaces/utils/IEthWrapper.sol";
 
-contract EthWrapper {
+contract EthWrapper is IEthWrapper {
     using SafeERC20 for IERC20;
 
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -15,20 +13,23 @@ contract EthWrapper {
     address public constant stETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    function _wrap(address depositToken, uint256 amount) internal {
+    function _wrap(address depositToken, uint256 amount) internal returns (uint256) {
         if (amount == 0) {
-            revert("EthVault: amount must be greater than 0");
+            revert("EthWrapper: amount must be greater than 0");
         }
 
-        if (depositToken != ETH && depositToken != WETH && depositToken != stETH && depositToken != wstETH) {
-            revert("EthVault: invalid depositToken");
+        if (
+            depositToken != ETH && depositToken != WETH && depositToken != stETH
+                && depositToken != wstETH
+        ) {
+            revert("EthWrapper: invalid depositToken");
         }
 
         if (depositToken != ETH) {
-            require(msg.value == 0, "EthVault: cannot send ETH with depositToken");
+            require(msg.value == 0, "EthWrapper: cannot send ETH with depositToken");
             IERC20(depositToken).safeTransferFrom(msg.sender, address(this), amount);
         } else {
-            require(msg.value == amount, "EthVault: incorrect amount of ETH");
+            require(msg.value == amount, "EthWrapper: incorrect amount of ETH");
         }
 
         if (depositToken == WETH) {
@@ -46,7 +47,21 @@ contract EthWrapper {
             IWSTETH(wstETH).wrap(amount);
             depositToken = wstETH;
         }
+
+        return amount;
     }
 
     receive() external payable {}
+
+    function deposit(
+        address depositToken,
+        uint256 amount,
+        address vault,
+        address receiver,
+        address referral
+    ) external payable returns (uint256 shares) {
+        amount = _wrap(depositToken, amount);
+        IERC20(wstETH).safeIncreaseAllowance(vault, amount);
+        return IVaultControl(vault).deposit(amount, receiver, referral);
+    }
 }
