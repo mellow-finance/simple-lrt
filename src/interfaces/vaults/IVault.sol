@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
 import {ReentrancyGuardUpgradeable} from
     "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {
@@ -17,12 +18,12 @@ import {ISymbioticVault} from "../symbiotic/ISymbioticVault.sol";
 import {IStakerRewards} from "../symbiotic/IStakerRewards.sol";
 import {IVaultStorage} from "./IVaultStorage.sol";
 
-import {IDelayedERC4626} from "./IDelayedERC4626.sol";
-
-interface IVault is IVaultStorage, IDelayedERC4626 {
+interface IVault is IVaultStorage {
     event Deposit(address indexed user, uint256 depositValue, uint256 lpAmount, address referral);
     event NewLimit(uint256 limit);
     event PushToSymbioticBond(uint256 amount);
     event FarmSet(address rewardToken, FarmData farmData);
-    event RewardsPushed(address rewardToken, uint256 rewardAmount, uint256 timestamp);
+    event RewardsPushed(
+        address rewardToken, uint256 rewardAmount, uint256 curatorFee, uint256 timestamp
+    );
 }

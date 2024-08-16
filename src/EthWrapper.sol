@@ -11,7 +11,7 @@ contract EthWrapper is IEthWrapper {
     address public constant stETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    function _wrap(address depositToken, uint256 amount) internal {
+    function _wrap(address depositToken, uint256 amount) internal returns (uint256) {
         if (amount == 0) {
             revert("EthWrapper: amount must be greater than 0");
         }
@@ -45,7 +45,19 @@ contract EthWrapper is IEthWrapper {
             IWSTETH(wstETH).wrap(amount);
             depositToken = wstETH;
         }
+
+        return amount;
     }
 
     receive() external payable {}
+
+    function deposit(address depositToken, uint256 amount, address vault, address receiver)
+        external
+        payable
+        returns (uint256 shares)
+    {
+        amount = _wrap(depositToken, amount);
+        IERC20(wstETH).safeIncreaseAllowance(vault, amount);
+        return IERC4626(vault).deposit(amount, receiver);
+    }
 }

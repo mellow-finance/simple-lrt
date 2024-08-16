@@ -19,9 +19,8 @@ interface IVaultStorage {
         IDefaultCollateral symbioticCollateral;
         ISymbioticVault symbioticVault;
         IWithdrawalQueue withdrawalQueue;
-        address asset;
         bool depositPause;
-        bool transferPause;
+        bool withdrawalPause;
         uint256 limit;
         EnumerableSet.AddressSet rewardTokens;
         mapping(address rewardToken => FarmData data) farms;

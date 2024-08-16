@@ -7,10 +7,12 @@ import {
     ERC20VotesUpgradeable,
     ERC20Upgradeable
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {ERC4626Upgradeable} from
+    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 
 import {Vault, VaultStorage} from "./Vault.sol";
 
-contract SimpleVault is ERC20VotesUpgradeable, Vault {
+abstract contract SimpleVault is Vault, ERC20VotesUpgradeable {
     using SafeERC20 for IERC20;
 
     constructor(string memory name, uint256 version)
@@ -36,30 +38,19 @@ contract SimpleVault is ERC20VotesUpgradeable, Vault {
         );
     }
 
+    function decimals()
+        public
+        view
+        override(ERC4626Upgradeable, ERC20Upgradeable)
+        returns (uint8)
+    {
+        return ERC4626Upgradeable.decimals();
+    }
+
     function _update(address from, address to, uint256 amount)
         internal
         override(Vault, ERC20VotesUpgradeable)
     {
         super._update(from, to, amount);
-    }
-
-    function _deposit(address depositToken, uint256 amount) internal virtual override {
-        if (depositToken != asset()) {
-            revert("SimpleVault: invalid token");
-        }
-        IERC20(depositToken).safeTransferFrom(_msgSender(), address(this), amount);
-    }
-
-    function balanceOf(address account)
-        public
-        view
-        override(Vault, ERC20Upgradeable)
-        returns (uint256)
-    {
-        return ERC20Upgradeable.balanceOf(account);
-    }
-
-    function totalSupply() public view override(Vault, ERC20Upgradeable) returns (uint256) {
-        return ERC20Upgradeable.totalSupply();
     }
 }

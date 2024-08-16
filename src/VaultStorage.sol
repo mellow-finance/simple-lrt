@@ -35,9 +35,8 @@ abstract contract VaultStorage is IVaultStorage {
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
         _setWithdrawalQueue(IWithdrawalQueue(_withdrawalQueue));
         _setLimit(_limit);
-        _setAsset(IDefaultCollateral(_symbioticCollateral).asset());
         _setDepositPause(_paused);
-        _setTransferPause(_paused);
+        _setWithdrawalPause(_paused);
     }
 
     function symbioticCollateral() public view returns (IDefaultCollateral) {
@@ -52,16 +51,12 @@ abstract contract VaultStorage is IVaultStorage {
         return _contractStorage().withdrawalQueue;
     }
 
-    function asset() public view virtual returns (address) {
-        return _contractStorage().asset;
-    }
-
     function depositPause() public view returns (bool) {
         return _contractStorage().depositPause;
     }
 
-    function transferPause() public view returns (bool) {
-        return _contractStorage().transferPause;
+    function withdrawalPause() public view returns (bool) {
+        return _contractStorage().withdrawalPause;
     }
 
     function limit() public view returns (uint256) {
@@ -86,9 +81,9 @@ abstract contract VaultStorage is IVaultStorage {
         s.depositPause = _paused;
     }
 
-    function _setTransferPause(bool _paused) internal {
+    function _setWithdrawalPause(bool _paused) internal {
         Storage storage s = _contractStorage();
-        s.transferPause = _paused;
+        s.withdrawalPause = _paused;
     }
 
     function _setSymbioticCollateral(IDefaultCollateral _symbioticCollateral) internal {
@@ -106,18 +101,13 @@ abstract contract VaultStorage is IVaultStorage {
         s.withdrawalQueue = _withdrawalQueue;
     }
 
-    function _setAsset(address _asset) internal {
-        Storage storage s = _contractStorage();
-        s.asset = _asset;
-    }
-
-    function _setSymbioticFarm(address rewardToken, FarmData memory farmData) internal {
+    function _setFarm(address rewardToken, FarmData memory farmData) internal {
         Storage storage s = _contractStorage();
         s.farms[rewardToken] = farmData;
         s.rewardTokens.add(rewardToken);
     }
 
-    function _removeSymbioticFarm(address rewardToken) internal {
+    function _removeFarm(address rewardToken) internal {
         Storage storage s = _contractStorage();
         delete s.farms[rewardToken];
         s.rewardTokens.remove(rewardToken);
