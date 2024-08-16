@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
+import {IVaultControl} from "./interfaces/vaults/IVaultControl.sol";
+
 import "./interfaces/utils/IEthWrapper.sol";
 
 contract EthWrapper is IEthWrapper {
@@ -51,13 +53,15 @@ contract EthWrapper is IEthWrapper {
 
     receive() external payable {}
 
-    function deposit(address depositToken, uint256 amount, address vault, address receiver)
-        external
-        payable
-        returns (uint256 shares)
-    {
+    function deposit(
+        address depositToken,
+        uint256 amount,
+        address vault,
+        address receiver,
+        address referral
+    ) external payable returns (uint256 shares) {
         amount = _wrap(depositToken, amount);
         IERC20(wstETH).safeIncreaseAllowance(vault, amount);
-        return IERC4626(vault).deposit(amount, receiver);
+        return IVaultControl(vault).deposit(amount, receiver, referral);
     }
 }

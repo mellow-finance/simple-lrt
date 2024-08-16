@@ -1,66 +1,35 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./interfaces/vaults/IVault.sol";
-import {VaultStorage} from "./VaultStorage.sol";
-import {SymbioticWithdrawalQueue, IWithdrawalQueue} from "./SymbioticWithdrawalQueue.sol";
-
-import {ERC4626Upgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {MellowSymbioticVaultStorage} from "./MellowSymbioticVaultStorage.sol";
+import {VaultControl, VaultControlStorage} from "./VaultControl.sol";
+import "./interfaces/vaults/IMellowSymbioticVault.sol";
 
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
 // 2. Tests (unit, int, e2e, migration)
-// 3. Add Factory
-abstract contract Vault is
-    IVault,
-    VaultStorage,
-    ERC4626Upgradeable,
-    ReentrancyGuardUpgradeable,
-    AccessManagerUpgradeable
+// 3. add factory on TransparentUpgradeableProxy
+// 4. add events
+// 5. check initializers
+contract MellowSymbioticVault is
+    IMellowSymbioticVault,
+    VaultControl,
+    MellowSymbioticVaultStorage
 {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
-    // -------------------------- Guarded params --------------------------
+    constructor(bytes32 name_, uint256 version_)
+        MellowSymbioticVaultStorage(name_, version_)
+        VaultControlStorage(name_, version_)
+    {}
 
-    uint64 public constant SET_LIMIT_ROLE = uint64(uint256(keccak256("SET_LIMIT_ROLE")));
+    // roles
 
-    uint64 public constant PAUSE_WITHDRAWALS_ROLE =
-        uint64(uint256(keccak256("PAUSE_WITHDRAWALS_ROLE")));
-    uint64 public constant UNPAUSE_WITHDRAWALS_ROLE =
-        uint64(uint256(keccak256("UNPAUSE_WITHDRAWALS_ROLE")));
+    uint64 public constant SET_FARM_ROLE = uint64(uint256(keccak256("SET_FARM_ROLE")));
+    uint64 public constant REMOVE_FARM_ROLE = uint64(uint256(keccak256("REMOVE_FARM_ROLE")));
 
-    uint64 public constant PAUSE_DEPOSITS_ROLE = uint64(uint256(keccak256("PAUSE_DEPOSITS_ROLE")));
-    uint64 public constant UNPAUSE_DEPOSITS_ROLE =
-        uint64(uint256(keccak256("UNPAUSE_DEPOSITS_ROLE")));
-
-    function setLimit(uint256 _limit) external onlyAuthorized {
-        if (totalSupply() > _limit) {
-            revert("Vault: totalSupply exceeds new limit");
-        }
-        _setLimit(_limit);
-        emit NewLimit(_limit);
-    }
-
-    function pauseWithdrawals() external onlyAuthorized {
-        _setWithdrawalPause(true);
-        _revokeRole(PAUSE_WITHDRAWALS_ROLE, _msgSender());
-    }
-
-    function unpauseWithdrawals() external onlyAuthorized {
-        _setWithdrawalPause(false);
-    }
-
-    function pauseDeposits() external onlyAuthorized {
-        _setDepositPause(true);
-        _revokeRole(PAUSE_DEPOSITS_ROLE, _msgSender());
-    }
-
-    function unpauseDeposits() external onlyAuthorized {
-        _setDepositPause(false);
-    }
+    // setters getters
 
     function setFarm(address rewardToken, FarmData memory farmData) external onlyAuthorized {
         _setFarmChecks(rewardToken, farmData);
@@ -68,20 +37,25 @@ abstract contract Vault is
     }
 
     function removeFarm(address rewardToken) external onlyAuthorized {
+        _removeFarmChecks(rewardToken);
         _removeFarm(rewardToken);
     }
 
-    // // -------------------------- BALANCES --------------------------
+    function _removeFarmChecks(address /* rewardToken */ ) internal virtual {}
 
-    struct WithdrawalBalances {
-        uint256 totalShares;
-        uint256 totalAssets; // Doesn't include pending and claimable assets
-        uint256 stakedShares;
-        uint256 stakedAssets;
-        uint256 instantShares;
-        uint256 instantAssets;
+    function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
+        if (
+            rewardToken == address(this) || rewardToken == address(symbioticCollateral())
+                || rewardToken == address(symbioticVault())
+        ) {
+            revert("Vault: forbidden reward token");
+        }
+        if (farmData.curatorFeeD4 > 1e4) {
+            revert("Vault: invalid curator fee");
+        }
     }
-    // Maybe makes sense to make 2 methods getStakedBalances and getInstantBalances
+
+    //  balances
 
     function getWithdrawalBalances() public view returns (WithdrawalBalances memory balances) {
         address this_ = address(this);
@@ -101,17 +75,6 @@ abstract contract Vault is
         balances.stakedShares = balances.totalShares - balances.instantShares;
     }
 
-    // just 4626-like function
-    function previewClaim(address account)
-        external
-        view
-        returns (uint256 pendingAssets, uint256 claimableAssets)
-    {
-        IWithdrawalQueue withdrawalQueue = withdrawalQueue();
-        pendingAssets = withdrawalQueue.pendingAssetsOf(account);
-        claimableAssets = withdrawalQueue.claimableAssetsOf(account);
-    }
-
     function getWithdrawalBalance(address account)
         public
         view
@@ -129,25 +92,12 @@ abstract contract Vault is
         balance.stakedShares = balance.totalShares - balance.instantShares;
     }
 
+    // ERC4626 overrides
+
     function totalAssets() public view virtual override(ERC4626Upgradeable) returns (uint256) {
         return IERC20(asset()).balanceOf(address(this))
             + symbioticCollateral().balanceOf(address(this))
             + symbioticVault().activeBalanceOf(address(this));
-    }
-
-    function maxDeposit(address account) public view virtual override returns (uint256) {
-        return convertToAssets(maxMint(account));
-    }
-
-    function maxMint(address /* account */ ) public view virtual override returns (uint256) {
-        // TODO: Add whitelist
-        uint256 limit_ = limit();
-        uint256 totalSupply_ = totalSupply();
-        return limit_ >= totalSupply_ ? limit_ - totalSupply_ : 0;
-    }
-
-    function maxRedeem(address account) public view virtual override returns (uint256) {
-        return convertToShares(maxWithdrawal(account));
     }
 
     function maxWithdrawal(address account) public view virtual returns (uint256) {
@@ -181,40 +131,62 @@ abstract contract Vault is
         if (assets_ >= assets) {
             return super._withdraw(caller, receiver, owner, assets, shares);
         }
+
         uint256 collaterals_ = symbioticCollateral().balanceOf(this_);
-        // Check if it makes sense to convert everything
-        symbioticCollateral().withdraw(this_, collaterals_);
-        assets_ = IERC20(asset()).balanceOf(this_);
-        if (assets_ >= assets) {
+        uint256 instant_ = collaterals_ + assets_;
+        if (instant_ >= assets) {
+            symbioticCollateral().withdraw(this_, assets - assets_);
+            assets = assets.min(IERC20(asset()).balanceOf(this_));
             return super._withdraw(caller, receiver, owner, assets, shares);
         }
-        // Migrated from ERC4626
-        if (caller != owner) {
-            super._spendAllowance(owner, caller, shares);
-        }
-        // Check that it works correctly
-        symbioticVault().withdraw(address(withdrawalQueue()), assets - assets_);
-        super._burn(owner, shares);
-        emit IERC4626.Withdraw(caller, receiver, owner, assets, shares);
 
-        // require(owner == caller, "Vault: owner != caller");
-        // address this_ = address(this);
-        // uint256 assets_ = IERC20(asset()).balanceOf(this_);
-        // if (assets_ < assets) {
-        //     uint256 collaterals_ = symbioticCollateral().balanceOf(this_);
-        //     if (assets_ + collaterals_ < assets) {
-        //         collaterals_ +=
-        //             withdrawalQueue().claim(owner, this_, assets - assets_ - collaterals_);
-        //         if (assets_ + collaterals_ < assets) {
-        //             revert("Vault: insufficient assets");
-        //         }
-        //         symbioticCollateral().withdraw(this_, collaterals_);
-        //     } else {
-        //         symbioticCollateral().withdraw(this_, assets - assets_);
-        //     }
-        // }
-        // super._withdraw(caller, receiver, owner, assets, shares);
+        symbioticCollateral().withdraw(this_, collaterals_);
+        uint256 leftover = assets - instant_;
+        symbioticVault().withdraw(address(withdrawalQueue()), leftover);
+        withdrawalQueue().request(owner, leftover);
+
+        instant_ = assets.min(IERC20(asset()).balanceOf(this_));
+        if (caller != owner) {
+            _spendAllowance(owner, caller, shares);
+        }
+
+        _burn(owner, shares);
+        SafeERC20.safeTransfer(IERC20(asset()), receiver, instant_);
+
+        // emitting event with transfered + new pending assets
+        emit Withdraw(caller, receiver, owner, assets, shares);
     }
+
+    function _update(address from, address to, uint256 value) internal virtual override {
+        uint256 pendingShares = convertToShares(withdrawalQueue().balanceOf(from));
+        if (balanceOf(from) < pendingShares) {
+            revert("Vault: insufficient balance");
+        }
+        super._update(from, to, value);
+    }
+
+    // withdrawalQueue proxy functions
+    function claimableAssetsOf(address account) external view returns (uint256 claimableAssets) {
+        claimableAssets = withdrawalQueue().claimableAssetsOf(account);
+    }
+
+    function pendingAssetsOf(address account) external view returns (uint256 pendingAssets) {
+        pendingAssets = withdrawalQueue().pendingAssetsOf(account);
+    }
+
+    function claim(address account, address recipient, uint256 maxAmount)
+        external
+        virtual
+        nonReentrant
+        returns (uint256)
+    {
+        if (account != _msgSender()) {
+            revert("Vault: forbidden");
+        }
+        return withdrawalQueue().claim(account, recipient, maxAmount);
+    }
+
+    // symbiotic functions
 
     function pushIntoSymbiotic() public virtual {
         IERC20 asset_ = IERC20(asset());
@@ -265,25 +237,5 @@ abstract contract Vault is
             rewardToken.safeTransfer(data.distributionFarm, rewardAmount);
         }
         emit RewardsPushed(address(rewardToken), rewardAmount, curatorFee, block.timestamp);
-    }
-
-    function _update(address from, address to, uint256 value) internal virtual override {
-        uint256 pendingShares = convertToShares(withdrawalQueue().balanceOf(from));
-        if (balanceOf(from) < pendingShares) {
-            revert("Vault: insufficient balance");
-        }
-        super._update(from, to, value);
-    }
-
-    function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
-        if (
-            rewardToken == address(this) || rewardToken == address(symbioticCollateral())
-                || rewardToken == address(symbioticVault())
-        ) {
-            revert("Vault: forbidden reward token");
-        }
-        if (farmData.curatorFeeD4 > 1e4) {
-            revert("Vault: invalid curator fee");
-        }
     }
 }

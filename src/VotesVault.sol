@@ -1,22 +1,19 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
 import {
-    ERC20VotesUpgradeable,
-    ERC20Upgradeable
+    ERC20Upgradeable,
+    ERC20VotesUpgradeable
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-import {ERC4626Upgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {Vault, VaultStorage} from "./Vault.sol";
+import {ERC4626Upgradeable, MellowSymbioticVault} from "./MellowSymbioticVault.sol";
 
-abstract contract SimpleVault is Vault, ERC20VotesUpgradeable {
+contract VotesVault is MellowSymbioticVault, ERC20VotesUpgradeable {
     using SafeERC20 for IERC20;
 
     constructor(string memory name, uint256 version)
-        VaultStorage(keccak256(abi.encodePacked(name)), version)
+        MellowSymbioticVault(keccak256(abi.encodePacked(name)), version)
     {}
 
     function initializeWithERC20(
@@ -24,7 +21,9 @@ abstract contract SimpleVault is Vault, ERC20VotesUpgradeable {
         address _symbioticVault,
         address _withdrawalQueue,
         uint256 _limit,
-        bool _paused,
+        bool _depositPause,
+        bool _withdrawalPause,
+        bool _depositWhitelist,
         address _admin,
         string memory name,
         string memory symbol
@@ -33,9 +32,11 @@ abstract contract SimpleVault is Vault, ERC20VotesUpgradeable {
         __EIP712_init(name, "1");
         __AccessManager_init(_admin);
 
-        __initializeStorage(
-            _symbioticCollateral, _symbioticVault, _withdrawalQueue, _limit, _paused
+        __initializeMellowSymbioticVaultStorage(
+            _symbioticCollateral, _symbioticVault, _withdrawalQueue
         );
+
+        __initializeVaultControlStorage(_limit, _depositPause, _withdrawalPause, _depositWhitelist);
     }
 
     function decimals()
@@ -49,7 +50,7 @@ abstract contract SimpleVault is Vault, ERC20VotesUpgradeable {
 
     function _update(address from, address to, uint256 amount)
         internal
-        override(Vault, ERC20VotesUpgradeable)
+        override(MellowSymbioticVault, ERC20VotesUpgradeable)
     {
         super._update(from, to, amount);
     }

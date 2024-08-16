@@ -17,7 +17,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
 
     constructor(address _vault) {
         vault = _vault;
-        symbioticVault = IVault(_vault).symbioticVault();
+        symbioticVault = IMellowSymbioticVault(_vault).symbioticVault();
         collateral = IDefaultCollateral(symbioticVault.collateral());
     }
 
@@ -40,7 +40,9 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
 
     function request(address account, uint256 amount) external {
         require(msg.sender == vault, "SymbioticWithdrawalQueue: forbidden");
-
+        if (amount == 0) {
+            return;
+        }
         AccountData storage accountData = _accountData[account];
 
         uint256 epoch_ = currentEpoch();
@@ -60,6 +62,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     function _handlePendingEpochs(AccountData storage accountData, uint256 currentEpoch_) private {
+        // TODO: rename to lastRequestedEpoch
         uint256 epoch_ = accountData.claimEpoch;
         if (epoch_ > 0) {
             _handlePendingEpoch(accountData, epoch_ - 1, currentEpoch_);
@@ -83,12 +86,11 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         _pull(epoch_, epochData);
 
         uint256 assets_ = Math.mulDiv(
-            shares_, epochData.claimedAssets, epochData.pendingShares, Math.Rounding.Floor
+            shares_, epochData.claimableAssets, epochData.pendingShares, Math.Rounding.Floor
         );
 
         epochData.pendingShares -= shares_;
-        // += ?
-        epochData.claimedAssets -= assets_;
+        epochData.claimableAssets -= assets_;
 
         accountData.claimableAssets += assets_;
         delete accountData.pendingShares[epoch_];
@@ -106,7 +108,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
         epochData.isClaimed = true;
         try symbioticVault.claim(address(this), epoch) returns (uint256 claimedAssets) {
-            epochData.claimedAssets = claimedAssets;
+            epochData.claimableAssets = claimedAssets;
             claimableAssets += claimedAssets;
         } catch {}
     }
@@ -155,7 +157,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
         EpochData storage epochData = _epochData[epoch_];
         if (epochData.isClaimed) {
-            return shares_.mulDiv(epochData.claimedAssets, epochData.pendingShares); // rounding down
+            return shares_.mulDiv(epochData.claimableAssets, epochData.pendingShares); // rounding down
         }
         return symbioticVault.withdrawalsOf(epoch_, account);
     }
