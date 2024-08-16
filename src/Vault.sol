@@ -81,6 +81,7 @@ abstract contract Vault is
         uint256 instantShares;
         uint256 instantAssets;
     }
+    // Maybe makes sense to make 2 methods getStakedBalances and getInstantBalances
 
     function getWithdrawalBalances() public view returns (WithdrawalBalances memory balances) {
         address this_ = address(this);
