@@ -5,27 +5,44 @@ import "./interfaces/utils/ISymbioticWithdrawalQueue.sol";
 
 contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     using SafeERC20 for IDefaultCollateral;
+    using Math for uint256;
 
     address public immutable vault;
     ISymbioticVault public immutable symbioticVault;
     IDefaultCollateral public immutable collateral;
+    uint256 public claimableAssets;
 
     mapping(uint256 epoch => EpochData data) private _epochData;
     mapping(address account => AccountData data) private _accountData;
+
+    constructor(address _vault) {
+        vault = _vault;
+        symbioticVault = IMellowSymbioticVault(_vault).symbioticVault();
+        collateral = IDefaultCollateral(symbioticVault.collateral());
+    }
 
     function currentEpoch() public view returns (uint256) {
         return symbioticVault.currentEpoch();
     }
 
-    constructor(address _vault) {
-        vault = _vault;
-        symbioticVault = IVault(_vault).symbioticVault();
-        collateral = IDefaultCollateral(symbioticVault.collateral());
+    function pendingAssets() public view returns (uint256) {
+        uint256 epoch = currentEpoch();
+        return symbioticVault.withdrawals(epoch) + symbioticVault.withdrawals(epoch + 1);
     }
 
-    function registerWithdrawal(address account, uint256 amount) external {
-        require(msg.sender == vault, "SymbioticWithdrawalQueue: forbidden");
+    function balanceOf(address account) public view returns (uint256) {
+        return claimableAssetsOf(account) + pendingAssetsOf(account);
+    }
 
+    function balance() external view returns (uint256) {
+        return claimableAssets + pendingAssets();
+    }
+
+    function request(address account, uint256 amount) external {
+        require(msg.sender == vault, "SymbioticWithdrawalQueue: forbidden");
+        if (amount == 0) {
+            return;
+        }
         AccountData storage accountData = _accountData[account];
 
         uint256 epoch_ = currentEpoch();
@@ -45,6 +62,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     function _handlePendingEpochs(AccountData storage accountData, uint256 currentEpoch_) private {
+        // TODO: rename to lastRequestedEpoch
         uint256 epoch_ = accountData.claimEpoch;
         if (epoch_ > 0) {
             _handlePendingEpoch(accountData, epoch_ - 1, currentEpoch_);
@@ -67,10 +85,12 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         EpochData storage epochData = _epochData[epoch_];
         _pull(epoch_, epochData);
 
-        uint256 assets_ = Math.mulDiv(shares_, epochData.claimedAssets, epochData.pendingShares); // rounding down
+        uint256 assets_ = Math.mulDiv(
+            shares_, epochData.claimableAssets, epochData.pendingShares, Math.Rounding.Floor
+        );
 
         epochData.pendingShares -= shares_;
-        epochData.claimedAssets -= assets_;
+        epochData.claimableAssets -= assets_;
 
         accountData.claimableAssets += assets_;
         delete accountData.pendingShares[epoch_];
@@ -88,7 +108,8 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
         epochData.isClaimed = true;
         try symbioticVault.claim(address(this), epoch) returns (uint256 claimedAssets) {
-            epochData.claimedAssets = claimedAssets;
+            epochData.claimableAssets = claimedAssets;
+            claimableAssets += claimedAssets;
         } catch {}
     }
 
@@ -96,22 +117,19 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         return epoch < currentEpoch_;
     }
 
-    function pending(address account)
-        external
-        view
-        returns (uint256 pendingShares_, uint256 pendingAssets_)
-    {
+    function pendingAssetsOf(address account) public view returns (uint256 pendingAssets_) {
         uint256 epoch_ = currentEpoch();
 
         AccountData storage accountData = _accountData[account];
-        pendingShares_ = accountData.pendingShares[epoch_] + accountData.pendingShares[epoch_ + 1];
+        uint256 pendingShares =
+            accountData.pendingShares[epoch_] + accountData.pendingShares[epoch_ + 1];
 
         uint256 activeShares = symbioticVault.activeShares();
         uint256 activeStake = symbioticVault.activeStake();
-        pendingAssets_ = Math.mulDiv(pendingShares_, activeStake, activeShares); // rounding down
+        pendingAssets_ = pendingShares.mulDiv(activeStake, activeShares); // rounding down
     }
 
-    function claimable(address account) external view returns (uint256 claimableAssets_) {
+    function claimableAssetsOf(address account) public view returns (uint256 claimableAssets_) {
         AccountData storage accountData = _accountData[account];
         claimableAssets_ = accountData.claimableAssets;
 
@@ -139,20 +157,30 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
         EpochData storage epochData = _epochData[epoch_];
         if (epochData.isClaimed) {
-            return Math.mulDiv(shares_, epochData.claimedAssets, epochData.pendingShares); // rounding down
+            return shares_.mulDiv(epochData.claimableAssets, epochData.pendingShares); // rounding down
         }
         return symbioticVault.withdrawalsOf(epoch_, account);
     }
 
-    function claim(address account, address recipient) external returns (uint256 amount) {
-        require(msg.sender == account || msg.sender == vault, "SymbioticWithdrawalQueue: forbidden");
+    function claim(address account, address recipient, uint256 maxAmount)
+        external
+        returns (uint256 amount)
+    {
+        address sender = msg.sender;
+        require(sender == account || sender == vault, "SymbioticWithdrawalQueue: forbidden");
         AccountData storage accountData = _accountData[account];
         _handlePendingEpochs(accountData, currentEpoch());
         amount = accountData.claimableAssets;
         if (amount == 0) {
             return 0;
         }
-        accountData.claimableAssets = 0;
+        if (amount <= maxAmount) {
+            accountData.claimableAssets = 0;
+        } else {
+            amount = maxAmount;
+            accountData.claimableAssets -= maxAmount;
+        }
+        claimableAssets -= amount;
         collateral.safeTransfer(recipient, amount);
     }
 }

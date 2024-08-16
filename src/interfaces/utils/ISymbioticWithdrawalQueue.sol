@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {ISymbioticVault} from "../symbiotic/ISymbioticVault.sol";
 import {IDefaultCollateral} from "../symbiotic/IDefaultCollateral.sol";
-import {IVault} from "../vaults/IVault.sol";
+import {ISymbioticVault} from "../symbiotic/ISymbioticVault.sol";
+import {IMellowSymbioticVault} from "../vaults/IMellowSymbioticVault.sol";
 
 import {IWithdrawalQueue} from "./IWithdrawalQueue.sol";
 
@@ -14,7 +14,8 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
     struct EpochData {
         uint256 pendingShares;
         bool isClaimed;
-        uint256 claimedAssets;
+        // TODO: rename to claimableAssets
+        uint256 claimableAssets;
     }
 
     struct AccountData {

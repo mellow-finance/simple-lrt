@@ -7,7 +7,7 @@ import {IDefaultCollateral} from "../symbiotic/IDefaultCollateral.sol";
 import {ISymbioticVault} from "../symbiotic/ISymbioticVault.sol";
 import {IWithdrawalQueue} from "../utils/IWithdrawalQueue.sol";
 
-interface IVaultStorage {
+interface IMellowSymbioticVaultStorage {
     struct FarmData {
         address symbioticFarm;
         address distributionFarm;
@@ -15,17 +15,15 @@ interface IVaultStorage {
         uint256 curatorFeeD4;
     }
 
-    struct Storage {
+    struct SymbioticStorage {
         IDefaultCollateral symbioticCollateral;
         ISymbioticVault symbioticVault;
         IWithdrawalQueue withdrawalQueue;
-        address asset;
-        bool depositPause;
-        bool transferPause;
-        uint256 limit;
         EnumerableSet.AddressSet rewardTokens;
         mapping(address rewardToken => FarmData data) farms;
     }
 
     function symbioticVault() external view returns (ISymbioticVault);
+
+    function symbioticCollateral() external view returns (IDefaultCollateral);
 }
