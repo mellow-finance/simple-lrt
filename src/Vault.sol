@@ -12,6 +12,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
 // 2. Tests (unit, int, e2e, migration)
+// 3. Add Factory
 abstract contract Vault is
     IVault,
     VaultStorage,
