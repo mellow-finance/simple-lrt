@@ -6,13 +6,9 @@ import "./interfaces/vaults/IMellowSymbioticVaultStorage.sol";
 abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    bytes32 private immutable NAME;
-    uint256 private immutable VERSION;
     bytes32 private immutable storageSlotRef;
 
     constructor(bytes32 name_, uint256 version_) {
-        NAME = name_;
-        VERSION = version_;
         storageSlotRef = keccak256(
             abi.encode(
                 uint256(
@@ -76,15 +72,12 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage {
     function _setFarm(address rewardToken, FarmData memory farmData) internal {
         SymbioticStorage storage s = _symbioticStorage();
         s.farms[rewardToken] = farmData;
-        s.rewardTokens.add(rewardToken);
+        if (farmData.symbioticFarm != address(0)) {
+            s.rewardTokens.add(rewardToken);
+        } else {
+            s.rewardTokens.remove(rewardToken);
+        }
         emit FarmSet(rewardToken, farmData, block.timestamp);
-    }
-
-    function _removeFarm(address rewardToken) internal {
-        SymbioticStorage storage s = _symbioticStorage();
-        delete s.farms[rewardToken];
-        s.rewardTokens.remove(rewardToken);
-        emit FarmRemoved(rewardToken, block.timestamp);
     }
 
     function _symbioticStorage() private view returns (SymbioticStorage storage $) {

@@ -8,9 +8,8 @@ import "./interfaces/vaults/IMellowSymbioticVault.sol";
 // TODO:
 // 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
 // 2. Tests (unit, int, e2e, migration)
-// 3. add events
-// 4. check initializers
-// 5. check WithdrawalQueue invariant
+// 3. check initializers
+// 4. check WithdrawalQueue invariant
 contract MellowSymbioticVault is
     IMellowSymbioticVault,
     VaultControl,
@@ -39,7 +38,6 @@ contract MellowSymbioticVault is
             initParams.withdrawalPause,
             initParams.depositWhitelist
         );
-        emit MellowSymbioticVaultInitialized(initParams, block.timestamp);
     }
 
     // roles
@@ -57,13 +55,6 @@ contract MellowSymbioticVault is
         _setFarm(rewardToken, farmData);
     }
 
-    function removeFarm(address rewardToken) external onlyAuthorized(REMOVE_FARM_ROLE) {
-        _removeFarmChecks(rewardToken);
-        _removeFarm(rewardToken);
-    }
-
-    function _removeFarmChecks(address /* rewardToken */ ) internal virtual {}
-
     function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
         if (
             rewardToken == address(this) || rewardToken == address(symbioticCollateral())
@@ -76,50 +67,12 @@ contract MellowSymbioticVault is
         }
     }
 
-    //  balances
-
-    function getWithdrawalBalances() public view returns (WithdrawalBalances memory balances) {
-        address this_ = address(this);
-        ISymbioticVault symbioticVault = symbioticVault();
-
-        balances.instantAssets =
-            IERC20(asset()).balanceOf(this_) + symbioticCollateral().balanceOf(this_);
-        balances.stakedAssets = symbioticVault.activeBalanceOf(this_);
-        balances.totalAssets = balances.instantAssets + balances.stakedAssets;
-
-        balances.totalShares = totalSupply();
-        // We guarantee that this amount of shares is available for instant withdrawal
-        // hence Math.Rounding.Floor
-        balances.instantShares =
-            balances.instantAssets.mulDiv(balances.totalShares, balances.totalAssets);
-        balances.stakedShares = balances.totalShares - balances.instantShares;
-    }
-
-    function getWithdrawalBalance(address account)
-        public
-        view
-        returns (WithdrawalBalances memory balance)
-    {
-        WithdrawalBalances memory totals = getWithdrawalBalances();
-        balance.totalShares = balanceOf(account);
-        balance.totalAssets = balance.totalShares.mulDiv(totals.totalAssets, totals.totalShares);
-        balance.instantAssets = balance.totalAssets.min(totals.instantAssets);
-        balance.stakedAssets = balance.totalAssets - balance.instantAssets;
-        balance.instantShares =
-            balance.instantAssets.mulDiv(balance.totalShares, balance.totalAssets);
-        balance.stakedShares = balance.totalShares - balance.instantShares;
-    }
-
     // ERC4626 overrides
 
-    function totalAssets() public view virtual override(ERC4626Upgradeable) returns (uint256) {
+    function totalAssets() public view virtual override returns (uint256) {
         return IERC20(asset()).balanceOf(address(this))
             + symbioticCollateral().balanceOf(address(this))
             + symbioticVault().activeBalanceOf(address(this));
-    }
-
-    function maxWithdrawal(address account) public view virtual returns (uint256) {
-        return getWithdrawalBalance(account).instantAssets;
     }
 
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
@@ -183,6 +136,7 @@ contract MellowSymbioticVault is
     }
 
     // withdrawalQueue proxy functions
+
     function claimableAssetsOf(address account) external view returns (uint256 claimableAssets) {
         claimableAssets = withdrawalQueue().claimableAssetsOf(account);
     }
@@ -254,5 +208,25 @@ contract MellowSymbioticVault is
             rewardToken.safeTransfer(data.distributionFarm, rewardAmount);
         }
         emit RewardsPushed(address(rewardToken), rewardAmount, curatorFee, block.timestamp);
+    }
+
+    // helper functions
+
+    function getBalances(address account)
+        public
+        view
+        returns (
+            uint256 accountAssets,
+            uint256 accountInstantAssets,
+            uint256 accountShares,
+            uint256 accountInstantShares
+        )
+    {
+        uint256 intantAssets = IERC20(asset()).balanceOf(address(this))
+            + symbioticCollateral().balanceOf(address(this));
+        accountShares = balanceOf(account);
+        accountAssets = convertToAssets(accountShares);
+        accountInstantAssets = accountAssets.min(intantAssets);
+        accountInstantShares = convertToShares(accountInstantAssets);
     }
 }

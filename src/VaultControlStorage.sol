@@ -4,13 +4,9 @@ pragma solidity 0.8.25;
 import "./interfaces/vaults/IVaultControlStorage.sol";
 
 abstract contract VaultControlStorage is IVaultControlStorage {
-    bytes32 private immutable NAME;
-    uint256 private immutable VERSION;
     bytes32 private immutable storageSlotRef;
 
     constructor(bytes32 name_, uint256 version_) {
-        NAME = name_;
-        VERSION = version_;
         storageSlotRef = keccak256(
             abi.encode(
                 uint256(

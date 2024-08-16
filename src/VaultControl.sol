@@ -10,7 +10,8 @@ abstract contract VaultControl is
     VaultControlStorage,
     ERC4626Upgradeable,
     ReentrancyGuardUpgradeable,
-    AccessControlEnumerableUpgradeable
+    AccessControlEnumerableUpgradeable,
+    MulticallUpgradeable
 {
     using SafeERC20 for IERC20;
     using Math for uint256;
@@ -45,7 +46,6 @@ abstract contract VaultControl is
             revert("Vault: totalSupply exceeds new limit");
         }
         _setLimit(_limit);
-        emit NewLimit(_limit);
     }
 
     function pauseWithdrawals() external onlyAuthorized(PAUSE_WITHDRAWALS_ROLE) {
@@ -84,8 +84,19 @@ abstract contract VaultControl is
             return 0;
         }
         uint256 limit_ = limit();
+        if (limit_ == type(uint256).max) {
+            return type(uint256).max;
+        }
         uint256 totalSupply_ = totalSupply();
         return limit_ >= totalSupply_ ? limit_ - totalSupply_ : 0;
+    }
+
+    function maxDeposit(address account) public view virtual override returns (uint256) {
+        uint256 shares = maxMint(account);
+        if (shares == type(uint256).max) {
+            return type(uint256).max;
+        }
+        return convertToAssets(shares);
     }
 
     function deposit(uint256 assets, address receiver, address referral)

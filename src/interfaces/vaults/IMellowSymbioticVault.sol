@@ -18,27 +18,16 @@ import {ISymbioticVault} from "../symbiotic/ISymbioticVault.sol";
 
 interface IMellowSymbioticVault is IMellowSymbioticVaultStorage {
     struct InitParams {
+        uint256 limit;
         address symbioticVault;
         address withdrawalQueue;
-        uint256 limit;
+        address admin;
         bool depositPause;
         bool withdrawalPause;
         bool depositWhitelist;
-        address admin;
         string name;
         string symbol;
     }
-
-    struct WithdrawalBalances {
-        uint256 totalShares;
-        uint256 totalAssets; // Doesn't include pending and claimable assets
-        uint256 stakedShares;
-        uint256 stakedAssets;
-        uint256 instantShares;
-        uint256 instantAssets;
-    }
-
-    event MellowSymbioticVaultInitialized(InitParams initParams, uint256 timestamp);
 
     event RewardsPushed(
         address indexed rewardsToken, uint256 rewardAmount, uint256 curatorFee, uint256 timestamp

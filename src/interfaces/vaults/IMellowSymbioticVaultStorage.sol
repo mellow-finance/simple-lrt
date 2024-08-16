@@ -34,6 +34,4 @@ interface IMellowSymbioticVaultStorage {
     event WithdrawalQueueSet(address withdrawalQueue, uint256 timestamp);
 
     event FarmSet(address rewardToken, FarmData farmData, uint256 timestamp);
-
-    event FarmRemoved(address rewardToken, uint256 timestamp);
 }

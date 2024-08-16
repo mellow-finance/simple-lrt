@@ -8,6 +8,9 @@ import {AccessControlEnumerableUpgradeable} from
     "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import {ERC4626Upgradeable} from
     "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+
+import {MulticallUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from
     "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
@@ -15,7 +18,6 @@ import "./IVaultControlStorage.sol";
 
 interface IVaultControl is IVaultControlStorage {
     event ReferralDeposit(uint256 asset, address reciever, address referral);
-    event NewLimit(uint256 limit);
 
     function deposit(uint256 assets, address receiver, address referral)
         external
