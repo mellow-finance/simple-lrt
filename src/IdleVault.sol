@@ -7,20 +7,18 @@ import "./interfaces/vaults/IIdleVault.sol";
 contract IdleVault is IIdleVault, VaultControl, ERC20VotesUpgradeable {
     constructor() VaultControlStorage("IdleVault", 1) {}
 
-    function initializeIdleVault(
-        uint256 _limit,
-        bool _depositPause,
-        bool _withdrawalPause,
-        bool _depositWhitelist,
-        address _admin,
-        string memory name,
-        string memory symbol
-    ) external initializer {
-        __ERC20_init(name, symbol);
-        __EIP712_init(name, "1");
+    function initializeIdleVault(InitParams memory initParams) external initializer {
+        __ERC20_init(initParams.name, initParams.symbol);
+        __EIP712_init(initParams.name, "1");
 
-        __initializeRoles(_admin);
-        __initializeVaultControlStorage(_limit, _depositPause, _withdrawalPause, _depositWhitelist);
+        __initializeRoles(initParams.admin);
+        __initializeVaultControlStorage(
+            initParams.limit,
+            initParams.depositPause,
+            initParams.withdrawalPause,
+            initParams.depositWhitelist
+        );
+        emit IdleVaultInitialized(initParams, block.timestamp);
     }
 
     function decimals()

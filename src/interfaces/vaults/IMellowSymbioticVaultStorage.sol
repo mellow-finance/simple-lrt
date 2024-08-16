@@ -26,4 +26,14 @@ interface IMellowSymbioticVaultStorage {
     function symbioticVault() external view returns (ISymbioticVault);
 
     function symbioticCollateral() external view returns (IDefaultCollateral);
+
+    event SymbioticCollateralSet(address symbioticCollateral, uint256 timestamp);
+
+    event SymbioticVaultSet(address symbioticVault, uint256 timestamp);
+
+    event WithdrawalQueueSet(address withdrawalQueue, uint256 timestamp);
+
+    event FarmSet(address rewardToken, FarmData farmData, uint256 timestamp);
+
+    event FarmRemoved(address rewardToken, uint256 timestamp);
 }

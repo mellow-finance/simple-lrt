@@ -9,4 +9,12 @@ interface IVaultControlStorage {
         bool depositWhitelist;
         mapping(address account => bool status) isDepositorWhitelisted;
     }
+
+    event LimitSet(uint256 limit, uint256 timestamp, address sender);
+    event DepositPauseSet(bool paused, uint256 timestamp, address sender);
+    event WithdrawalPauseSet(bool paused, uint256 timestamp, address sender);
+    event DepositWhitelistSet(bool status, uint256 timestamp, address sender);
+    event DepositorWhitelistStatusSet(
+        address account, bool status, uint256 timestamp, address sender
+    );
 }

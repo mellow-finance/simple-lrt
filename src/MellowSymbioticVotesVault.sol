@@ -15,11 +15,13 @@ contract MellowSymbioticVotesVault is
         MellowSymbioticVault(keccak256(abi.encodePacked(name)), version)
     {}
 
-    function initializeMellowSymbioticVotesVault(IMellowSymbioticVault.InitParams memory initParams)
-        external
+    function initialize(IMellowSymbioticVault.InitParams memory initParams)
+        public
+        virtual
+        override
         initializer
     {
-        initializeMellowSymbioticVault(initParams);
+        super.initialize(initParams);
         __EIP712_init(initParams.name, "1");
     }
 

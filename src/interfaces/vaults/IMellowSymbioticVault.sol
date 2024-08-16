@@ -38,6 +38,8 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage {
         uint256 instantAssets;
     }
 
+    event MellowSymbioticVaultInitialized(InitParams initParams, uint256 timestamp);
+
     event RewardsPushed(
         address indexed rewardsToken, uint256 rewardAmount, uint256 curatorFee, uint256 timestamp
     );

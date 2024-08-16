@@ -12,7 +12,4 @@ import {
 
 import "./IMellowSymbioticVault.sol";
 
-interface IEthVaultCompat {
-    function initializeEthVaultCompat(IMellowSymbioticVault.InitParams memory initParams)
-        external;
-}
+interface IEthVaultCompat {}

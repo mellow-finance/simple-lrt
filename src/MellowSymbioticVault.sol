@@ -10,6 +10,7 @@ import "./interfaces/vaults/IMellowSymbioticVault.sol";
 // 2. Tests (unit, int, e2e, migration)
 // 3. add events
 // 4. check initializers
+// 5. check WithdrawalQueue invariant
 contract MellowSymbioticVault is
     IMellowSymbioticVault,
     VaultControl,
@@ -25,7 +26,7 @@ contract MellowSymbioticVault is
 
     // initializer
 
-    function initializeMellowSymbioticVault(InitParams memory initParams) public initializer {
+    function initialize(InitParams memory initParams) public virtual initializer {
         __ERC20_init(initParams.name, initParams.symbol);
 
         __initializeRoles(initParams.admin);
@@ -38,6 +39,7 @@ contract MellowSymbioticVault is
             initParams.withdrawalPause,
             initParams.depositWhitelist
         );
+        emit MellowSymbioticVaultInitialized(initParams, block.timestamp);
     }
 
     // roles
@@ -88,9 +90,8 @@ contract MellowSymbioticVault is
         balances.totalShares = totalSupply();
         // We guarantee that this amount of shares is available for instant withdrawal
         // hence Math.Rounding.Floor
-        balances.instantShares = balances.instantAssets.mulDiv(
-            balances.totalShares, balances.totalAssets, Math.Rounding.Floor
-        );
+        balances.instantShares =
+            balances.instantAssets.mulDiv(balances.totalShares, balances.totalAssets);
         balances.stakedShares = balances.totalShares - balances.instantShares;
     }
 
@@ -101,13 +102,11 @@ contract MellowSymbioticVault is
     {
         WithdrawalBalances memory totals = getWithdrawalBalances();
         balance.totalShares = balanceOf(account);
-        balance.totalAssets =
-            balance.totalShares.mulDiv(totals.totalAssets, totals.totalShares, Math.Rounding.Floor);
+        balance.totalAssets = balance.totalShares.mulDiv(totals.totalAssets, totals.totalShares);
         balance.instantAssets = balance.totalAssets.min(totals.instantAssets);
         balance.stakedAssets = balance.totalAssets - balance.instantAssets;
-        balance.instantShares = balance.instantAssets.mulDiv(
-            balance.totalShares, balance.totalAssets, Math.Rounding.Floor
-        );
+        balance.instantShares =
+            balance.instantAssets.mulDiv(balance.totalShares, balance.totalAssets);
         balance.stakedShares = balance.totalShares - balance.instantShares;
     }
 
@@ -120,7 +119,6 @@ contract MellowSymbioticVault is
     }
 
     function maxWithdrawal(address account) public view virtual returns (uint256) {
-        // Dont use claimable here as it distorts the share price
         return getWithdrawalBalance(account).instantAssets;
     }
 

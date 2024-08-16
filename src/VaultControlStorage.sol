@@ -59,26 +59,31 @@ abstract contract VaultControlStorage is IVaultControlStorage {
     function _setLimit(uint256 _limit) internal {
         Storage storage s = _vaultStorage();
         s.limit = _limit;
+        emit LimitSet(_limit, block.timestamp, msg.sender);
     }
 
     function _setDepositPause(bool _paused) internal {
         Storage storage s = _vaultStorage();
         s.depositPause = _paused;
+        emit DepositPauseSet(_paused, block.timestamp, msg.sender);
     }
 
     function _setWithdrawalPause(bool _paused) internal {
         Storage storage s = _vaultStorage();
         s.withdrawalPause = _paused;
+        emit WithdrawalPauseSet(_paused, block.timestamp, msg.sender);
     }
 
     function _setDepositWhitelist(bool _status) internal {
         Storage storage s = _vaultStorage();
         s.depositWhitelist = _status;
+        emit DepositWhitelistSet(_status, block.timestamp, msg.sender);
     }
 
     function _setDepositorWhitelistStatus(address account, bool status) internal {
         Storage storage s = _vaultStorage();
         s.isDepositorWhitelisted[account] = status;
+        emit DepositorWhitelistStatusSet(account, status, block.timestamp, msg.sender);
     }
 
     function _vaultStorage() private view returns (Storage storage $) {

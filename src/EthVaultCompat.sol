@@ -17,11 +17,13 @@ contract EthVaultCompat is IEthVaultCompat, MellowSymbioticVault {
 
     constructor() MellowSymbioticVault("EthVaultV1", 1) {}
 
-    function initializeEthVaultCompat(MellowSymbioticVault.InitParams memory initParams)
-        external
+    function initialize(MellowSymbioticVault.InitParams memory initParams)
+        public
+        virtual
+        override
         initializer
     {
-        initializeMellowSymbioticVault(initParams);
+        initialize(initParams);
     }
 
     // ERC20Upgradeable override

@@ -58,28 +58,33 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage {
     function _setSymbioticCollateral(IDefaultCollateral _symbioticCollateral) internal {
         SymbioticStorage storage s = _symbioticStorage();
         s.symbioticCollateral = _symbioticCollateral;
+        emit SymbioticCollateralSet(address(_symbioticCollateral), block.timestamp);
     }
 
     function _setSymbioticVault(ISymbioticVault _symbioticVault) internal {
         SymbioticStorage storage s = _symbioticStorage();
         s.symbioticVault = _symbioticVault;
+        emit SymbioticVaultSet(address(_symbioticVault), block.timestamp);
     }
 
     function _setWithdrawalQueue(IWithdrawalQueue _withdrawalQueue) internal {
         SymbioticStorage storage s = _symbioticStorage();
         s.withdrawalQueue = _withdrawalQueue;
+        emit WithdrawalQueueSet(address(_withdrawalQueue), block.timestamp);
     }
 
     function _setFarm(address rewardToken, FarmData memory farmData) internal {
         SymbioticStorage storage s = _symbioticStorage();
         s.farms[rewardToken] = farmData;
         s.rewardTokens.add(rewardToken);
+        emit FarmSet(rewardToken, farmData, block.timestamp);
     }
 
     function _removeFarm(address rewardToken) internal {
         SymbioticStorage storage s = _symbioticStorage();
         delete s.farms[rewardToken];
         s.rewardTokens.remove(rewardToken);
+        emit FarmRemoved(rewardToken, block.timestamp);
     }
 
     function _symbioticStorage() private view returns (SymbioticStorage storage $) {

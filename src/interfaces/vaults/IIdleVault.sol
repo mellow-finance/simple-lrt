@@ -7,13 +7,17 @@ import {
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 
 interface IIdleVault {
-    function initializeIdleVault(
-        uint256 _limit,
-        bool _depositPause,
-        bool _withdrawalPause,
-        bool _depositWhitelist,
-        address _admin,
-        string memory name,
-        string memory symbol
-    ) external;
+    struct InitParams {
+        uint256 limit;
+        bool depositPause;
+        bool withdrawalPause;
+        bool depositWhitelist;
+        address admin;
+        string name;
+        string symbol;
+    }
+
+    function initializeIdleVault(InitParams memory initParams) external;
+
+    event IdleVaultInitialized(InitParams initParams, uint256 timestamp);
 }

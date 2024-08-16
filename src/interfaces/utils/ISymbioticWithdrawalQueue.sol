@@ -14,7 +14,6 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
     struct EpochData {
         uint256 pendingShares;
         bool isClaimed;
-        // TODO: rename to claimableAssets
         uint256 claimableAssets;
     }
 
@@ -32,9 +31,12 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
 
     function currentEpoch() external view returns (uint256);
 
-    // permissionless functon
     function handlePendingEpochs(address account) external;
 
-    // permissionless functon
     function pull(uint256 epoch) external;
+
+    event WithdrawalRequested(address account, uint256 epoch, uint256 amount);
+    event EpochClaimed(uint256 epoch, uint256 claimedAssets);
+    event EpochClaimFailed(uint256 epoch);
+    event Claimed(address account, address recipient, uint256 amount);
 }

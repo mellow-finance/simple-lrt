@@ -54,6 +54,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
 
         accountData.pendingShares[epoch_] += amount;
         accountData.claimEpoch = epoch_;
+        emit WithdrawalRequested(account, epoch_, amount);
     }
 
     // permissionless functon
@@ -62,7 +63,6 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     function _handlePendingEpochs(AccountData storage accountData, uint256 currentEpoch_) private {
-        // TODO: rename to lastRequestedEpoch
         uint256 epoch_ = accountData.claimEpoch;
         if (epoch_ > 0) {
             _handlePendingEpoch(accountData, epoch_ - 1, currentEpoch_);
@@ -110,7 +110,12 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         try symbioticVault.claim(address(this), epoch) returns (uint256 claimedAssets) {
             epochData.claimableAssets = claimedAssets;
             claimableAssets += claimedAssets;
-        } catch {}
+            emit EpochClaimed(epoch, claimedAssets);
+        } catch {
+            // if we failed to claim epoch we assume it is claimed
+            // most likely low funds in epoch got additionally slashed so we can't claim it (error becase of 0 amounts)
+            emit EpochClaimFailed(epoch);
+        }
     }
 
     function _isClaimable(uint256 epoch, uint256 currentEpoch_) private pure returns (bool) {
@@ -182,5 +187,6 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
         claimableAssets -= amount;
         collateral.safeTransfer(recipient, amount);
+        emit Claimed(account, recipient, amount);
     }
 }

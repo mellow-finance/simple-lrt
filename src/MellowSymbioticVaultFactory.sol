@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import {TransparentUpgradeableProxy} from
-    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "./interfaces/vaults/IMellowSymbioticVaultFactory.sol";
 
-import {MellowSymbioticVotesVault} from "./MellowSymbioticVotesVault.sol";
-import {IMellowSymbioticVault} from "./interfaces/vaults/IMellowSymbioticVault.sol";
+import {MellowSymbioticVault} from "./MellowSymbioticVault.sol";
 
-contract MellowSymbioticVotesVaultFactory {
+contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
     address public immutable singleton;
 
     mapping(address => bool) private _isEntity;
@@ -19,14 +17,15 @@ contract MellowSymbioticVotesVaultFactory {
 
     function create(address _proxyAdmin, IMellowSymbioticVault.InitParams memory initParams)
         external
-        returns (MellowSymbioticVotesVault vault)
+        returns (MellowSymbioticVault vault)
     {
-        vault = MellowSymbioticVotesVault(
+        vault = MellowSymbioticVault(
             address(new TransparentUpgradeableProxy(singleton, _proxyAdmin, ""))
         );
-        vault.initializeMellowSymbioticVault(initParams);
+        vault.initialize(initParams);
         _isEntity[address(vault)] = true;
         _entities.push(address(vault));
+        emit EntityCreated(address(vault), block.timestamp);
     }
 
     function entities() external view returns (address[] memory) {

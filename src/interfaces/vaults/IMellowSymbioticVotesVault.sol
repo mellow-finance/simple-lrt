@@ -9,7 +9,4 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 
 import "./IMellowSymbioticVault.sol";
 
-interface IMellowSymbioticVotesVault {
-    function initializeMellowSymbioticVotesVault(IMellowSymbioticVault.InitParams memory initParams)
-        external;
-}
+interface IMellowSymbioticVotesVault {}
