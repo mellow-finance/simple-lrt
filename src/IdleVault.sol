@@ -1,17 +1,13 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import {
-    ERC20Upgradeable,
-    ERC20VotesUpgradeable
-} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-
 import {ERC4626Upgradeable, VaultControl, VaultControlStorage} from "./VaultControl.sol";
+import "./interfaces/vaults/IIdleVault.sol";
 
-contract IdleVault is VaultControl, ERC20VotesUpgradeable {
+contract IdleVault is IIdleVault, VaultControl, ERC20VotesUpgradeable {
     constructor() VaultControlStorage("IdleVault", 1) {}
 
-    function initializeWithERC20(
+    function initializeIdleVault(
         uint256 _limit,
         bool _depositPause,
         bool _withdrawalPause,

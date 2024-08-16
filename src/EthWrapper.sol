@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import {IVaultControl} from "./interfaces/vaults/IVaultControl.sol";
-
 import "./interfaces/utils/IEthWrapper.sol";
 
 contract EthWrapper is IEthWrapper {

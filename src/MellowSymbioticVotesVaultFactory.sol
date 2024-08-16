@@ -5,6 +5,7 @@ import {TransparentUpgradeableProxy} from
     "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import {MellowSymbioticVotesVault} from "./MellowSymbioticVotesVault.sol";
+import {IMellowSymbioticVault} from "./interfaces/vaults/IMellowSymbioticVault.sol";
 
 contract MellowSymbioticVotesVaultFactory {
     address public immutable singleton;
@@ -16,32 +17,14 @@ contract MellowSymbioticVotesVaultFactory {
         singleton = singleton_;
     }
 
-    function create(
-        address _proxyAdmin,
-        address _symbioticVault,
-        address _withdrawalQueue,
-        uint256 _limit,
-        bool _depositPause,
-        bool _withdrawalPause,
-        bool _depositWhitelist,
-        address _admin,
-        string memory _name,
-        string memory _symbol
-    ) external returns (MellowSymbioticVotesVault vault) {
+    function create(address _proxyAdmin, IMellowSymbioticVault.InitParams memory initParams)
+        external
+        returns (MellowSymbioticVotesVault vault)
+    {
         vault = MellowSymbioticVotesVault(
             address(new TransparentUpgradeableProxy(singleton, _proxyAdmin, ""))
         );
-        vault.initializeMellowSymbioticVault(
-            _symbioticVault,
-            _withdrawalQueue,
-            _limit,
-            _depositPause,
-            _withdrawalPause,
-            _depositWhitelist,
-            _admin,
-            _name,
-            _symbol
-        );
+        vault.initializeMellowSymbioticVault(initParams);
         _isEntity[address(vault)] = true;
         _entities.push(address(vault));
     }

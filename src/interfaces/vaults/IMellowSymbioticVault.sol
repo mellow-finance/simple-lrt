@@ -17,6 +17,18 @@ import {IStakerRewards} from "../symbiotic/IStakerRewards.sol";
 import {ISymbioticVault} from "../symbiotic/ISymbioticVault.sol";
 
 interface IMellowSymbioticVault is IMellowSymbioticVaultStorage {
+    struct InitParams {
+        address symbioticVault;
+        address withdrawalQueue;
+        uint256 limit;
+        bool depositPause;
+        bool withdrawalPause;
+        bool depositWhitelist;
+        address admin;
+        string name;
+        string symbol;
+    }
+
     struct WithdrawalBalances {
         uint256 totalShares;
         uint256 totalAssets; // Doesn't include pending and claimable assets

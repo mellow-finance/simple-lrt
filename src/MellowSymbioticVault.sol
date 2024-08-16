@@ -25,22 +25,19 @@ contract MellowSymbioticVault is
 
     // initializer
 
-    function initializeMellowSymbioticVault(
-        address _symbioticVault,
-        address _withdrawalQueue,
-        uint256 _limit,
-        bool _depositPause,
-        bool _withdrawalPause,
-        bool _depositWhitelist,
-        address _admin,
-        string memory name,
-        string memory symbol
-    ) public initializer {
-        __ERC20_init(name, symbol);
+    function initializeMellowSymbioticVault(InitParams memory initParams) public initializer {
+        __ERC20_init(initParams.name, initParams.symbol);
 
-        __initializeRoles(_admin);
-        __initializeMellowSymbioticVaultStorage(_symbioticVault, _withdrawalQueue);
-        __initializeVaultControlStorage(_limit, _depositPause, _withdrawalPause, _depositWhitelist);
+        __initializeRoles(initParams.admin);
+        __initializeMellowSymbioticVaultStorage(
+            initParams.symbioticVault, initParams.withdrawalQueue
+        );
+        __initializeVaultControlStorage(
+            initParams.limit,
+            initParams.depositPause,
+            initParams.withdrawalPause,
+            initParams.depositWhitelist
+        );
     }
 
     // roles

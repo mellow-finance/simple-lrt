@@ -1,18 +1,11 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import {ERC20Upgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import {ERC4626Upgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
-import {
-    Context, ERC20, IERC20, IERC20Metadata
-} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./interfaces/vaults/IEthVaultCompat.sol";
 
-import {MellowSymbioticVault, MellowSymbioticVaultStorage} from "./MellowSymbioticVault.sol";
+import {MellowSymbioticVault} from "./MellowSymbioticVault.sol";
 
-contract EthVaultCompat is MellowSymbioticVault {
+contract EthVaultCompat is IEthVaultCompat, MellowSymbioticVault {
     // ERC20 slots
     mapping(address account => uint256) private _balances;
     mapping(address account => mapping(address spender => uint256)) private _allowances;
@@ -24,26 +17,11 @@ contract EthVaultCompat is MellowSymbioticVault {
 
     constructor() MellowSymbioticVault("EthVaultV1", 1) {}
 
-    function initializeEthVaultCompat(
-        address _symbioticVault,
-        address _withdrawalQueue,
-        uint256 _limit,
-        bool _depositPause,
-        bool _withdrawalPause,
-        bool _depositWhitelist,
-        address _admin
-    ) external initializer {
-        initializeMellowSymbioticVault(
-            _symbioticVault,
-            _withdrawalQueue,
-            _limit,
-            _depositPause,
-            _withdrawalPause,
-            _depositWhitelist,
-            _admin,
-            _name,
-            _symbol
-        );
+    function initializeEthVaultCompat(MellowSymbioticVault.InitParams memory initParams)
+        external
+        initializer
+    {
+        initializeMellowSymbioticVault(initParams);
     }
 
     // ERC20Upgradeable override
