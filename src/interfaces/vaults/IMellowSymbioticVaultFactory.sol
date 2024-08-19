@@ -7,5 +7,16 @@ import {TransparentUpgradeableProxy} from
 import {IMellowSymbioticVault} from "./IMellowSymbioticVault.sol";
 
 interface IMellowSymbioticVaultFactory {
+    struct InitParams {
+        uint256 limit;
+        address symbioticVault;
+        address admin;
+        bool depositPause;
+        bool withdrawalPause;
+        bool depositWhitelist;
+        string name;
+        string symbol;
+    }
+
     event EntityCreated(address indexed entity, uint256 timestamp);
 }

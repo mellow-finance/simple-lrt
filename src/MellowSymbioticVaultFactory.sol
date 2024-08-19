@@ -16,18 +16,28 @@ contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
         singleton = singleton_;
     }
 
-    // TODO exclude withdrawalQueue from initParams
-    // TODO This factory needs to be for Votes as this will be our default vault contract
-    function create(address _proxyAdmin, IMellowSymbioticVault.InitParams memory initParams)
+    function create(address _proxyAdmin, InitParams memory initParams)
         external
         returns (MellowSymbioticVault vault)
     {
         vault = MellowSymbioticVault(
             address(new TransparentUpgradeableProxy(singleton, _proxyAdmin, ""))
         );
-        initParams.withdrawalQueue =
-            address(new SymbioticWithdrawalQueue(address(vault), initParams.symbioticVault));
-        vault.initialize(initParams);
+        vault.initialize(
+            IMellowSymbioticVault.InitParams({
+                limit: initParams.limit,
+                symbioticVault: initParams.symbioticVault,
+                withdrawalQueue: address(
+                    new SymbioticWithdrawalQueue(address(vault), initParams.symbioticVault)
+                ),
+                admin: initParams.admin,
+                depositPause: initParams.depositPause,
+                withdrawalPause: initParams.withdrawalPause,
+                depositWhitelist: initParams.depositWhitelist,
+                name: initParams.name,
+                symbol: initParams.symbol
+            })
+        );
         _isEntity[address(vault)] = true;
         _entities.push(address(vault));
         emit EntityCreated(address(vault), block.timestamp);

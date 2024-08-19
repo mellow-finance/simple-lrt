@@ -12,7 +12,7 @@ interface IMellowSymbioticVaultStorage {
         address symbioticFarm;
         address distributionFarm;
         address curatorTreasury;
-        uint256 curatorFeeD4;
+        uint256 curatorFeeD6;
     }
 
     struct SymbioticStorage {

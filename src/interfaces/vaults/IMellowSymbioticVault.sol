@@ -32,4 +32,6 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage {
     event RewardsPushed(
         address indexed rewardsToken, uint256 rewardAmount, uint256 curatorFee, uint256 timestamp
     );
+
+    event SymbioticPushed(address sender, uint256 collateralAmount, uint256 vaultAmount);
 }
