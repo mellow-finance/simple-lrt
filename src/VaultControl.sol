@@ -33,10 +33,7 @@ abstract contract VaultControl is
         __AccessControlEnumerable_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
 
-        _setLimit(_limit);
-        _setDepositPause(_depositPause);
-        _setWithdrawalPause(_withdrawalPause);
-        _setDepositWhitelist(_depositWhitelist);
+        __initializeVaultControlStorage(_limit, _depositPause, _withdrawalPause, _depositWhitelist);
     }
 
     // setters getters

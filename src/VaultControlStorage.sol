@@ -20,6 +20,18 @@ abstract contract VaultControlStorage is IVaultControlStorage {
         ) & ~bytes32(uint256(0xff)) & ~bytes32(uint256(0xff));
     }
 
+    function __initializeVaultControlStorage(
+        uint256 _limit,
+        bool _depositPause,
+        bool _withdrawalPause,
+        bool _depositWhitelist
+    ) internal {
+        _setLimit(_limit);
+        _setDepositPause(_depositPause);
+        _setWithdrawalPause(_withdrawalPause);
+        _setDepositWhitelist(_depositWhitelist);
+    }
+
     function depositPause() public view returns (bool) {
         return _vaultStorage().depositPause;
     }
