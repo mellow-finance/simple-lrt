@@ -54,16 +54,19 @@ contract MellowSymbioticVault is
     }
 
     function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
+        // TODO: require != ?
         require(
             rewardToken == address(this) || rewardToken == address(symbioticCollateral())
                 || rewardToken == address(symbioticVault()),
             "Vault: forbidden reward token"
         );
-
+        // TODO: Let's make 1e4 a contant and I'd make it D6.
         require(farmData.curatorFeeD4 <= 1e4, "Vault: invalid curator fee");
     }
 
     // ERC4626 overrides
+
+    // TODO: deposit with referral address
 
     function totalAssets() public view virtual override returns (uint256) {
         return IERC20(asset()).balanceOf(address(this))
@@ -87,43 +90,43 @@ contract MellowSymbioticVault is
         uint256 assets,
         uint256 shares
     ) internal virtual override {
-        // We cannot claim from withdrawalQueue here, as it distorts the share price.
-        // By that moment the user can have 0 shares but still have pending assets.
-        // So this is only for instant + staked.
-
+        // TODO: this should not be the requirement (in case of approved ERC20 tokens)?
         require(owner == caller, "Vault: owner != caller");
+        // Doing this again here (in addition to ERC4626Vault) because the logic at the
+        // bottom doesn't use the super call.
         require(!withdrawalPause(), "Vault: withdrawal paused");
         address this_ = address(this);
-        uint256 assets_ = IERC20(asset()).balanceOf(this_);
-        if (assets_ >= assets) {
+
+        // 1. Check if we have enough assets to withdraw immediately
+        uint256 liquid = IERC20(asset()).balanceOf(this_);
+        if (liquid >= assets) {
             return super._withdraw(caller, receiver, owner, assets, shares);
         }
 
+        // 2. If not - try to recover collateral (if any on the balance)
         uint256 collaterals_ = symbioticCollateral().balanceOf(this_);
-        uint256 instant_ = collaterals_ + assets_;
-        if (instant_ >= assets) {
-            symbioticCollateral().withdraw(this_, assets - assets_);
-            assets = assets.min(IERC20(asset()).balanceOf(this_));
-            return super._withdraw(caller, receiver, owner, assets, shares);
-        }
-
         if (collaterals_ != 0) {
             symbioticCollateral().withdraw(this_, collaterals_);
         }
-        uint256 leftover = assets - instant_;
-        if (leftover != 0) {
-            symbioticVault().withdraw(address(withdrawalQueue()), leftover);
-        }
-        withdrawalQueue().request(owner, leftover);
 
-        instant_ = assets.min(IERC20(asset()).balanceOf(this_));
+        // 3. Second try - check if we have enough assets to withdraw immediately
+        liquid = IERC20(asset()).balanceOf(this_);
+        if (liquid >= assets) {
+            return super._withdraw(caller, receiver, owner, assets, shares);
+        }
+
+        uint256 staked = assets - liquid;
+        symbioticVault().withdraw(address(withdrawalQueue()), staked);
+        withdrawalQueue().request(owner, staked);
+
+        // See the TODO above and keep / remove accordingly
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }
 
         _burn(owner, shares);
-        if (instant_ != 0) {
-            IERC20(asset()).safeTransfer(receiver, instant_);
+        if (liquid != 0) {
+            IERC20(asset()).safeTransfer(receiver, liquid);
         }
 
         // emitting event with transfered + new pending assets
@@ -131,6 +134,7 @@ contract MellowSymbioticVault is
     }
 
     function _update(address from, address to, uint256 value) internal virtual override {
+        // TODO: do we really need this check? If it's reverted that the token is locked?
         uint256 pendingShares = convertToShares(withdrawalQueue().balanceOf(from));
         require(balanceOf(from) >= pendingShares, "Vault: insufficient balance");
         super._update(from, to, value);
@@ -163,6 +167,8 @@ contract MellowSymbioticVault is
         uint256 assetAmount = asset_.balanceOf(address(this));
         IDefaultCollateral symbioticCollateral = symbioticCollateral();
         ISymbioticVault symbioticVault = symbioticVault();
+
+        // 1. Push asset into symbiotic collateral
         uint256 leftover = symbioticCollateral.limit() - symbioticCollateral.totalSupply();
         assetAmount = assetAmount.min(leftover);
         if (assetAmount == 0) {
@@ -174,12 +180,15 @@ contract MellowSymbioticVault is
             asset_.forceApprove(address(symbioticCollateral), 0);
         }
 
+        // 2. Push collateral into symbiotic vault
         uint256 collateralAmount = symbioticCollateral.balanceOf(address(this));
         IERC20(symbioticCollateral).safeIncreaseAllowance(address(symbioticVault), collateralAmount);
         (uint256 stakedAmount,) = symbioticVault.deposit(address(this), collateralAmount);
         if (collateralAmount != stakedAmount) {
             IERC20(symbioticCollateral).forceApprove(address(symbioticVault), 0);
         }
+
+        // emit SymbioticPushed(...);
     }
 
     function pushRewards(IERC20 rewardToken, bytes calldata symbioticRewardsData)
@@ -197,6 +206,7 @@ contract MellowSymbioticVault is
             return;
         }
 
+        // TODO: remove magic numbers
         uint256 curatorFee = rewardAmount.mulDiv(data.curatorFeeD4, 1e4);
         if (curatorFee != 0) {
             rewardToken.safeTransfer(data.curatorTreasury, curatorFee);
