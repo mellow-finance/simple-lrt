@@ -16,6 +16,8 @@ contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
         singleton = singleton_;
     }
 
+    // TODO exclude withdrawalQueue from initParams
+    // TODO This factory needs to be for Votes as this will be our default vault contract
     function create(address _proxyAdmin, IMellowSymbioticVault.InitParams memory initParams)
         external
         returns (MellowSymbioticVault vault)
