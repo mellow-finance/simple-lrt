@@ -23,7 +23,7 @@ contract MockVaultControlStorage is VaultControlStorage {
         bool _depositPause,
         bool _withdrawalPause,
         bool _depositWhitelist
-    ) external {
+    ) external initializer {
         __initializeVaultControlStorage(_limit, _depositPause, _withdrawalPause, _depositWhitelist);
     }
 
@@ -46,6 +46,8 @@ contract MockVaultControlStorage is VaultControlStorage {
     function setDepositorWhitelistStatus(address account, bool status) external {
         _setDepositorWhitelistStatus(account, status);
     }
+
+    function test() external pure {}
 }
 
 contract Unit is Test {
@@ -56,7 +58,5 @@ contract Unit is Test {
         assertEq(c.depositPause(), false);
         assertEq(c.withdrawalPause(), false);
         assertEq(c.depositWhitelist(), false);
-
-        console2.logBytes32(c.slotStorageRef());
     }
 }

@@ -17,11 +17,15 @@ contract Integration is Test {
     address vaultAdmin = makeAddr("vaultAdmin");
     uint48 epochDuration = 3600;
     address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
+    address steth = 0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
+    address weth = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
 
-    function test() external {
+    function testEth() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVault mellowSymbioticVault = new MellowSymbioticVault(bytes32(uint256(1)), 1);
+        MellowSymbioticVotesVault singleton =
+            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
             SymbioticHelperLibrary.createNewSymbioticVault(
@@ -35,24 +39,24 @@ contract Integration is Test {
                 })
             )
         );
-        SymbioticWithdrawalQueue withdrawalQueue =
-            new SymbioticWithdrawalQueue(address(mellowSymbioticVault), address(symbioticVault));
 
-        mellowSymbioticVault.initialize(
-            IMellowSymbioticVault.InitParams({
-                name: "MellowSymbioticVault",
-                symbol: "MSV",
+        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue withdrawalQueue) = factory
+            .create(
+            IMellowSymbioticVaultFactory.InitParams({
+                proxyAdmin: makeAddr("proxyAdmin"),
+                limit: 100 ether,
                 symbioticVault: address(symbioticVault),
-                withdrawalQueue: address(withdrawalQueue),
                 admin: admin,
-                limit: 1000 ether,
                 depositPause: false,
                 withdrawalPause: false,
-                depositWhitelist: false
+                depositWhitelist: false,
+                name: "MellowSymbioticVault",
+                symbol: "MSV"
             })
         );
 
-        address collateral = withdrawalQueue.symbioticVault().collateral();
+        address collateral =
+            SymbioticWithdrawalQueue(address(withdrawalQueue)).symbioticVault().collateral();
         address token = IDefaultCollateral(collateral).asset();
         assertEq(token, wsteth);
 
@@ -61,20 +65,24 @@ contract Integration is Test {
         uint256 amount = 0.5 ether;
         uint256 n = 25;
 
+        EthWrapper wrapper = new EthWrapper(weth, wsteth, steth);
+
         deal(token, user, amount * n);
-        IERC20(token).approve(address(mellowSymbioticVault), amount * n);
+        IERC20(token).approve(address(wrapper), amount * n);
 
         for (uint256 i = 0; i < n; i++) {
-            mellowSymbioticVault.deposit(amount, user);
+            wrapper.deposit(
+                wsteth, amount, address(mellowSymbioticVault), user, makeAddr("referrer")
+            );
         }
         for (uint256 i = 0; i < n; i++) {
-            mellowSymbioticVault.withdraw(amount, user, user);
+            MellowSymbioticVault(address(mellowSymbioticVault)).withdraw(amount, user, user);
         }
 
         skip(epochDuration * 2);
 
         for (uint256 i = 0; i < n; i++) {
-            mellowSymbioticVault.claim(user, user, amount);
+            MellowSymbioticVault(address(mellowSymbioticVault)).claim(user, user, amount);
         }
         vm.stopPrank();
     }

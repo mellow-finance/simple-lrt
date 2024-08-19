@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import "./interfaces/vaults/IMellowSymbioticVaultFactory.sol";
 
-import {SymbioticWithdrawalQueue} from "./SymbioticWithdrawalQueue.sol";
+import {IWithdrawalQueue, SymbioticWithdrawalQueue} from "./SymbioticWithdrawalQueue.sol";
 
 contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
     address public immutable singleton;
@@ -15,20 +15,19 @@ contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
         singleton = singleton_;
     }
 
-    function create(address _proxyAdmin, InitParams memory initParams)
+    function create(InitParams memory initParams)
         external
-        returns (IMellowSymbioticVault vault)
+        returns (IMellowSymbioticVault vault, IWithdrawalQueue withdrawalQueue)
     {
         vault = IMellowSymbioticVault(
-            address(new TransparentUpgradeableProxy(singleton, _proxyAdmin, ""))
+            address(new TransparentUpgradeableProxy(singleton, initParams.proxyAdmin, ""))
         );
+        withdrawalQueue = new SymbioticWithdrawalQueue(address(vault), initParams.symbioticVault);
         vault.initialize(
             IMellowSymbioticVault.InitParams({
                 limit: initParams.limit,
                 symbioticVault: initParams.symbioticVault,
-                withdrawalQueue: address(
-                    new SymbioticWithdrawalQueue(address(vault), initParams.symbioticVault)
-                ),
+                withdrawalQueue: address(withdrawalQueue),
                 admin: initParams.admin,
                 depositPause: initParams.depositPause,
                 withdrawalPause: initParams.withdrawalPause,

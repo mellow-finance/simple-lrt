@@ -17,7 +17,7 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable {
         address _asset,
         string memory _name,
         string memory _symbol
-    ) internal {
+    ) internal onlyInitializing {
         __initializeVaultControl(_admin, _limit, _depositPause, _withdrawalPause, _depositWhitelist);
         __ERC20_init(_name, _symbol);
         __ERC4626_init(IERC20(_asset));

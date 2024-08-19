@@ -7,6 +7,8 @@ import {IDefaultCollateral} from "../symbiotic/IDefaultCollateral.sol";
 import {ISymbioticVault} from "../symbiotic/ISymbioticVault.sol";
 import {IWithdrawalQueue} from "../utils/IWithdrawalQueue.sol";
 
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 interface IMellowSymbioticVaultStorage {
     struct FarmData {
         address symbioticFarm;

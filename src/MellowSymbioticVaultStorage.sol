@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import "./interfaces/vaults/IMellowSymbioticVaultStorage.sol";
 
-abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage {
+abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, Initializable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     bytes32 private immutable storageSlotRef;
@@ -26,7 +26,7 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage {
         address _symbioticVault,
         address _symbioticCollateral,
         address _withdrawalQueue
-    ) internal {
+    ) internal onlyInitializing {
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
         _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setWithdrawalQueue(IWithdrawalQueue(_withdrawalQueue));

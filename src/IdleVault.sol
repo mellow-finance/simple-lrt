@@ -14,7 +14,7 @@ import {ERC4626Upgradeable} from
 contract IdleVault is IIdleVault, ERC4626Vault, ERC20VotesUpgradeable {
     constructor() VaultControlStorage("IdleVault", 1) {}
 
-    function initializeIdleVault(InitParams memory initParams) external initializer {
+    function initialize(InitParams memory initParams) external initializer {
         __initializeERC4626(
             initParams.admin,
             initParams.limit,

@@ -8,6 +8,7 @@ import {IMellowSymbioticVault} from "./IMellowSymbioticVault.sol";
 
 interface IMellowSymbioticVaultFactory {
     struct InitParams {
+        address proxyAdmin;
         uint256 limit;
         address symbioticVault;
         address admin;
@@ -18,5 +19,5 @@ interface IMellowSymbioticVaultFactory {
         string symbol;
     }
 
-    event EntityCreated(address indexed entity, uint256 timestamp);
+    event EntityCreated(address indexed vault, uint256 timestamp);
 }

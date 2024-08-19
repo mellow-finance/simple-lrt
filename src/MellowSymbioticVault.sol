@@ -28,6 +28,10 @@ contract MellowSymbioticVault is
     {}
 
     function initialize(InitParams memory initParams) public virtual initializer {
+        __initialize(initParams);
+    }
+
+    function __initialize(InitParams memory initParams) internal virtual onlyInitializing {
         address collateral = ISymbioticVault(initParams.symbioticVault).collateral();
         __initializeMellowSymbioticVaultStorage(
             initParams.symbioticVault, collateral, initParams.withdrawalQueue
@@ -150,32 +154,41 @@ contract MellowSymbioticVault is
 
     // symbiotic functions
 
-    function pushIntoSymbiotic() public virtual {
+    function pushIntoSymbiotic()
+        public
+        virtual
+        returns (uint256 symbioticCollateralStaked, uint256 symbioticVaultStaked)
+    {
         IERC20 asset_ = IERC20(asset());
-        uint256 assetAmount = asset_.balanceOf(address(this));
+        address this_ = address(this);
+        uint256 assetAmount = asset_.balanceOf(this_);
         IDefaultCollateral symbioticCollateral = symbioticCollateral();
         ISymbioticVault symbioticVault = symbioticVault();
 
         // 1. Push asset into symbiotic collateral
         uint256 leftover = symbioticCollateral.limit() - symbioticCollateral.totalSupply();
-        assetAmount = assetAmount.min(leftover);
-        if (assetAmount != 0) {
-            asset_.safeIncreaseAllowance(address(symbioticCollateral), assetAmount);
-            uint256 amount = symbioticCollateral.deposit(address(this), assetAmount);
-            if (amount != assetAmount) {
+        leftover = assetAmount.min(leftover);
+        if (leftover != 0) {
+            asset_.safeIncreaseAllowance(address(symbioticCollateral), leftover);
+            symbioticVaultStaked = symbioticCollateral.deposit(this_, leftover);
+            if (leftover != symbioticVaultStaked) {
                 asset_.forceApprove(address(symbioticCollateral), 0);
             }
         }
 
         // 2. Push collateral into symbiotic vault
-        uint256 collateralAmount = symbioticCollateral.balanceOf(address(this));
-        IERC20(symbioticCollateral).safeIncreaseAllowance(address(symbioticVault), collateralAmount);
-        (uint256 stakedAmount,) = symbioticVault.deposit(address(this), collateralAmount);
-        if (collateralAmount != stakedAmount) {
-            IERC20(symbioticCollateral).forceApprove(address(symbioticVault), 0);
+        uint256 collateralAmount = symbioticCollateral.balanceOf(this_);
+        if (collateralAmount != 0) {
+            IERC20(symbioticCollateral).safeIncreaseAllowance(
+                address(symbioticVault), collateralAmount
+            );
+            (symbioticVaultStaked,) = symbioticVault.deposit(this_, collateralAmount);
+            if (collateralAmount != symbioticVaultStaked) {
+                IERC20(symbioticCollateral).forceApprove(address(symbioticVault), 0);
+            }
         }
 
-        emit SymbioticPushed(msg.sender, leftover, stakedAmount);
+        emit SymbioticPushed(msg.sender, symbioticCollateralStaked, symbioticVaultStaked);
     }
 
     function pushRewards(IERC20 rewardToken, bytes calldata symbioticRewardsData)

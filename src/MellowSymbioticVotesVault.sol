@@ -19,7 +19,7 @@ contract MellowSymbioticVotesVault is
         override
         initializer
     {
-        super.initialize(initParams);
+        super.__initialize(initParams);
         __EIP712_init(initParams.name, "1");
     }
 

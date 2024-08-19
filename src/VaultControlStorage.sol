@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import "./interfaces/vaults/IVaultControlStorage.sol";
 
-abstract contract VaultControlStorage is IVaultControlStorage {
+abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     bytes32 private immutable storageSlotRef;
 
     constructor(bytes32 name_, uint256 version_) {
@@ -25,7 +25,7 @@ abstract contract VaultControlStorage is IVaultControlStorage {
         bool _depositPause,
         bool _withdrawalPause,
         bool _depositWhitelist
-    ) internal {
+    ) internal onlyInitializing {
         _setLimit(_limit);
         _setDepositPause(_depositPause);
         _setWithdrawalPause(_withdrawalPause);

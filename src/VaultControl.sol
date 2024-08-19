@@ -28,7 +28,7 @@ abstract contract VaultControl is
         bool _depositPause,
         bool _withdrawalPause,
         bool _depositWhitelist
-    ) internal {
+    ) internal onlyInitializing {
         __ReentrancyGuard_init();
         __AccessControlEnumerable_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);

@@ -18,7 +18,7 @@ interface IIdleVault {
         string symbol;
     }
 
-    function initializeIdleVault(InitParams memory initParams) external;
+    function initialize(InitParams memory initParams) external;
 
     event IdleVaultInitialized(InitParams initParams, uint256 timestamp);
 }
