@@ -22,16 +22,13 @@ contract MellowSymbioticVault is
 
     function initialize(InitParams memory initParams) public virtual initializer {
         __ERC20_init(initParams.name, initParams.symbol);
-        __ERC4626_init(
-            IERC20(
-                IDefaultCollateral(ISymbioticVault(initParams.symbioticVault).collateral()).asset()
-            )
+
+        address collateral = ISymbioticVault(initParams.symbioticVault).collateral();
+        __initializeMellowSymbioticVaultStorage(
+            initParams.symbioticVault, collateral, initParams.withdrawalQueue
         );
 
-        __initializeRoles(initParams.admin);
-        __initializeMellowSymbioticVaultStorage(
-            initParams.symbioticVault, initParams.withdrawalQueue
-        );
+        __initializeVaultControl(initParams.admin, IDefaultCollateral(collateral).asset());
         __initializeVaultControlStorage(
             initParams.limit,
             initParams.depositPause,
@@ -42,14 +39,14 @@ contract MellowSymbioticVault is
 
     // roles
 
-    bytes32 public constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
-    bytes32 public constant REMOVE_FARM_ROLE = keccak256("REMOVE_FARM_ROLE");
+    bytes32 private constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
+    bytes32 private constant REMOVE_FARM_ROLE = keccak256("REMOVE_FARM_ROLE");
 
     // setters getters
 
     function setFarm(address rewardToken, FarmData memory farmData)
         external
-        onlyAuthorized(SET_FARM_ROLE)
+        onlyRole(SET_FARM_ROLE)
     {
         _setFarmChecks(rewardToken, farmData);
         _setFarm(rewardToken, farmData);

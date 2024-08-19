@@ -11,7 +11,7 @@ contract IdleVault is IIdleVault, VaultControl, ERC20VotesUpgradeable {
         __ERC20_init(initParams.name, initParams.symbol);
         __EIP712_init(initParams.name, "1");
 
-        __initializeRoles(initParams.admin);
+        __initializeVaultControl(initParams.admin, initParams.asset);
         __initializeVaultControlStorage(
             initParams.limit,
             initParams.depositPause,

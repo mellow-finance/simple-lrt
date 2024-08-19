@@ -8,6 +8,7 @@ import {
 
 interface IIdleVault {
     struct InitParams {
+        address asset;
         uint256 limit;
         bool depositPause;
         bool withdrawalPause;

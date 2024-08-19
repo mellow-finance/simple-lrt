@@ -10,8 +10,7 @@ abstract contract VaultControl is
     VaultControlStorage,
     ERC4626Upgradeable,
     ReentrancyGuardUpgradeable,
-    AccessControlEnumerableUpgradeable,
-    MulticallUpgradeable
+    AccessControlEnumerableUpgradeable
 {
     // roles
 
@@ -24,47 +23,45 @@ abstract contract VaultControl is
     bytes32 private constant SET_DEPOSITOR_WHITELIST_STATUS_ROLE =
         keccak256("SET_DEPOSITOR_WHITELIST_STATUS_ROLE");
 
-    modifier onlyAuthorized(bytes32 role) {
-        _checkRole(role, _msgSender());
-        _;
-    }
-
-    function __initializeRoles(address _admin) internal {
+    function __initializeVaultControl(address _admin, address _asset) internal {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        __ERC4626_init(IERC20(_asset));
+        __ReentrancyGuard_init();
+        __AccessControlEnumerable_init();
     }
 
     // setters getters
 
-    function setLimit(uint256 _limit) external onlyAuthorized(SET_LIMIT_ROLE) {
+    function setLimit(uint256 _limit) external onlyRole(SET_LIMIT_ROLE) {
         require(totalSupply() <= _limit, "Vault: totalSupply exceeds new limit");
         _setLimit(_limit);
     }
 
-    function pauseWithdrawals() external onlyAuthorized(PAUSE_WITHDRAWALS_ROLE) {
+    function pauseWithdrawals() external onlyRole(PAUSE_WITHDRAWALS_ROLE) {
         _setWithdrawalPause(true);
         _revokeRole(PAUSE_WITHDRAWALS_ROLE, _msgSender());
     }
 
-    function unpauseWithdrawals() external onlyAuthorized(UNPAUSE_WITHDRAWALS_ROLE) {
+    function unpauseWithdrawals() external onlyRole(UNPAUSE_WITHDRAWALS_ROLE) {
         _setWithdrawalPause(false);
     }
 
-    function pauseDeposits() external onlyAuthorized(PAUSE_DEPOSITS_ROLE) {
+    function pauseDeposits() external onlyRole(PAUSE_DEPOSITS_ROLE) {
         _setDepositPause(true);
         _revokeRole(PAUSE_DEPOSITS_ROLE, _msgSender());
     }
 
-    function unpauseDeposits() external onlyAuthorized(UNPAUSE_DEPOSITS_ROLE) {
+    function unpauseDeposits() external onlyRole(UNPAUSE_DEPOSITS_ROLE) {
         _setDepositPause(false);
     }
 
-    function setDepositWhitelist(bool status) external onlyAuthorized(SET_DEPOSIT_WHITELIST_ROLE) {
+    function setDepositWhitelist(bool status) external onlyRole(SET_DEPOSIT_WHITELIST_ROLE) {
         _setDepositWhitelist(status);
     }
 
     function setDepositorWhitelistStatus(address account, bool status)
         external
-        onlyAuthorized(SET_DEPOSITOR_WHITELIST_STATUS_ROLE)
+        onlyRole(SET_DEPOSITOR_WHITELIST_STATUS_ROLE)
     {
         _setDepositorWhitelistStatus(account, status);
     }
