@@ -3,7 +3,6 @@ pragma solidity 0.8.25;
 
 import "./interfaces/vaults/IMellowSymbioticVaultFactory.sol";
 
-import {MellowSymbioticVault} from "./MellowSymbioticVault.sol";
 import {SymbioticWithdrawalQueue} from "./SymbioticWithdrawalQueue.sol";
 
 contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
@@ -18,9 +17,9 @@ contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
 
     function create(address _proxyAdmin, InitParams memory initParams)
         external
-        returns (MellowSymbioticVault vault)
+        returns (IMellowSymbioticVault vault)
     {
-        vault = MellowSymbioticVault(
+        vault = IMellowSymbioticVault(
             address(new TransparentUpgradeableProxy(singleton, _proxyAdmin, ""))
         );
         vault.initialize(

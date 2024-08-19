@@ -29,6 +29,8 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage {
         string symbol;
     }
 
+    function initialize(InitParams memory initParams) external;
+
     event RewardsPushed(
         address indexed rewardsToken, uint256 rewardAmount, uint256 curatorFee, uint256 timestamp
     );
