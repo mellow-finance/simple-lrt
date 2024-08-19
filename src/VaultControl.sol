@@ -13,21 +13,15 @@ abstract contract VaultControl is
     AccessControlEnumerableUpgradeable,
     MulticallUpgradeable
 {
-    using SafeERC20 for IERC20;
-    using Math for uint256;
-
     // roles
 
-    bytes32 public constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
-
-    bytes32 public constant PAUSE_WITHDRAWALS_ROLE = keccak256("PAUSE_WITHDRAWALS_ROLE");
-    bytes32 public constant UNPAUSE_WITHDRAWALS_ROLE = keccak256("UNPAUSE_WITHDRAWALS_ROLE");
-
-    bytes32 public constant PAUSE_DEPOSITS_ROLE = keccak256("PAUSE_DEPOSITS_ROLE");
-    bytes32 public constant UNPAUSE_DEPOSITS_ROLE = keccak256("UNPAUSE_DEPOSITS_ROLE");
-
-    bytes32 public constant SET_DEPOSIT_WHITELIST_ROLE = keccak256("SET_DEPOSIT_WHITELIST_ROLE");
-    bytes32 public constant SET_DEPOSITOR_WHITELIST_STATUS_ROLE =
+    bytes32 private constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
+    bytes32 private constant PAUSE_WITHDRAWALS_ROLE = keccak256("PAUSE_WITHDRAWALS_ROLE");
+    bytes32 private constant UNPAUSE_WITHDRAWALS_ROLE = keccak256("UNPAUSE_WITHDRAWALS_ROLE");
+    bytes32 private constant PAUSE_DEPOSITS_ROLE = keccak256("PAUSE_DEPOSITS_ROLE");
+    bytes32 private constant UNPAUSE_DEPOSITS_ROLE = keccak256("UNPAUSE_DEPOSITS_ROLE");
+    bytes32 private constant SET_DEPOSIT_WHITELIST_ROLE = keccak256("SET_DEPOSIT_WHITELIST_ROLE");
+    bytes32 private constant SET_DEPOSITOR_WHITELIST_STATUS_ROLE =
         keccak256("SET_DEPOSITOR_WHITELIST_STATUS_ROLE");
 
     modifier onlyAuthorized(bytes32 role) {
@@ -42,9 +36,7 @@ abstract contract VaultControl is
     // setters getters
 
     function setLimit(uint256 _limit) external onlyAuthorized(SET_LIMIT_ROLE) {
-        if (totalSupply() > _limit) {
-            revert("Vault: totalSupply exceeds new limit");
-        }
+        require(totalSupply() <= _limit, "Vault: totalSupply exceeds new limit");
         _setLimit(_limit);
     }
 
@@ -106,5 +98,49 @@ abstract contract VaultControl is
     {
         shares = deposit(assets, receiver);
         emit ReferralDeposit(assets, receiver, referral);
+    }
+
+    function deposit(uint256 assets, address receiver)
+        public
+        virtual
+        override
+        nonReentrant
+        returns (uint256)
+    {
+        require(!depositPause(), "Vault: deposits paused");
+        return super.deposit(assets, receiver);
+    }
+
+    function mint(uint256 shares, address receiver)
+        public
+        virtual
+        override
+        nonReentrant
+        returns (uint256)
+    {
+        require(!depositPause(), "Vault: deposits paused");
+        return super.mint(shares, receiver);
+    }
+
+    function withdraw(uint256 shares, address receiver, address owner)
+        public
+        virtual
+        override
+        nonReentrant
+        returns (uint256)
+    {
+        require(!withdrawalPause(), "Vault: withdrawals paused");
+        return super.withdraw(shares, receiver, owner);
+    }
+
+    function redeem(uint256 shares, address receiver, address owner)
+        public
+        virtual
+        override
+        nonReentrant
+        returns (uint256)
+    {
+        require(!withdrawalPause(), "Vault: withdrawals paused");
+        return super.redeem(shares, receiver, owner);
     }
 }

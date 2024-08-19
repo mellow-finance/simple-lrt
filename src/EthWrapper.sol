@@ -6,22 +6,24 @@ import "./interfaces/utils/IEthWrapper.sol";
 contract EthWrapper is IEthWrapper {
     using SafeERC20 for IERC20;
 
-    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address public constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
-    address public constant stETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
+    address public immutable WETH;
+    address public immutable wstETH;
+    address public immutable stETH;
     address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    function _wrap(address depositToken, uint256 amount) internal returns (uint256) {
-        if (amount == 0) {
-            revert("EthWrapper: amount must be greater than 0");
-        }
+    constructor(address WETH_, address wstETH_, address stETH_) {
+        WETH = WETH_;
+        wstETH = wstETH_;
+        stETH = stETH_;
+    }
 
-        if (
-            depositToken != ETH && depositToken != WETH && depositToken != stETH
-                && depositToken != wstETH
-        ) {
-            revert("EthWrapper: invalid depositToken");
-        }
+    function _wrap(address depositToken, uint256 amount) internal returns (uint256) {
+        require(amount > 0, "EthWrapper: amount must be greater than 0");
+        require(
+            depositToken == ETH || depositToken == WETH || depositToken == stETH
+                || depositToken == wstETH,
+            "EthWrapper: invalid depositToken"
+        );
 
         if (depositToken != ETH) {
             require(msg.value == 0, "EthWrapper: cannot send ETH with depositToken");

@@ -15,9 +15,9 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     mapping(uint256 epoch => EpochData data) private _epochData;
     mapping(address account => AccountData data) private _accountData;
 
-    constructor(address _vault) {
+    constructor(address _vault, address _symbioticVault) {
         vault = _vault;
-        symbioticVault = IMellowSymbioticVault(_vault).symbioticVault();
+        symbioticVault = ISymbioticVault(_symbioticVault);
         collateral = IDefaultCollateral(symbioticVault.collateral());
     }
 
@@ -131,6 +131,9 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
 
         uint256 activeShares = symbioticVault.activeShares();
         uint256 activeStake = symbioticVault.activeStake();
+        if (pendingShares == 0 || activeStake == 0) {
+            return 0;
+        }
         pendingAssets_ = pendingShares.mulDiv(activeStake, activeShares); // rounding down
     }
 
@@ -162,6 +165,9 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
         EpochData storage epochData = _epochData[epoch_];
         if (epochData.isClaimed) {
+            if (shares_ == 0) {
+                return 0;
+            }
             return shares_.mulDiv(epochData.claimableAssets, epochData.pendingShares); // rounding down
         }
         return symbioticVault.withdrawalsOf(epoch_, account);
@@ -186,7 +192,9 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
             accountData.claimableAssets -= maxAmount;
         }
         claimableAssets -= amount;
-        collateral.safeTransfer(recipient, amount);
+        if (amount != 0) {
+            collateral.safeTransfer(recipient, amount);
+        }
         emit Claimed(account, recipient, amount);
     }
 }

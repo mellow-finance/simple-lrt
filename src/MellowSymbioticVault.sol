@@ -5,11 +5,6 @@ import {MellowSymbioticVaultStorage} from "./MellowSymbioticVaultStorage.sol";
 import {VaultControl, VaultControlStorage} from "./VaultControl.sol";
 import "./interfaces/vaults/IMellowSymbioticVault.sol";
 
-// TODO:
-// 1. Off by 1 errors (add test for MulDiv rounding e.t.c)
-// 2. Tests (unit, int, e2e, migration)
-// 3. check initializers
-// 4. check WithdrawalQueue invariant
 contract MellowSymbioticVault is
     IMellowSymbioticVault,
     VaultControl,
@@ -27,6 +22,11 @@ contract MellowSymbioticVault is
 
     function initialize(InitParams memory initParams) public virtual initializer {
         __ERC20_init(initParams.name, initParams.symbol);
+        __ERC4626_init(
+            IERC20(
+                IDefaultCollateral(ISymbioticVault(initParams.symbioticVault).collateral()).asset()
+            )
+        );
 
         __initializeRoles(initParams.admin);
         __initializeMellowSymbioticVaultStorage(
@@ -56,15 +56,13 @@ contract MellowSymbioticVault is
     }
 
     function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
-        if (
+        require(
             rewardToken == address(this) || rewardToken == address(symbioticCollateral())
-                || rewardToken == address(symbioticVault())
-        ) {
-            revert("Vault: forbidden reward token");
-        }
-        if (farmData.curatorFeeD4 > 1e4) {
-            revert("Vault: invalid curator fee");
-        }
+                || rewardToken == address(symbioticVault()),
+            "Vault: forbidden reward token"
+        );
+
+        require(farmData.curatorFeeD4 <= 1e4, "Vault: invalid curator fee");
     }
 
     // ERC4626 overrides
@@ -96,6 +94,7 @@ contract MellowSymbioticVault is
         // So this is only for instant + staked.
 
         require(owner == caller, "Vault: owner != caller");
+        require(!withdrawalPause(), "Vault: withdrawal paused");
         address this_ = address(this);
         uint256 assets_ = IERC20(asset()).balanceOf(this_);
         if (assets_ >= assets) {
@@ -110,9 +109,13 @@ contract MellowSymbioticVault is
             return super._withdraw(caller, receiver, owner, assets, shares);
         }
 
-        symbioticCollateral().withdraw(this_, collaterals_);
+        if (collaterals_ != 0) {
+            symbioticCollateral().withdraw(this_, collaterals_);
+        }
         uint256 leftover = assets - instant_;
-        symbioticVault().withdraw(address(withdrawalQueue()), leftover);
+        if (leftover != 0) {
+            symbioticVault().withdraw(address(withdrawalQueue()), leftover);
+        }
         withdrawalQueue().request(owner, leftover);
 
         instant_ = assets.min(IERC20(asset()).balanceOf(this_));
@@ -121,7 +124,9 @@ contract MellowSymbioticVault is
         }
 
         _burn(owner, shares);
-        SafeERC20.safeTransfer(IERC20(asset()), receiver, instant_);
+        if (instant_ != 0) {
+            IERC20(asset()).safeTransfer(receiver, instant_);
+        }
 
         // emitting event with transfered + new pending assets
         emit Withdraw(caller, receiver, owner, assets, shares);
@@ -129,9 +134,7 @@ contract MellowSymbioticVault is
 
     function _update(address from, address to, uint256 value) internal virtual override {
         uint256 pendingShares = convertToShares(withdrawalQueue().balanceOf(from));
-        if (balanceOf(from) < pendingShares) {
-            revert("Vault: insufficient balance");
-        }
+        require(balanceOf(from) >= pendingShares, "Vault: insufficient balance");
         super._update(from, to, value);
     }
 
@@ -151,9 +154,7 @@ contract MellowSymbioticVault is
         nonReentrant
         returns (uint256)
     {
-        if (account != _msgSender()) {
-            revert("Vault: forbidden");
-        }
+        require(account == _msgSender(), "Vault: forbidden");
         return withdrawalQueue().claim(account, recipient, maxAmount);
     }
 

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {AccessControlEnumerableUpgradeable} from
     "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";

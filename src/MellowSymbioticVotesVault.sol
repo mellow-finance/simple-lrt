@@ -9,8 +9,6 @@ contract MellowSymbioticVotesVault is
     MellowSymbioticVault,
     ERC20VotesUpgradeable
 {
-    using SafeERC20 for IERC20;
-
     constructor(string memory name, uint256 version)
         MellowSymbioticVault(keccak256(abi.encodePacked(name)), version)
     {}

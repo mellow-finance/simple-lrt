@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 import "./interfaces/vaults/IMellowSymbioticVaultFactory.sol";
 
 import {MellowSymbioticVault} from "./MellowSymbioticVault.sol";
+import {SymbioticWithdrawalQueue} from "./SymbioticWithdrawalQueue.sol";
 
 contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
     address public immutable singleton;
@@ -22,6 +23,8 @@ contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
         vault = MellowSymbioticVault(
             address(new TransparentUpgradeableProxy(singleton, _proxyAdmin, ""))
         );
+        initParams.withdrawalQueue =
+            address(new SymbioticWithdrawalQueue(address(vault), initParams.symbioticVault));
         vault.initialize(initParams);
         _isEntity[address(vault)] = true;
         _entities.push(address(vault));
