@@ -1,39 +1,40 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
+import {ERC4626Vault} from "./ERC4626Vault.sol";
 import {MellowSymbioticVaultStorage} from "./MellowSymbioticVaultStorage.sol";
 import {VaultControl, VaultControlStorage} from "./VaultControl.sol";
 import "./interfaces/vaults/IMellowSymbioticVault.sol";
 
 contract MellowSymbioticVault is
     IMellowSymbioticVault,
-    VaultControl,
-    MellowSymbioticVaultStorage
+    MellowSymbioticVaultStorage,
+    ERC4626Vault
 {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
-    constructor(bytes32 name_, uint256 version_)
-        MellowSymbioticVaultStorage(name_, version_)
-        VaultControlStorage(name_, version_)
+    constructor(bytes32 contractName_, uint256 contractVersion_)
+        MellowSymbioticVaultStorage(contractName_, contractVersion_)
+        VaultControlStorage(contractName_, contractVersion_)
     {}
 
     // initializer
 
     function initialize(InitParams memory initParams) public virtual initializer {
-        __ERC20_init(initParams.name, initParams.symbol);
-
         address collateral = ISymbioticVault(initParams.symbioticVault).collateral();
         __initializeMellowSymbioticVaultStorage(
             initParams.symbioticVault, collateral, initParams.withdrawalQueue
         );
-
-        __initializeVaultControl(initParams.admin, IDefaultCollateral(collateral).asset());
-        __initializeVaultControlStorage(
+        __initializeERC4626(
+            initParams.admin,
             initParams.limit,
             initParams.depositPause,
             initParams.withdrawalPause,
-            initParams.depositWhitelist
+            initParams.depositWhitelist,
+            IDefaultCollateral(collateral).asset(),
+            initParams.name,
+            initParams.symbol
         );
     }
 
