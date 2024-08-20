@@ -28,15 +28,7 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         override(ERC4626Upgradeable, IERC4626)
         returns (uint256)
     {
-        if (depositWhitelist() && !isDepositorWhitelisted(account)) {
-            return 0;
-        }
-        uint256 limit_ = limit();
-        if (limit_ == type(uint256).max) {
-            return type(uint256).max;
-        }
-        uint256 totalSupply_ = totalSupply();
-        return limit_ >= totalSupply_ ? limit_ - totalSupply_ : 0;
+        return convertToShares(maxDeposit(account));
     }
 
     function maxDeposit(address account)
@@ -46,11 +38,15 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         override(ERC4626Upgradeable, IERC4626)
         returns (uint256)
     {
-        uint256 shares = maxMint(account);
-        if (shares == type(uint256).max) {
+        if (depositWhitelist() && !isDepositorWhitelisted(account)) {
+            return 0;
+        }
+        uint256 limit_ = limit();
+        if (limit_ == type(uint256).max) {
             return type(uint256).max;
         }
-        return convertToAssets(shares);
+        uint256 assets_ = totalAssets();
+        return limit_ >= assets_ ? limit_ - assets_ : 0;
     }
 
     function deposit(uint256 assets, address receiver, address referral)

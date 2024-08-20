@@ -4,7 +4,7 @@ pragma solidity 0.8.25;
 import "./interfaces/vaults/IMellowSymbioticVaultStorage.sol";
 
 abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, Initializable {
-    using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableSet for EnumerableSet.UintSet;
 
     bytes32 private immutable storageSlotRef;
 
@@ -24,16 +24,10 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
 
     function __initializeMellowSymbioticVaultStorage(
         address _symbioticVault,
-        address _symbioticCollateral,
         address _withdrawalQueue
     ) internal onlyInitializing {
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
-        _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setWithdrawalQueue(IWithdrawalQueue(_withdrawalQueue));
-    }
-
-    function symbioticCollateral() public view returns (IDefaultCollateral) {
-        return _symbioticStorage().symbioticCollateral;
     }
 
     function symbioticVault() public view returns (ISymbioticVault) {
@@ -44,18 +38,20 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
         return _symbioticStorage().withdrawalQueue;
     }
 
-    function symbioticRewardTokens() public view returns (address[] memory) {
-        return _symbioticStorage().rewardTokens.values();
+    function symbioticFarmIds() public view returns (uint256[] memory) {
+        return _symbioticStorage().farmIds.values();
     }
 
-    function symbioticFarm(address rewardToken) public view returns (FarmData memory) {
-        return _symbioticStorage().farms[rewardToken];
+    function symbioticFarmCount() public view returns (uint256) {
+        return _symbioticStorage().farmIds.length();
     }
 
-    function _setSymbioticCollateral(IDefaultCollateral _symbioticCollateral) internal {
-        SymbioticStorage storage s = _symbioticStorage();
-        s.symbioticCollateral = _symbioticCollateral;
-        emit SymbioticCollateralSet(address(_symbioticCollateral), block.timestamp);
+    function symbioticFarmIdAt(uint256 index) public view returns (uint256) {
+        return _symbioticStorage().farmIds.at(index);
+    }
+
+    function symbioticFarm(uint256 farmId) public view returns (FarmData memory) {
+        return _symbioticStorage().farms[farmId];
     }
 
     function _setSymbioticVault(ISymbioticVault _symbioticVault) internal {
@@ -70,15 +66,15 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
         emit WithdrawalQueueSet(address(_withdrawalQueue), block.timestamp);
     }
 
-    function _setFarm(address rewardToken, FarmData memory farmData) internal {
+    function _setFarm(uint256 farmId, FarmData memory farmData) internal {
         SymbioticStorage storage s = _symbioticStorage();
-        s.farms[rewardToken] = farmData;
-        if (farmData.symbioticFarm != address(0)) {
-            s.rewardTokens.add(rewardToken);
+        s.farms[farmId] = farmData;
+        if (farmData.rewardToken != address(0)) {
+            s.farmIds.add(farmId);
         } else {
-            s.rewardTokens.remove(rewardToken);
+            s.farmIds.remove(farmId);
         }
-        emit FarmSet(rewardToken, farmData, block.timestamp);
+        emit FarmSet(farmId, farmData, block.timestamp);
     }
 
     function _symbioticStorage() private view returns (SymbioticStorage storage $) {

@@ -2,9 +2,7 @@
 pragma solidity 0.8.25;
 
 interface IWithdrawalQueue {
-    function totalAssets() external view returns (uint256);
     function pendingAssets() external view returns (uint256);
-    function claimableAssets() external view returns (uint256);
 
     function balanceOf(address account) external view returns (uint256);
     function pendingAssetsOf(address account) external view returns (uint256);

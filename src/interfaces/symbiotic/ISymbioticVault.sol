@@ -359,4 +359,16 @@ interface ISymbioticVault {
      * @return if the withdrawals are claimed for the account at the epoch
      */
     function isWithdrawalsClaimed(uint256 epoch, address account) external view returns (bool);
+
+    /**
+     * @notice Get if the deposit limit is set.
+     * @return if the deposit limit is set
+     */
+    function isDepositLimit() external view returns (bool);
+
+    /**
+     * @notice Get a deposit limit (maximum amount of the collateral that can be in the vault simultaneously).
+     * @return deposit limit
+     */
+    function depositLimit() external view returns (uint256);
 }

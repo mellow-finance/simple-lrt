@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./Imports.sol";
-import "./MockStakingRewards.sol";
+import "../Imports.sol";
+import "../MockStakingRewards.sol";
 
 interface IVetoSlasher {
     /**

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./Imports.sol";
+import "../Imports.sol";
+import "../MockStakingRewards.sol";
 
 contract Integration is Test {
     /*
@@ -18,7 +19,10 @@ contract Integration is Test {
     uint48 epochDuration = 3600;
     address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
 
-    function test() external {
+    address curatorTreasury = makeAddr("curatorTreasury");
+    address rewardsDistributor = makeAddr("rewardsDistributor");
+
+    function testRewards() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
         MellowSymbioticVault mellowSymbioticVault = new MellowSymbioticVault(bytes32(uint256(1)), 1);
@@ -56,6 +60,23 @@ contract Integration is Test {
         address token = IDefaultCollateral(collateral).asset();
         assertEq(token, wsteth);
 
+        (address symbioticFarm, address distributionFarm) =
+            SymbioticHelperLibrary.createFarms(wsteth);
+
+        vm.startPrank(admin);
+        mellowSymbioticVault.grantRole(keccak256("SET_FARM_ROLE"), admin);
+        mellowSymbioticVault.setFarm(
+            0,
+            IMellowSymbioticVaultStorage.FarmData({
+                rewardToken: wsteth,
+                symbioticFarm: symbioticFarm,
+                distributionFarm: distributionFarm,
+                curatorFeeD6: 1e5, // 10%
+                curatorTreasury: curatorTreasury
+            })
+        );
+        vm.stopPrank();
+
         vm.startPrank(user);
 
         uint256 amount = 0.5 ether;
@@ -72,10 +93,27 @@ contract Integration is Test {
         }
 
         skip(epochDuration * 2);
+        // extra ether
+        vm.stopPrank();
 
+        vm.startPrank(rewardsDistributor);
+        deal(wsteth, rewardsDistributor, 1 ether);
+        IERC20(wsteth).approve(symbioticFarm, 1 ether);
+        MockStakingRewards(symbioticFarm).increaseRewards(
+            address(mellowSymbioticVault), wsteth, 1 ether
+        );
+        vm.stopPrank();
+
+        vm.startPrank(user);
         for (uint256 i = 0; i < n; i++) {
             mellowSymbioticVault.claim(user, user, amount);
         }
+
+        mellowSymbioticVault.pushRewards(0, new bytes(0));
+
+        assertEq(IERC20(wsteth).balanceOf(curatorTreasury), 0.1 ether);
+        assertEq(IERC20(wsteth).balanceOf(distributionFarm), 0.9 ether);
+
         vm.stopPrank();
     }
 }

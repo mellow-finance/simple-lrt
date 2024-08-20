@@ -11,7 +11,6 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     address public immutable vault;
     ISymbioticVault public immutable symbioticVault;
     IDefaultCollateral public immutable collateral;
-    uint256 public claimableAssets;
 
     mapping(uint256 epoch => EpochData data) private _epochData;
     mapping(address account => AccountData data) private _accountData;
@@ -27,10 +26,6 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     // --- total balances ---
-
-    function totalAssets() external view returns (uint256) {
-        return claimableAssets + pendingAssets();
-    }
 
     function pendingAssets() public view returns (uint256) {
         uint256 epoch = currentEpoch();
@@ -123,7 +118,6 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
             amount = maxAmount;
             accountData.claimableAssets -= maxAmount;
         }
-        claimableAssets -= amount;
         if (amount != 0) {
             collateral.safeTransfer(recipient, amount);
         }
@@ -177,7 +171,6 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         epochData.isClaimed = true;
         try symbioticVault.claim(address(this), epoch) returns (uint256 claimedAssets) {
             epochData.claimableAssets = claimedAssets;
-            claimableAssets += claimedAssets;
             emit EpochClaimed(epoch, claimedAssets);
         } catch {
             // if we failed to claim epoch we assume it is claimed

@@ -36,8 +36,8 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
     function initialize(InitParams memory initParams) external;
 
     event RewardsPushed(
-        address indexed rewardsToken, uint256 rewardAmount, uint256 curatorFee, uint256 timestamp
+        uint256 indexed farmId, uint256 rewardAmount, uint256 curatorFee, uint256 timestamp
     );
 
-    event SymbioticPushed(address sender, uint256 collateralAmount, uint256 vaultAmount);
+    event SymbioticPushed(address sender, uint256 vaultAmount);
 }

@@ -53,16 +53,12 @@ library SymbioticHelperLibrary {
         public
         returns (address symbioticVault)
     {
-        address collateral = IDefaultCollateralFactory(SymbioticConstants.COLLATERAL_FACTORY).create(
-            params.asset, params.limit, params.limitIncreaser
-        );
-
         (symbioticVault,,) = IVaultConfigurator(SymbioticConstants.VAULT_CONFIGURATOR).create(
             IVaultConfigurator.InitParams({
                 version: 1,
                 owner: params.vaultOwner,
                 vaultParams: IVaultConfigurator.SymbioticVaultInitParams({
-                    collateral: address(collateral),
+                    collateral: params.asset,
                     delegator: address(0),
                     slasher: address(0),
                     burner: address(0),

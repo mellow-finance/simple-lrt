@@ -34,7 +34,7 @@ contract MellowSymbioticVault is
     function __initialize(InitParams memory initParams) internal virtual onlyInitializing {
         address collateral = ISymbioticVault(initParams.symbioticVault).collateral();
         __initializeMellowSymbioticVaultStorage(
-            initParams.symbioticVault, collateral, initParams.withdrawalQueue
+            initParams.symbioticVault, initParams.withdrawalQueue
         );
         __initializeERC4626(
             initParams.admin,
@@ -42,7 +42,7 @@ contract MellowSymbioticVault is
             initParams.depositPause,
             initParams.withdrawalPause,
             initParams.depositWhitelist,
-            IDefaultCollateral(collateral).asset(),
+            collateral,
             initParams.name,
             initParams.symbol
         );
@@ -50,18 +50,15 @@ contract MellowSymbioticVault is
 
     // setters getters
 
-    function setFarm(address rewardToken, FarmData memory farmData)
-        external
-        onlyRole(SET_FARM_ROLE)
-    {
-        _setFarmChecks(rewardToken, farmData);
-        _setFarm(rewardToken, farmData);
+    function setFarm(uint256 farmId, FarmData memory farmData) external onlyRole(SET_FARM_ROLE) {
+        _setFarmChecks(farmId, farmData);
+        _setFarm(farmId, farmData);
     }
 
-    function _setFarmChecks(address rewardToken, FarmData memory farmData) internal virtual {
+    function _setFarmChecks(uint256, /* id */ FarmData memory farmData) internal virtual {
         require(
-            rewardToken != address(this) && rewardToken != address(symbioticCollateral())
-                && rewardToken != address(symbioticVault()),
+            farmData.rewardToken != address(this)
+                && farmData.rewardToken != address(symbioticVault()),
             "Vault: forbidden reward token"
         );
         require(farmData.curatorFeeD6 <= D6, "Vault: invalid curator fee");
@@ -76,7 +73,6 @@ contract MellowSymbioticVault is
         returns (uint256)
     {
         return IERC20(asset()).balanceOf(address(this))
-            + symbioticCollateral().balanceOf(address(this))
             + symbioticVault().activeBalanceOf(address(this));
     }
 
@@ -99,20 +95,7 @@ contract MellowSymbioticVault is
         require(!withdrawalPause(), "Vault: withdrawal paused");
         address this_ = address(this);
 
-        // 1. Check if we have enough assets to withdraw immediately
         uint256 liquid = IERC20(asset()).balanceOf(this_);
-        if (liquid >= assets) {
-            return super._withdraw(caller, receiver, owner, assets, shares);
-        }
-
-        // 2. If not - try to recover collateral (if any on the balance)
-        uint256 collaterals_ = symbioticCollateral().balanceOf(this_);
-        if (collaterals_ != 0) {
-            symbioticCollateral().withdraw(this_, collaterals_.min(assets - liquid));
-        }
-
-        // 3. Second try - check if we have enough assets to withdraw immediately
-        liquid = IERC20(asset()).balanceOf(this_);
         if (liquid >= assets) {
             return super._withdraw(caller, receiver, owner, assets, shares);
         }
@@ -160,49 +143,39 @@ contract MellowSymbioticVault is
 
     // symbiotic functions
 
-    function pushIntoSymbiotic()
-        public
-        virtual
-        returns (uint256 symbioticCollateralStaked, uint256 symbioticVaultStaked)
-    {
+    function pushIntoSymbiotic() public virtual returns (uint256 symbioticVaultStaked) {
         IERC20 asset_ = IERC20(asset());
         address this_ = address(this);
         uint256 assetAmount = asset_.balanceOf(this_);
-        IDefaultCollateral symbioticCollateral = symbioticCollateral();
         ISymbioticVault symbioticVault = symbioticVault();
 
-        // 1. Push asset into symbiotic collateral
-        uint256 leftover = symbioticCollateral.limit() - symbioticCollateral.totalSupply();
-        leftover = assetAmount.min(leftover);
-        if (leftover != 0) {
-            asset_.safeIncreaseAllowance(address(symbioticCollateral), leftover);
-            symbioticVaultStaked = symbioticCollateral.deposit(this_, leftover);
-            if (leftover != symbioticVaultStaked) {
-                asset_.forceApprove(address(symbioticCollateral), 0);
+        if (assetAmount != 0) {
+            if (symbioticVault.isDepositLimit()) {
+                uint256 symbioticVaultTotalStake = symbioticVault.totalStake();
+                uint256 symbioticVaultLimit = symbioticVault.depositLimit();
+                if (symbioticVaultTotalStake >= symbioticVaultLimit) {
+                    return 0;
+                }
+                assetAmount = assetAmount.min(symbioticVaultLimit - symbioticVaultTotalStake);
+            }
+
+            asset_.safeIncreaseAllowance(address(symbioticVault), assetAmount);
+            (symbioticVaultStaked,) = symbioticVault.deposit(this_, assetAmount);
+            if (assetAmount != symbioticVaultStaked) {
+                asset_.forceApprove(address(symbioticVault), 0);
             }
         }
 
-        // 2. Push collateral into symbiotic vault
-        uint256 collateralAmount = symbioticCollateral.balanceOf(this_);
-        if (collateralAmount != 0) {
-            IERC20(symbioticCollateral).safeIncreaseAllowance(
-                address(symbioticVault), collateralAmount
-            );
-            (symbioticVaultStaked,) = symbioticVault.deposit(this_, collateralAmount);
-            if (collateralAmount != symbioticVaultStaked) {
-                IERC20(symbioticCollateral).forceApprove(address(symbioticVault), 0);
-            }
-        }
-
-        emit SymbioticPushed(msg.sender, symbioticCollateralStaked, symbioticVaultStaked);
+        emit SymbioticPushed(msg.sender, symbioticVaultStaked);
     }
 
-    function pushRewards(IERC20 rewardToken, bytes calldata symbioticRewardsData)
+    function pushRewards(uint256 farmId, bytes calldata symbioticRewardsData)
         external
         nonReentrant
     {
-        FarmData memory data = symbioticFarm(address(rewardToken));
-        require(data.symbioticFarm != address(0), "Vault: farm not set");
+        FarmData memory data = symbioticFarm(farmId);
+        require(data.rewardToken != address(0), "Vault: farm not set");
+        IERC20 rewardToken = IERC20(data.rewardToken);
         uint256 amountBefore = rewardToken.balanceOf(address(this));
         IStakerRewards(data.symbioticFarm).claimRewards(
             address(this), address(rewardToken), symbioticRewardsData
@@ -221,7 +194,7 @@ contract MellowSymbioticVault is
         if (rewardAmount != 0) {
             rewardToken.safeTransfer(data.distributionFarm, rewardAmount);
         }
-        emit RewardsPushed(address(rewardToken), rewardAmount, curatorFee, block.timestamp);
+        emit RewardsPushed(farmId, rewardAmount, curatorFee, block.timestamp);
     }
 
     // helper functions
@@ -236,8 +209,7 @@ contract MellowSymbioticVault is
             uint256 accountInstantShares
         )
     {
-        uint256 intantAssets = IERC20(asset()).balanceOf(address(this))
-            + symbioticCollateral().balanceOf(address(this));
+        uint256 intantAssets = IERC20(asset()).balanceOf(address(this));
         accountShares = balanceOf(account);
         accountAssets = convertToAssets(accountShares);
         accountInstantAssets = accountAssets.min(intantAssets);

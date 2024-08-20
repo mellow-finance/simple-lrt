@@ -1,0 +1,13 @@
+{
+    "name": "simple-lrt",
+  "license": "UNLICENSED",
+  "version": "1.0.0",
+  "repository": "https://github.com/mellow-finance/simple-lrt",
+  "scripts": {
+    "prettier": "forge fmt",
+    "test": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2160000",
+    "compile": "forge build",
+    "scc:report": "scc src --sort names --no-cocomo --exclude-dir interfaces --by-file --format wide > scc-report.txt",
+    "coverage": "forge coverage --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2160000"
+  }
+}
