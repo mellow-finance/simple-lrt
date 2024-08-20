@@ -12,13 +12,13 @@ import {IWithdrawalQueue} from "./IWithdrawalQueue.sol";
 
 interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
     struct EpochData {
-        uint256 pendingShares;
         bool isClaimed;
+        uint256 sharesToClaim;
         uint256 claimableAssets;
     }
 
     struct AccountData {
-        mapping(uint256 epoch => uint256 shares) pendingShares;
+        mapping(uint256 epoch => uint256 shares) sharesToClaim;
         uint256 claimableAssets;
         uint256 claimEpoch;
     }

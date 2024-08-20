@@ -25,116 +25,36 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         return symbioticVault.currentEpoch();
     }
 
+    // --- total balances ---
+
+    function totalAssets() external view returns (uint256) {
+        return claimableAssets + pendingAssets();
+    }
+
     function pendingAssets() public view returns (uint256) {
         uint256 epoch = currentEpoch();
         return symbioticVault.withdrawals(epoch) + symbioticVault.withdrawals(epoch + 1);
     }
 
+    // --- user balances ---
+
     function balanceOf(address account) public view returns (uint256) {
         return claimableAssetsOf(account) + pendingAssetsOf(account);
-    }
-
-    function balance() external view returns (uint256) {
-        return claimableAssets + pendingAssets();
-    }
-
-    function request(address account, uint256 amount) external {
-        require(msg.sender == vault, "SymbioticWithdrawalQueue: forbidden");
-        if (amount == 0) {
-            return;
-        }
-        AccountData storage accountData = _accountData[account];
-
-        uint256 epoch_ = currentEpoch();
-        _handlePendingEpochs(accountData, epoch_);
-
-        epoch_ = epoch_ + 1;
-        EpochData storage epochData = _epochData[epoch_];
-        epochData.pendingShares += amount;
-
-        accountData.pendingShares[epoch_] += amount;
-        accountData.claimEpoch = epoch_;
-        emit WithdrawalRequested(account, epoch_, amount);
-    }
-
-    // permissionless functon
-    function handlePendingEpochs(address account) public {
-        _handlePendingEpochs(_accountData[account], currentEpoch());
-    }
-
-    function _handlePendingEpochs(AccountData storage accountData, uint256 currentEpoch_) private {
-        uint256 epoch_ = accountData.claimEpoch;
-        if (epoch_ > 0) {
-            _handlePendingEpoch(accountData, epoch_ - 1, currentEpoch_);
-        }
-        _handlePendingEpoch(accountData, epoch_, currentEpoch_);
-    }
-
-    function _handlePendingEpoch(
-        AccountData storage accountData,
-        uint256 epoch_,
-        uint256 currentEpoch_
-    ) private {
-        if (!_isClaimable(epoch_, currentEpoch_)) {
-            return;
-        }
-        uint256 shares_ = accountData.pendingShares[epoch_];
-        if (shares_ == 0) {
-            return;
-        }
-        EpochData storage epochData = _epochData[epoch_];
-        _pull(epoch_, epochData);
-
-        uint256 assets_ = Math.mulDiv(
-            shares_, epochData.claimableAssets, epochData.pendingShares, Math.Rounding.Floor
-        );
-
-        epochData.pendingShares -= shares_;
-        epochData.claimableAssets -= assets_;
-
-        accountData.claimableAssets += assets_;
-        delete accountData.pendingShares[epoch_];
-    }
-
-    // permissionless functon
-    function pull(uint256 epoch) public {
-        require(_isClaimable(epoch, currentEpoch()), "SymbioticWithdrawalQueue: invalid epoch");
-        _pull(epoch, _epochData[epoch]);
-    }
-
-    function _pull(uint256 epoch, EpochData storage epochData) private {
-        if (epochData.isClaimed) {
-            return;
-        }
-        epochData.isClaimed = true;
-        try symbioticVault.claim(address(this), epoch) returns (uint256 claimedAssets) {
-            epochData.claimableAssets = claimedAssets;
-            claimableAssets += claimedAssets;
-            emit EpochClaimed(epoch, claimedAssets);
-        } catch {
-            // if we failed to claim epoch we assume it is claimed
-            // most likely low funds in epoch got additionally slashed so we can't claim it (error becase of 0 amounts)
-            emit EpochClaimFailed(epoch);
-        }
-    }
-
-    function _isClaimable(uint256 epoch, uint256 currentEpoch_) private pure returns (bool) {
-        return epoch < currentEpoch_;
     }
 
     function pendingAssetsOf(address account) public view returns (uint256 pendingAssets_) {
         uint256 epoch_ = currentEpoch();
 
         AccountData storage accountData = _accountData[account];
-        uint256 pendingShares =
-            accountData.pendingShares[epoch_] + accountData.pendingShares[epoch_ + 1];
+        uint256 sharesToClaim =
+            accountData.sharesToClaim[epoch_] + accountData.sharesToClaim[epoch_ + 1];
 
         uint256 activeShares = symbioticVault.activeShares();
         uint256 activeStake = symbioticVault.activeStake();
-        if (pendingShares == 0 || activeStake == 0) {
+        if (sharesToClaim == 0 || activeStake == 0) {
             return 0;
         }
-        pendingAssets_ = pendingShares.mulDiv(activeStake, activeShares); // rounding down
+        pendingAssets_ = sharesToClaim.mulDiv(activeStake, activeShares); // rounding down
     }
 
     function claimableAssetsOf(address account) public view returns (uint256 claimableAssets_) {
@@ -154,23 +74,34 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
     }
 
-    function _claimable(address account, AccountData storage accountData, uint256 epoch_)
-        private
-        view
-        returns (uint256)
-    {
-        uint256 shares_ = accountData.pendingShares[epoch_];
-        if (shares_ == 0) {
-            return 0;
+    // --- actions ---
+
+    function request(address account, uint256 amount) external {
+        require(msg.sender == vault, "SymbioticWithdrawalQueue: forbidden");
+        if (amount == 0) {
+            return;
         }
+        AccountData storage accountData = _accountData[account];
+
+        uint256 epoch_ = currentEpoch();
+        _handlePendingEpochs(accountData, epoch_);
+
+        epoch_ = epoch_ + 1;
         EpochData storage epochData = _epochData[epoch_];
-        if (epochData.isClaimed) {
-            if (shares_ == 0) {
-                return 0;
-            }
-            return shares_.mulDiv(epochData.claimableAssets, epochData.pendingShares); // rounding down
-        }
-        return symbioticVault.withdrawalsOf(epoch_, account);
+        epochData.sharesToClaim += amount;
+
+        accountData.sharesToClaim[epoch_] += amount;
+        accountData.claimEpoch = epoch_;
+        emit WithdrawalRequested(account, epoch_, amount);
+    }
+
+    // permissionless functon
+    function pull(uint256 epoch) public {
+        require(
+            _isClaimableInSymbiotic(epoch, currentEpoch()),
+            "SymbioticWithdrawalQueue: invalid epoch"
+        );
+        _pullFromSymbioticForEpoch(epoch);
     }
 
     function claim(address account, address recipient, uint256 maxAmount)
@@ -196,5 +127,94 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
             collateral.safeTransfer(recipient, amount);
         }
         emit Claimed(account, recipient, amount);
+    }
+
+    // permissionless functon
+    function handlePendingEpochs(address account) public {
+        _handlePendingEpochs(_accountData[account], currentEpoch());
+    }
+
+    // --- internal functions ---
+
+    function _handlePendingEpochs(AccountData storage accountData, uint256 currentEpoch_) private {
+        uint256 epoch_ = accountData.claimEpoch;
+        if (epoch_ > 0) {
+            _handlePendingEpoch(accountData, epoch_ - 1, currentEpoch_);
+        }
+        _handlePendingEpoch(accountData, epoch_, currentEpoch_);
+    }
+
+    function _handlePendingEpoch(
+        AccountData storage accountData,
+        uint256 epoch_,
+        uint256 currentEpoch_
+    ) private {
+        if (!_isClaimableInSymbiotic(epoch_, currentEpoch_)) {
+            return;
+        }
+        uint256 shares_ = accountData.sharesToClaim[epoch_];
+        if (shares_ == 0) {
+            return;
+        }
+        _pullFromSymbioticForEpoch(epoch_);
+
+        EpochData storage epochData = _epochData[epoch_];
+        uint256 assets_ = Math.mulDiv(
+            shares_, epochData.claimableAssets, epochData.sharesToClaim, Math.Rounding.Floor
+        );
+
+        epochData.sharesToClaim -= shares_;
+        epochData.claimableAssets -= assets_;
+
+        accountData.claimableAssets += assets_;
+        delete accountData.sharesToClaim[epoch_];
+    }
+
+    function _pullFromSymbioticForEpoch(uint256 epoch) private {
+        EpochData storage epochData = _epochData[epoch];
+        if (epochData.isClaimed) {
+            return;
+        }
+        epochData.isClaimed = true;
+        try symbioticVault.claim(address(this), epoch) returns (uint256 claimedAssets) {
+            epochData.claimableAssets = claimedAssets;
+            claimableAssets += claimedAssets;
+            emit EpochClaimed(epoch, claimedAssets);
+        } catch {
+            // if we failed to claim epoch we assume it is claimed
+            // most likely low funds in epoch got additionally slashed so we can't claim it (error becase of 0 amounts)
+            emit EpochClaimFailed(epoch);
+        }
+    }
+
+    function _claimable(address account, AccountData storage accountData, uint256 epoch_)
+        private
+        view
+        returns (uint256)
+    {
+        uint256 shares_ = accountData.sharesToClaim[epoch_];
+        if (shares_ == 0) {
+            return 0;
+        }
+        EpochData storage epochData = _epochData[epoch_];
+        if (epochData.isClaimed) {
+            // TODO: remove?
+            if (shares_ == 0) {
+                return 0;
+            }
+            return shares_.mulDiv(
+                epochData.claimableAssets, epochData.sharesToClaim, Math.Rounding.Floor
+            );
+        }
+        // TODO: seems incorrect, only the vault account, not user account has withdrawals right?
+        return symbioticVault.withdrawalsOf(epoch_, account);
+    }
+
+    function _isClaimableInSymbiotic(uint256 epoch, uint256 currentEpoch_)
+        private
+        pure
+        returns (bool)
+    {
+        return epoch < currentEpoch_;
     }
 }
