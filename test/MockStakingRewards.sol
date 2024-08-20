@@ -2,8 +2,8 @@
 pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@symbiotic/rewards/interfaces/stakerRewards/IStakerRewards.sol";
 
-import "../src/interfaces/symbiotic/IStakerRewards.sol";
 import "./Imports.sol";
 import "./SymbioticConstants.sol";
 
@@ -29,5 +29,13 @@ contract MockStakingRewards is IStakerRewards {
     function increaseRewards(address account, address token, uint256 amount) external {
         IERC20(token).transferFrom(msg.sender, address(this), amount);
         rewards[token][account] += amount;
+    }
+
+    function distributeRewards(address network, address token, uint256 amount, bytes calldata data)
+        external
+    {}
+
+    function version() external pure returns (uint64) {
+        return 1;
     }
 }

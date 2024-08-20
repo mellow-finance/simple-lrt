@@ -3,9 +3,8 @@ pragma solidity 0.8.25;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {IDefaultCollateral} from "../symbiotic/IDefaultCollateral.sol";
-import {ISymbioticVault} from "../symbiotic/ISymbioticVault.sol";
 import {IWithdrawalQueue} from "../utils/IWithdrawalQueue.sol";
+import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 

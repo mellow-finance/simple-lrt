@@ -16,9 +16,8 @@ import {
 import {ReentrancyGuardUpgradeable} from
     "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-import {IDefaultCollateral} from "../symbiotic/IDefaultCollateral.sol";
-import {IStakerRewards} from "../symbiotic/IStakerRewards.sol";
-import {ISymbioticVault} from "../symbiotic/ISymbioticVault.sol";
+import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
+import {IStakerRewards} from "@symbiotic/rewards/interfaces/stakerRewards/IStakerRewards.sol";
 
 interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
     struct InitParams {

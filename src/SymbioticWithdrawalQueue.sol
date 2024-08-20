@@ -5,12 +5,12 @@ import "./interfaces/utils/ISymbioticWithdrawalQueue.sol";
 import "forge-std/Test.sol";
 
 contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
-    using SafeERC20 for IDefaultCollateral;
+    using SafeERC20 for IERC20;
     using Math for uint256;
 
     address public immutable vault;
     ISymbioticVault public immutable symbioticVault;
-    IDefaultCollateral public immutable collateral;
+    address public immutable collateral;
 
     mapping(uint256 epoch => EpochData data) private _epochData;
     mapping(address account => AccountData data) private _accountData;
@@ -18,7 +18,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     constructor(address _vault, address _symbioticVault) {
         vault = _vault;
         symbioticVault = ISymbioticVault(_symbioticVault);
-        collateral = IDefaultCollateral(symbioticVault.collateral());
+        collateral = symbioticVault.collateral();
     }
 
     function currentEpoch() public view returns (uint256) {
@@ -119,7 +119,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
             accountData.claimableAssets -= maxAmount;
         }
         if (amount != 0) {
-            collateral.safeTransfer(recipient, amount);
+            IERC20(collateral).safeTransfer(recipient, amount);
         }
         emit Claimed(account, recipient, amount);
     }

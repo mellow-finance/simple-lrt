@@ -84,8 +84,7 @@ contract Integration is Test {
             })
         );
 
-        address collateral = withdrawalQueue.symbioticVault().collateral();
-        address token = IDefaultCollateral(collateral).asset();
+        address token = withdrawalQueue.symbioticVault().collateral();
         assertEq(token, wsteth);
         {
             vm.startPrank(user);
@@ -97,7 +96,7 @@ contract Integration is Test {
         }
 
         assertEq(IERC20(wsteth).balanceOf(address(mellowSymbioticVault)), 0);
-        assertEq(IERC20(collateral).balanceOf(address(mellowSymbioticVault)), 0);
+        // assertEq(IERC20(collateral).balanceOf(address(mellowSymbioticVault)), 0);
         assertEq(IERC20(address(symbioticVault)).balanceOf(address(mellowSymbioticVault)), 10 ether);
 
         /*

@@ -55,9 +55,8 @@ contract Integration is Test {
             })
         );
 
-        address collateral =
+        address token =
             SymbioticWithdrawalQueue(address(withdrawalQueue)).symbioticVault().collateral();
-        address token = IDefaultCollateral(collateral).asset();
         assertEq(token, wsteth);
 
         vm.startPrank(user);

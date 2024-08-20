@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import "forge-std/Test.sol";
 
-import "../src/interfaces/symbiotic/ISymbioticVault.sol";
+import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
 import "../src/EthVaultCompat.sol";
 import "../src/EthWrapper.sol";

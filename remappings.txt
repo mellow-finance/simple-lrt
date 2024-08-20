@@ -1,2 +1,4 @@
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+@symbiotic/core/=lib/core/src/
+@symbiotic/rewards/=lib/rewards/src/
