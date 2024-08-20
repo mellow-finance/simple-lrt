@@ -37,11 +37,12 @@ contract Integration is Test {
 
         uint256 amount = 0.33 ether;
         uint256 n = 10;
+        vm.startPrank(user);
         deal(token, user, amount * n);
         IERC20(token).approve(address(wrapper), amount * n);
 
         for (uint256 i = 0; i < n; i++) {
-            wrapper.deposit(wsteth, amount, address(vault), user, makeAddr("referrer"));
+            wrapper.deposit(token, amount, address(vault), user, makeAddr("referrer"));
         }
         for (uint256 i = 0; i < n; i++) {
             vault.withdraw(amount, user, user);

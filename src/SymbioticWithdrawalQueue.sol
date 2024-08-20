@@ -33,7 +33,9 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
 
     function pendingAssets() public view returns (uint256) {
         uint256 epoch = currentEpoch();
-        return symbioticVault.withdrawals(epoch) + symbioticVault.withdrawals(epoch + 1);
+        address this_ = address(this);
+        return symbioticVault.withdrawalsOf(epoch, this_)
+            + symbioticVault.withdrawalsOf(epoch + 1, this_);
     }
 
     // --- user balances ---
@@ -159,9 +161,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         _pullFromSymbioticForEpoch(epoch_);
 
         EpochData storage epochData = _epochData[epoch_];
-        uint256 assets_ = Math.mulDiv(
-            shares_, epochData.claimableAssets, epochData.sharesToClaim, Math.Rounding.Floor
-        );
+        uint256 assets_ = shares_.mulDiv(epochData.claimableAssets, epochData.sharesToClaim);
 
         epochData.sharesToClaim -= shares_;
         epochData.claimableAssets -= assets_;
@@ -198,16 +198,10 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
         EpochData storage epochData = _epochData[epoch_];
         if (epochData.isClaimed) {
-            // TODO: remove?
-            if (shares_ == 0) {
-                return 0;
-            }
-            return shares_.mulDiv(
-                epochData.claimableAssets, epochData.sharesToClaim, Math.Rounding.Floor
-            );
+            return shares_.mulDiv(epochData.claimableAssets, epochData.sharesToClaim);
         }
-        // TODO: seems incorrect, only the vault account, not user account has withdrawals right?
-        return symbioticVault.withdrawalsOf(epoch_, account);
+        return
+            shares_.mulDiv(symbioticVault.withdrawalsOf(epoch_, account), epochData.sharesToClaim);
     }
 
     function _isClaimableInSymbiotic(uint256 epoch, uint256 currentEpoch_)
