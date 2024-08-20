@@ -2,14 +2,8 @@
 pragma solidity 0.8.25;
 
 import {ERC4626Vault} from "./ERC4626Vault.sol";
-
 import {VaultControlStorage} from "./VaultControl.sol";
 import "./interfaces/vaults/IIdleVault.sol";
-
-import {ERC20VotesUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-import {ERC4626Upgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 
 contract IdleVault is IIdleVault, ERC4626Vault, ERC20VotesUpgradeable {
     constructor() VaultControlStorage("IdleVault", 1) {}
@@ -31,7 +25,7 @@ contract IdleVault is IIdleVault, ERC4626Vault, ERC20VotesUpgradeable {
     function decimals()
         public
         view
-        override(ERC4626Upgradeable, ERC20Upgradeable)
+        override(ERC4626Upgradeable, ERC20Upgradeable, IERC20Metadata)
         returns (uint8)
     {
         return ERC4626Upgradeable.decimals();

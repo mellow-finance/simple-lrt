@@ -68,7 +68,13 @@ contract MellowSymbioticVault is
     }
 
     // ERC4626 overrides
-    function totalAssets() public view virtual override returns (uint256) {
+    function totalAssets()
+        public
+        view
+        virtual
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
         return IERC20(asset()).balanceOf(address(this))
             + symbioticCollateral().balanceOf(address(this))
             + symbioticVault().activeBalanceOf(address(this));

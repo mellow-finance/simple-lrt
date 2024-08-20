@@ -62,6 +62,6 @@ contract EthWrapper is IEthWrapper {
     ) external payable returns (uint256 shares) {
         amount = _wrap(depositToken, amount);
         IERC20(wstETH).safeIncreaseAllowance(vault, amount);
-        return IVaultControl(vault).deposit(amount, receiver, referral);
+        return IERC4626Vault(vault).deposit(amount, receiver, referral);
     }
 }

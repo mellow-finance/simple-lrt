@@ -26,7 +26,7 @@ contract MellowSymbioticVotesVault is
     function decimals()
         public
         view
-        override(ERC4626Upgradeable, ERC20Upgradeable)
+        override(ERC4626Upgradeable, ERC20Upgradeable, IERC20Metadata)
         returns (uint8)
     {
         return ERC4626Upgradeable.decimals();

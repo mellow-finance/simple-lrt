@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
+import "./interfaces/vaults/IERC4626Vault.sol";
+
 import {VaultControl} from "./VaultControl.sol";
 
-import {ERC4626Upgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable {
+abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vault {
     function __initializeERC4626(
         address _admin,
         uint256 _limit,
@@ -23,7 +21,13 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable {
         __ERC4626_init(IERC20(_asset));
     }
 
-    function maxMint(address account) public view virtual override returns (uint256) {
+    function maxMint(address account)
+        public
+        view
+        virtual
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
         if (depositWhitelist() && !isDepositorWhitelisted(account)) {
             return 0;
         }
@@ -35,7 +39,13 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable {
         return limit_ >= totalSupply_ ? limit_ - totalSupply_ : 0;
     }
 
-    function maxDeposit(address account) public view virtual override returns (uint256) {
+    function maxDeposit(address account)
+        public
+        view
+        virtual
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
         uint256 shares = maxMint(account);
         if (shares == type(uint256).max) {
             return type(uint256).max;
@@ -55,7 +65,7 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable {
     function deposit(uint256 assets, address receiver)
         public
         virtual
-        override
+        override(ERC4626Upgradeable, IERC4626)
         nonReentrant
         returns (uint256)
     {
@@ -66,7 +76,7 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable {
     function mint(uint256 shares, address receiver)
         public
         virtual
-        override
+        override(ERC4626Upgradeable, IERC4626)
         nonReentrant
         returns (uint256)
     {
@@ -77,7 +87,7 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable {
     function withdraw(uint256 shares, address receiver, address owner)
         public
         virtual
-        override
+        override(ERC4626Upgradeable, IERC4626)
         nonReentrant
         returns (uint256)
     {
@@ -88,7 +98,7 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable {
     function redeem(uint256 shares, address receiver, address owner)
         public
         virtual
-        override
+        override(ERC4626Upgradeable, IERC4626)
         nonReentrant
         returns (uint256)
     {

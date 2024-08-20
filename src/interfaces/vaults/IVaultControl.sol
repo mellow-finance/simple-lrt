@@ -12,10 +12,4 @@ import {ReentrancyGuardUpgradeable} from
 
 import "./IVaultControlStorage.sol";
 
-interface IVaultControl is IVaultControlStorage {
-    event ReferralDeposit(uint256 asset, address reciever, address referral);
-
-    function deposit(uint256 assets, address receiver, address referral)
-        external
-        returns (uint256 shares);
-}
+interface IVaultControl is IVaultControlStorage {}

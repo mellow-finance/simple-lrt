@@ -8,7 +8,7 @@ import {ISTETH} from "../tokens/ISTETH.sol";
 import {IWETH} from "../tokens/IWETH.sol";
 import {IWSTETH} from "../tokens/IWSTETH.sol";
 
-import {IVaultControl} from "../vaults/IVaultControl.sol";
+import {IERC4626Vault} from "../vaults/IERC4626Vault.sol";
 
 interface IEthWrapper {
     function WETH() external view returns (address);

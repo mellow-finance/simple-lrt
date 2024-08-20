@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import "./interfaces/utils/ISymbioticWithdrawalQueue.sol";
+import "forge-std/Test.sol";
 
 contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     using SafeERC20 for IDefaultCollateral;
@@ -65,14 +66,12 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
 
         uint256 currentEpoch_ = currentEpoch();
         uint256 epoch_ = accountData.claimEpoch;
-        if (epoch_ <= currentEpoch_) {
-            if (epoch_ > 0) {
-                claimableAssets_ += _claimable(account, accountData, epoch_ - 1);
-            }
+        if (epoch_ > 0 && _isClaimableInSymbiotic(epoch_ - 1, currentEpoch_)) {
+            claimableAssets_ += _claimable(accountData, epoch_ - 1);
+        }
 
-            if (epoch_ < currentEpoch_) {
-                claimableAssets_ += _claimable(account, accountData, epoch_);
-            }
+        if (_isClaimableInSymbiotic(epoch_, currentEpoch_)) {
+            claimableAssets_ += _claimable(accountData, epoch_);
         }
     }
 
@@ -187,7 +186,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
     }
 
-    function _claimable(address account, AccountData storage accountData, uint256 epoch_)
+    function _claimable(AccountData storage accountData, uint256 epoch_)
         private
         view
         returns (uint256)
@@ -200,8 +199,9 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         if (epochData.isClaimed) {
             return shares_.mulDiv(epochData.claimableAssets, epochData.sharesToClaim);
         }
-        return
-            shares_.mulDiv(symbioticVault.withdrawalsOf(epoch_, account), epochData.sharesToClaim);
+        return shares_.mulDiv(
+            symbioticVault.withdrawalsOf(epoch_, address(this)), epochData.sharesToClaim
+        );
     }
 
     function _isClaimableInSymbiotic(uint256 epoch, uint256 currentEpoch_)
