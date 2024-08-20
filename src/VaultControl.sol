@@ -39,8 +39,6 @@ abstract contract VaultControl is
     // setters getters
 
     function setLimit(uint256 _limit) external onlyRole(SET_LIMIT_ROLE) {
-        // I don't think we need this check
-        // require(totalSupply() <= _limit, "Vault: totalSupply exceeds new limit");
         _setLimit(_limit);
     }
 
