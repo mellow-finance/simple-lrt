@@ -21,14 +21,14 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         collateral = symbioticVault.collateral();
     }
 
-    function currentEpoch() public view returns (uint256) {
+    function getCurrentEpoch() public view returns (uint256) {
         return symbioticVault.currentEpoch();
     }
 
     // --- total balances ---
 
     function pendingAssets() public view returns (uint256) {
-        uint256 epoch = currentEpoch();
+        uint256 epoch = getCurrentEpoch();
         address this_ = address(this);
         return symbioticVault.withdrawalsOf(epoch, this_)
             + symbioticVault.withdrawalsOf(epoch + 1, this_);
@@ -40,33 +40,38 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         return claimableAssetsOf(account) + pendingAssetsOf(account);
     }
 
-    function pendingAssetsOf(address account) public view returns (uint256 pendingAssets_) {
-        uint256 epoch_ = currentEpoch();
-
-        AccountData storage accountData = _accountData[account];
-        uint256 sharesToClaim =
-            accountData.sharesToClaim[epoch_] + accountData.sharesToClaim[epoch_ + 1];
-
-        uint256 activeShares = symbioticVault.activeShares();
-        uint256 activeStake = symbioticVault.activeStake();
-        if (sharesToClaim == 0 || activeStake == 0) {
+    function _withdrawalsOf(uint256 epoch, uint256 shares) private view returns (uint256) {
+        if (shares == 0) {
             return 0;
         }
-        pendingAssets_ = sharesToClaim.mulDiv(activeStake, activeShares); // rounding down
+        return shares.mulDiv(
+            symbioticVault.withdrawalsOf(epoch, address(this)), _epochData[epoch].sharesToClaim
+        );
     }
 
-    function claimableAssetsOf(address account) public view returns (uint256 claimableAssets_) {
-        AccountData storage accountData = _accountData[account];
-        claimableAssets_ = accountData.claimableAssets;
+    function pendingAssetsOf(address account) public view returns (uint256 assets) {
+        uint256 epoch = getCurrentEpoch();
 
-        uint256 currentEpoch_ = currentEpoch();
-        uint256 epoch_ = accountData.claimEpoch;
-        if (epoch_ > 0 && _isClaimableInSymbiotic(epoch_ - 1, currentEpoch_)) {
-            claimableAssets_ += _claimable(accountData, epoch_ - 1);
+        AccountData storage accountData = _accountData[account];
+        address this_ = address(this);
+
+        assets += _withdrawalsOf(epoch, accountData.sharesToClaim[epoch]);
+        epoch += 1;
+        assets += _withdrawalsOf(epoch, accountData.sharesToClaim[epoch]);
+    }
+
+    function claimableAssetsOf(address account) public view returns (uint256 assets) {
+        AccountData storage accountData = _accountData[account];
+        assets = accountData.claimableAssets;
+
+        uint256 currentEpoch = getCurrentEpoch();
+        uint256 epoch = accountData.claimEpoch;
+        if (epoch > 0 && _isClaimableInSymbiotic(epoch - 1, currentEpoch)) {
+            assets += _claimable(accountData, epoch - 1);
         }
 
-        if (_isClaimableInSymbiotic(epoch_, currentEpoch_)) {
-            claimableAssets_ += _claimable(accountData, epoch_);
+        if (_isClaimableInSymbiotic(epoch, currentEpoch)) {
+            assets += _claimable(accountData, epoch);
         }
     }
 
@@ -79,22 +84,22 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
         AccountData storage accountData = _accountData[account];
 
-        uint256 epoch_ = currentEpoch();
-        _handlePendingEpochs(accountData, epoch_);
+        uint256 epoch = getCurrentEpoch();
+        _handlePendingEpochs(accountData, epoch);
 
-        epoch_ = epoch_ + 1;
-        EpochData storage epochData = _epochData[epoch_];
+        epoch = epoch + 1;
+        EpochData storage epochData = _epochData[epoch];
         epochData.sharesToClaim += amount;
 
-        accountData.sharesToClaim[epoch_] += amount;
-        accountData.claimEpoch = epoch_;
-        emit WithdrawalRequested(account, epoch_, amount);
+        accountData.sharesToClaim[epoch] += amount;
+        accountData.claimEpoch = epoch;
+        emit WithdrawalRequested(account, epoch, amount);
     }
 
     // permissionless functon
     function pull(uint256 epoch) public {
         require(
-            _isClaimableInSymbiotic(epoch, currentEpoch()),
+            _isClaimableInSymbiotic(epoch, getCurrentEpoch()),
             "SymbioticWithdrawalQueue: invalid epoch"
         );
         _pullFromSymbioticForEpoch(epoch);
@@ -107,7 +112,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         address sender = msg.sender;
         require(sender == account || sender == vault, "SymbioticWithdrawalQueue: forbidden");
         AccountData storage accountData = _accountData[account];
-        _handlePendingEpochs(accountData, currentEpoch());
+        _handlePendingEpochs(accountData, getCurrentEpoch());
         amount = accountData.claimableAssets;
         if (amount == 0) {
             return 0;
@@ -126,41 +131,41 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
 
     // permissionless functon
     function handlePendingEpochs(address account) public {
-        _handlePendingEpochs(_accountData[account], currentEpoch());
+        _handlePendingEpochs(_accountData[account], getCurrentEpoch());
     }
 
     // --- internal functions ---
 
-    function _handlePendingEpochs(AccountData storage accountData, uint256 currentEpoch_) private {
-        uint256 epoch_ = accountData.claimEpoch;
-        if (epoch_ > 0) {
-            _handlePendingEpoch(accountData, epoch_ - 1, currentEpoch_);
+    function _handlePendingEpochs(AccountData storage accountData, uint256 currentEpoch) private {
+        uint256 epoch = accountData.claimEpoch;
+        if (epoch > 0) {
+            _handlePendingEpoch(accountData, epoch - 1, currentEpoch);
         }
-        _handlePendingEpoch(accountData, epoch_, currentEpoch_);
+        _handlePendingEpoch(accountData, epoch, currentEpoch);
     }
 
     function _handlePendingEpoch(
         AccountData storage accountData,
-        uint256 epoch_,
-        uint256 currentEpoch_
+        uint256 epoch,
+        uint256 currentEpoch
     ) private {
-        if (!_isClaimableInSymbiotic(epoch_, currentEpoch_)) {
+        if (!_isClaimableInSymbiotic(epoch, currentEpoch)) {
             return;
         }
-        uint256 shares_ = accountData.sharesToClaim[epoch_];
-        if (shares_ == 0) {
+        uint256 shares = accountData.sharesToClaim[epoch];
+        if (shares == 0) {
             return;
         }
-        _pullFromSymbioticForEpoch(epoch_);
+        _pullFromSymbioticForEpoch(epoch);
 
-        EpochData storage epochData = _epochData[epoch_];
-        uint256 assets_ = shares_.mulDiv(epochData.claimableAssets, epochData.sharesToClaim);
+        EpochData storage epochData = _epochData[epoch];
+        uint256 assets = shares.mulDiv(epochData.claimableAssets, epochData.sharesToClaim);
 
-        epochData.sharesToClaim -= shares_;
-        epochData.claimableAssets -= assets_;
+        epochData.sharesToClaim -= shares;
+        epochData.claimableAssets -= assets;
 
-        accountData.claimableAssets += assets_;
-        delete accountData.sharesToClaim[epoch_];
+        accountData.claimableAssets += assets;
+        delete accountData.sharesToClaim[epoch];
     }
 
     function _pullFromSymbioticForEpoch(uint256 epoch) private {
@@ -179,29 +184,27 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
     }
 
-    function _claimable(AccountData storage accountData, uint256 epoch_)
+    function _claimable(AccountData storage accountData, uint256 epoch)
         private
         view
         returns (uint256)
     {
-        uint256 shares_ = accountData.sharesToClaim[epoch_];
-        if (shares_ == 0) {
+        uint256 shares = accountData.sharesToClaim[epoch];
+        if (shares == 0) {
             return 0;
         }
-        EpochData storage epochData = _epochData[epoch_];
+        EpochData storage epochData = _epochData[epoch];
         if (epochData.isClaimed) {
-            return shares_.mulDiv(epochData.claimableAssets, epochData.sharesToClaim);
+            return shares.mulDiv(epochData.claimableAssets, epochData.sharesToClaim);
         }
-        return shares_.mulDiv(
-            symbioticVault.withdrawalsOf(epoch_, address(this)), epochData.sharesToClaim
-        );
+        return _withdrawalsOf(epoch, shares);
     }
 
-    function _isClaimableInSymbiotic(uint256 epoch, uint256 currentEpoch_)
+    function _isClaimableInSymbiotic(uint256 epoch, uint256 currentEpoch)
         private
         pure
         returns (bool)
     {
-        return epoch < currentEpoch_;
+        return epoch < currentEpoch;
     }
 }
