@@ -1,45 +1,14 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
+import {IVault, IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
+
 import "./Imports.sol";
 
 import "./MockStakingRewards.sol";
-import "./SymbioticConstants.sol";
+import {SymbioticContracts} from "./SymbioticContracts.sol";
 
-interface IDefaultCollateralFactory {
-    function create(address asset, uint256 initialLimit, address limitIncreaser)
-        external
-        returns (address);
-}
-
-interface IVaultConfigurator {
-    struct SymbioticVaultInitParams {
-        address collateral;
-        address delegator;
-        address slasher;
-        address burner;
-        uint48 epochDuration;
-        bool depositWhitelist;
-        address defaultAdminRoleHolder;
-        address depositWhitelistSetRoleHolder;
-        address depositorWhitelistRoleHolder;
-    }
-
-    struct InitParams {
-        uint64 version;
-        address owner;
-        SymbioticVaultInitParams vaultParams;
-        uint64 delegatorIndex;
-        bytes delegatorParams;
-        bool withSlasher;
-        uint64 slasherIndex;
-        bytes slasherParams;
-    }
-
-    function create(InitParams memory params) external returns (address, address, address);
-}
-
-library SymbioticHelperLibrary {
+contract SymbioticHelper {
     struct CreationParams {
         address limitIncreaser;
         address vaultOwner;
@@ -49,24 +18,34 @@ library SymbioticHelperLibrary {
         uint256 limit;
     }
 
+    SymbioticContracts public immutable symbioticContracts;
+
+    constructor(SymbioticContracts contracts) {
+        symbioticContracts = contracts;
+    }
+
     function createNewSymbioticVault(CreationParams memory params)
         public
         returns (address symbioticVault)
     {
-        (symbioticVault,,) = IVaultConfigurator(SymbioticConstants.VAULT_CONFIGURATOR).create(
+        (symbioticVault,,) = IVaultConfigurator(symbioticContracts.VAULT_CONFIGURATOR()).create(
             IVaultConfigurator.InitParams({
                 version: 1,
                 owner: params.vaultOwner,
-                vaultParams: IVaultConfigurator.SymbioticVaultInitParams({
+                vaultParams: IVault.InitParams({
                     collateral: params.asset,
                     delegator: address(0),
                     slasher: address(0),
                     burner: address(0),
                     epochDuration: params.epochDuration,
                     depositWhitelist: false,
+                    isDepositLimit: false,
+                    depositLimit: 0,
                     defaultAdminRoleHolder: params.vaultAdmin,
                     depositWhitelistSetRoleHolder: params.vaultAdmin,
-                    depositorWhitelistRoleHolder: params.vaultAdmin
+                    depositorWhitelistRoleHolder: params.vaultAdmin,
+                    isDepositLimitSetRoleHolder: params.vaultAdmin,
+                    depositLimitSetRoleHolder: params.vaultAdmin
                 }),
                 delegatorIndex: 0,
                 delegatorParams: hex"00000000000000000000000000000000000000000000000000000000000000200000000000000000000000009b4e5e7438c17f13bf368d331c864b01b64458bc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000009b4e5e7438c17f13bf368d331c864b01b64458bc00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000009b4e5e7438c17f13bf368d331c864b01b64458bc00000000000000000000000000000000000000000000000000000000000000010000000000000000000000009b4e5e7438c17f13bf368d331c864b01b64458bc",
@@ -81,29 +60,29 @@ library SymbioticHelperLibrary {
         public
         returns (address symbioticVault)
     {
-        address collateral = IDefaultCollateralFactory(SymbioticConstants.COLLATERAL_FACTORY).create(
-            params.asset, params.limit, params.limitIncreaser
-        );
-
-        (symbioticVault,,) = IVaultConfigurator(SymbioticConstants.VAULT_CONFIGURATOR).create(
+        (symbioticVault,,) = IVaultConfigurator(symbioticContracts.VAULT_CONFIGURATOR()).create(
             IVaultConfigurator.InitParams({
                 version: 1,
                 owner: params.vaultOwner,
-                vaultParams: IVaultConfigurator.SymbioticVaultInitParams({
-                    collateral: address(collateral),
+                vaultParams: IVault.InitParams({
+                    collateral: params.asset,
                     delegator: address(0),
                     slasher: address(0),
                     burner: address(0),
                     epochDuration: params.epochDuration,
                     depositWhitelist: false,
+                    isDepositLimit: false,
+                    depositLimit: 0,
                     defaultAdminRoleHolder: params.vaultAdmin,
                     depositWhitelistSetRoleHolder: params.vaultAdmin,
-                    depositorWhitelistRoleHolder: params.vaultAdmin
+                    depositorWhitelistRoleHolder: params.vaultAdmin,
+                    isDepositLimitSetRoleHolder: params.vaultAdmin,
+                    depositLimitSetRoleHolder: params.vaultAdmin
                 }),
                 delegatorIndex: 0,
                 delegatorParams: hex"00000000000000000000000000000000000000000000000000000000000000200000000000000000000000009b4e5e7438c17f13bf368d331c864b01b64458bc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000009b4e5e7438c17f13bf368d331c864b01b64458bc00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000009b4e5e7438c17f13bf368d331c864b01b64458bc00000000000000000000000000000000000000000000000000000000000000010000000000000000000000009b4e5e7438c17f13bf368d331c864b01b64458bc",
                 withSlasher: true,
-                slasherIndex: 1,
+                slasherIndex: 0,
                 slasherParams: hex"00000000000000000000000000000000000000000000000000000000000151800000000000000000000000000000000000000000000000000000000000000003"
             })
         );

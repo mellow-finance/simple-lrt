@@ -15,7 +15,7 @@ import "../src/MellowSymbioticVotesVault.sol";
 import "../src/SymbioticWithdrawalQueue.sol";
 import "../src/VaultControl.sol";
 import "../src/VaultControlStorage.sol";
-import "./SymbioticConstants.sol";
-import "./SymbioticHelperLibrary.sol";
+import "./SymbioticContracts.sol";
+import "./SymbioticHelper.sol";
 
 interface Imports {}

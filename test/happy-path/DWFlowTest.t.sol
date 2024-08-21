@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "../Imports.sol";
+import "../BaseTest.sol";
 
-contract Integration is Test {
+contract Integration is BaseTest {
     /*
         forge test -vvvv  --match-path ./test/DWFlowTest.t.sol --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5)  --fork-block-number 2160000
     */
-
     address admin = makeAddr("admin");
     address user = makeAddr("user");
     address limitIncreaser = makeAddr("limitIncreaser");
@@ -18,14 +17,14 @@ contract Integration is Test {
     uint48 epochDuration = 3600;
     address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
 
-    function test() external {
+    function testDWFlow() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
         MellowSymbioticVault mellowSymbioticVault = new MellowSymbioticVault(bytes32(uint256(1)), 1);
 
         ISymbioticVault symbioticVault = ISymbioticVault(
-            SymbioticHelperLibrary.createNewSymbioticVault(
-                SymbioticHelperLibrary.CreationParams({
+            symbioticHelper.createNewSymbioticVault(
+                SymbioticHelper.CreationParams({
                     limitIncreaser: limitIncreaser,
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,

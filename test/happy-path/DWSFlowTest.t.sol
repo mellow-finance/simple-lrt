@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "../Imports.sol";
-import "../MockStakingRewards.sol";
+import "../BaseTest.sol";
 
 interface IVetoSlasher {
     /**
@@ -35,7 +34,7 @@ interface IVetoSlasher {
         returns (uint256 slashedAmount);
 }
 
-contract Integration is Test {
+contract Integration is BaseTest {
     /*
         forge test -vvvv  --match-path ./test/DWFlowTest.t.sol --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5)  --fork-block-number 2160000
     */
@@ -56,8 +55,8 @@ contract Integration is Test {
         MellowSymbioticVault mellowSymbioticVault = new MellowSymbioticVault(bytes32(uint256(1)), 1);
 
         ISymbioticVault symbioticVault = ISymbioticVault(
-            SymbioticHelperLibrary.createSlashingSymbioticVault(
-                SymbioticHelperLibrary.CreationParams({
+            symbioticHelper.createSlashingSymbioticVault(
+                SymbioticHelper.CreationParams({
                     limitIncreaser: limitIncreaser,
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,

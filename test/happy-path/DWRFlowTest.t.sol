@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "../Imports.sol";
-import "../MockStakingRewards.sol";
+import "../BaseTest.sol";
 
-contract Integration is Test {
+contract Integration is BaseTest {
     /*
         forge test -vvvv  --match-path ./test/DWFlowTest.t.sol --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5)  --fork-block-number 2160000
     */
@@ -28,8 +27,8 @@ contract Integration is Test {
         MellowSymbioticVault mellowSymbioticVault = new MellowSymbioticVault(bytes32(uint256(1)), 1);
 
         ISymbioticVault symbioticVault = ISymbioticVault(
-            SymbioticHelperLibrary.createNewSymbioticVault(
-                SymbioticHelperLibrary.CreationParams({
+            symbioticHelper.createNewSymbioticVault(
+                SymbioticHelper.CreationParams({
                     limitIncreaser: limitIncreaser,
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,
@@ -59,8 +58,7 @@ contract Integration is Test {
         address token = withdrawalQueue.symbioticVault().collateral();
         assertEq(token, wsteth);
 
-        (address symbioticFarm, address distributionFarm) =
-            SymbioticHelperLibrary.createFarms(wsteth);
+        (address symbioticFarm, address distributionFarm) = symbioticHelper.createFarms(wsteth);
 
         vm.startPrank(admin);
         mellowSymbioticVault.grantRole(keccak256("SET_FARM_ROLE"), admin);

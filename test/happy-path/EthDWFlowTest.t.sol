@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "../Imports.sol";
+import "../BaseTest.sol";
 
-contract Integration is Test {
+contract Integration is BaseTest {
     /*
         forge test -vvvv  --match-path ./test/DWFlowTest.t.sol --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5)  --fork-block-number 2160000
     */
@@ -28,8 +28,8 @@ contract Integration is Test {
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
-            SymbioticHelperLibrary.createNewSymbioticVault(
-                SymbioticHelperLibrary.CreationParams({
+            symbioticHelper.createNewSymbioticVault(
+                SymbioticHelper.CreationParams({
                     limitIncreaser: limitIncreaser,
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,
