@@ -38,13 +38,15 @@ contract EthWrapper is IEthWrapper {
         }
 
         if (depositToken == ETH) {
-            payable(wstETH).transfer(amount);
+            (bool success,) = payable(wstETH).call{value: amount}("");
+            require(success, "EthWrapper: ETH transfer failed");
             depositToken = wstETH;
+            amount = IERC20(wstETH).balanceOf(address(this));
         }
 
         if (depositToken == stETH) {
             IERC20(stETH).safeIncreaseAllowance(wstETH, amount);
-            IWSTETH(wstETH).wrap(amount);
+            amount = IWSTETH(wstETH).wrap(amount);
             depositToken = wstETH;
         }
 

@@ -17,6 +17,11 @@ contract Unit is BaseTest {
     address steth = 0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
     address weth = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
 
+    function testConstructor() external {
+        vm.expectRevert();
+        new SymbioticWithdrawalQueue(address(0), address(0));
+    }
+
     function testWithdrawalQueue() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
@@ -574,5 +579,315 @@ contract Unit is BaseTest {
 
         assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "user1: claimableAssets");
         assertEq(withdrawalQueue.claimableAssetsOf(user2), amount2 / 2, "user2: claimableAssets");
+    }
+
+    function testRequest() external {
+        require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
+
+        MellowSymbioticVotesVault singleton =
+            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
+
+        ISymbioticVault symbioticVault = ISymbioticVault(
+            symbioticHelper.createNewSymbioticVault(
+                SymbioticHelper.CreationParams({
+                    limitIncreaser: limitIncreaser,
+                    vaultOwner: vaultOwner,
+                    vaultAdmin: vaultAdmin,
+                    epochDuration: epochDuration,
+                    asset: wsteth,
+                    limit: 1000 ether
+                })
+            )
+        );
+
+        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue withdrawalQueue) = factory
+            .create(
+            IMellowSymbioticVaultFactory.InitParams({
+                proxyAdmin: makeAddr("proxyAdmin"),
+                limit: 1000 ether,
+                symbioticVault: address(symbioticVault),
+                admin: admin,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                name: "MellowSymbioticVault",
+                symbol: "MSV"
+            })
+        );
+
+        uint256 amount1 = 100 ether;
+        uint256 amount2 = 10 ether;
+
+        deal(wsteth, user1, amount1);
+        deal(wsteth, user2, amount2);
+
+        vm.startPrank(user1);
+        IERC20(wsteth).approve(address(mellowSymbioticVault), amount1);
+        mellowSymbioticVault.deposit(amount1, user1);
+        vm.stopPrank();
+
+        vm.expectRevert();
+        withdrawalQueue.request(user1, amount1 / 2);
+
+        vm.startPrank(address(mellowSymbioticVault));
+        symbioticVault.withdraw(address(withdrawalQueue), amount1 / 2);
+        withdrawalQueue.request(user1, amount1 / 2);
+        vm.stopPrank();
+
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, "stage 0: pendingAssetsOf");
+        assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
+
+        skip(epochDuration * 2);
+
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
+        assertEq(
+            withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, "stage 1: claimableAssetsOf"
+        );
+    }
+
+    function testPull() external {
+        require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
+
+        MellowSymbioticVotesVault singleton =
+            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
+
+        ISymbioticVault symbioticVault = ISymbioticVault(
+            symbioticHelper.createNewSymbioticVault(
+                SymbioticHelper.CreationParams({
+                    limitIncreaser: limitIncreaser,
+                    vaultOwner: vaultOwner,
+                    vaultAdmin: vaultAdmin,
+                    epochDuration: epochDuration,
+                    asset: wsteth,
+                    limit: 1000 ether
+                })
+            )
+        );
+
+        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue wq) = factory.create(
+            IMellowSymbioticVaultFactory.InitParams({
+                proxyAdmin: makeAddr("proxyAdmin"),
+                limit: 1000 ether,
+                symbioticVault: address(symbioticVault),
+                admin: admin,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                name: "MellowSymbioticVault",
+                symbol: "MSV"
+            })
+        );
+
+        SymbioticWithdrawalQueue withdrawalQueue = SymbioticWithdrawalQueue(address(wq));
+
+        uint256 amount1 = 100 ether;
+        uint256 amount2 = 10 ether;
+
+        deal(wsteth, user1, amount1);
+        deal(wsteth, user2, amount2);
+
+        vm.startPrank(user1);
+        IERC20(wsteth).approve(address(mellowSymbioticVault), amount1);
+        mellowSymbioticVault.deposit(amount1, user1);
+        mellowSymbioticVault.withdraw(amount1 / 2, user1, user1);
+        vm.stopPrank();
+
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, "stage 0: pendingAssetsOf");
+        assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
+
+        skip(epochDuration);
+
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, "stage 0: pendingAssetsOf");
+        assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
+
+        uint256 currentEpoch = withdrawalQueue.currentEpoch();
+
+        assertGt(currentEpoch, 0, "currentEpoch > 0");
+
+        vm.expectRevert();
+        withdrawalQueue.pull(currentEpoch);
+        withdrawalQueue.pull(currentEpoch - 1);
+
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, "stage 0: pendingAssetsOf");
+        assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
+    }
+
+    function testClaim() external {
+        require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
+
+        MellowSymbioticVotesVault singleton =
+            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
+
+        ISymbioticVault symbioticVault = ISymbioticVault(
+            symbioticHelper.createNewSymbioticVault(
+                SymbioticHelper.CreationParams({
+                    limitIncreaser: limitIncreaser,
+                    vaultOwner: vaultOwner,
+                    vaultAdmin: vaultAdmin,
+                    epochDuration: epochDuration,
+                    asset: wsteth,
+                    limit: 1000 ether
+                })
+            )
+        );
+
+        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue wq) = factory.create(
+            IMellowSymbioticVaultFactory.InitParams({
+                proxyAdmin: makeAddr("proxyAdmin"),
+                limit: 1000 ether,
+                symbioticVault: address(symbioticVault),
+                admin: admin,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                name: "MellowSymbioticVault",
+                symbol: "MSV"
+            })
+        );
+
+        SymbioticWithdrawalQueue withdrawalQueue = SymbioticWithdrawalQueue(address(wq));
+
+        uint256 amount1 = 100 ether;
+        uint256 amount2 = 10 ether;
+
+        deal(wsteth, user1, amount1);
+        deal(wsteth, user2, amount2);
+
+        vm.startPrank(user1);
+        IERC20(wsteth).approve(address(mellowSymbioticVault), amount1);
+        mellowSymbioticVault.deposit(amount1, user1);
+        mellowSymbioticVault.withdraw(amount1 / 2, user1, user1);
+        vm.stopPrank();
+
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, "stage 0: pendingAssetsOf");
+        assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
+
+        skip(epochDuration * 2);
+
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
+        assertEq(
+            withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, "stage 1: claimableAssetsOf"
+        );
+
+        uint256 currentEpoch = withdrawalQueue.currentEpoch();
+
+        vm.expectRevert();
+        withdrawalQueue.claim(user1, user1, amount1 / 2);
+
+        vm.startPrank(user1);
+
+        uint256 claimableAmount = amount1 / 2;
+        assertEq(withdrawalQueue.claimableAssetsOf(user1), claimableAmount, "wrong claimableAmount");
+        uint256 balanceBefore = IERC20(wsteth).balanceOf(user1);
+        withdrawalQueue.claim(user1, user1, amount1 / 2);
+        uint256 balanceAfter = IERC20(wsteth).balanceOf(user1);
+        assertEq(balanceAfter - balanceBefore, claimableAmount, "wrong claimed amount");
+
+        withdrawalQueue.claim(user1, user1, amount1 / 2);
+
+        vm.stopPrank();
+    }
+
+    function testHandlePendingEpochs() external {
+        require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
+
+        MellowSymbioticVotesVault singleton =
+            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
+
+        ISymbioticVault symbioticVault = ISymbioticVault(
+            symbioticHelper.createNewSymbioticVault(
+                SymbioticHelper.CreationParams({
+                    limitIncreaser: limitIncreaser,
+                    vaultOwner: vaultOwner,
+                    vaultAdmin: vaultAdmin,
+                    epochDuration: epochDuration,
+                    asset: wsteth,
+                    limit: 1000 ether
+                })
+            )
+        );
+
+        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue wq) = factory.create(
+            IMellowSymbioticVaultFactory.InitParams({
+                proxyAdmin: makeAddr("proxyAdmin"),
+                limit: 1000 ether,
+                symbioticVault: address(symbioticVault),
+                admin: admin,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                name: "MellowSymbioticVault",
+                symbol: "MSV"
+            })
+        );
+
+        SymbioticWithdrawalQueue withdrawalQueue = SymbioticWithdrawalQueue(address(wq));
+
+        uint256 amount1 = 100 ether;
+        uint256 amount2 = 10 ether;
+
+        deal(wsteth, user1, amount1);
+        deal(wsteth, user2, amount2);
+
+        vm.startPrank(user1);
+        IERC20(wsteth).approve(address(mellowSymbioticVault), amount1);
+        mellowSymbioticVault.deposit(amount1, user1);
+        mellowSymbioticVault.withdraw(amount1 / 2, user1, user1);
+        vm.stopPrank();
+
+        vm.startPrank(user2);
+        IERC20(wsteth).approve(address(mellowSymbioticVault), amount2);
+        mellowSymbioticVault.deposit(amount2, user2);
+        mellowSymbioticVault.withdraw(amount2 / 2, user2, user2);
+        vm.stopPrank();
+
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, "stage 0: pendingAssetsOf");
+        assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
+
+        skip(epochDuration * 2);
+
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
+        assertEq(
+            withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, "stage 1: claimableAssetsOf"
+        );
+
+        uint256 currentEpoch = withdrawalQueue.currentEpoch();
+
+        withdrawalQueue.handlePendingEpochs(user1);
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
+        assertEq(
+            withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, "stage 1: claimableAssetsOf"
+        );
+        assertEq(withdrawalQueue.pendingAssetsOf(user2), 0, "stage 1: pendingAssetsOf");
+        assertEq(
+            withdrawalQueue.claimableAssetsOf(user2), amount2 / 2, "stage 1: claimableAssetsOf"
+        );
+
+        withdrawalQueue.handlePendingEpochs(user2);
+
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
+        assertEq(
+            withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, "stage 1: claimableAssetsOf"
+        );
+        assertEq(withdrawalQueue.pendingAssetsOf(user2), 0, "stage 1: pendingAssetsOf");
+        assertEq(
+            withdrawalQueue.claimableAssetsOf(user2), amount2 / 2, "stage 1: claimableAssetsOf"
+        );
+
+        withdrawalQueue.handlePendingEpochs(user1);
+        withdrawalQueue.handlePendingEpochs(user2);
+
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
+        assertEq(
+            withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, "stage 1: claimableAssetsOf"
+        );
+        assertEq(withdrawalQueue.pendingAssetsOf(user2), 0, "stage 1: pendingAssetsOf");
+        assertEq(
+            withdrawalQueue.claimableAssetsOf(user2), amount2 / 2, "stage 1: claimableAssetsOf"
+        );
     }
 }

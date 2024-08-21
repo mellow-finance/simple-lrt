@@ -16,3 +16,5 @@ docs/
 .vscode
 node_modules
 yarn.lock
+
+report
