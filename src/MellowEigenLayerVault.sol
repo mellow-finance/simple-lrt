@@ -14,9 +14,13 @@ contract MellowEigenLayerVault is
     using SafeERC20 for IERC20;
     using Math for uint256;
 
+    uint256 private nonce;
     address public strategy;
+    address public operator;
     address public delegationManager;
     address public strategyManager;
+
+    mapping (address account => IDelegationManager.Withdrawal[] data) private _withdrawals;
 
     constructor(bytes32 contractName_, uint256 contractVersion_)
         VaultControlStorage(contractName_, contractVersion_)
@@ -31,6 +35,7 @@ contract MellowEigenLayerVault is
         delegationManager = delegationParam.delegationManager;
         strategyManager = delegationParam.strategyManager;
         strategy = delegationParam.strategy;
+        operator = delegationParam.operator;
         uint256 expiry = block.timestamp + delegationParam.expiry;
 
         address delegationApprover = IDelegationManager(delegationManager).delegationApprover(delegationParam.operator);
@@ -61,7 +66,7 @@ contract MellowEigenLayerVault is
         override(ERC4626Upgradeable, IERC4626)
         returns (uint256)
     {
-        return IERC20(asset()).balanceOf(address(this)); // TODO check
+        return IERC20(asset()).balanceOf(address(this)) + IStrategy(strategy).userUnderlyingView(address(this));
     }
 
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
@@ -70,10 +75,127 @@ contract MellowEigenLayerVault is
         override
     {
         super._deposit(caller, receiver, assets, shares);
+
         uint256 actualShares = IStrategy(strategy).deposit(IERC20(asset()), assets);
+
         require(actualShares >= shares, "Vault: insufficient shares");
+
+        emit EigenLayerDeposited(caller, assets);
     }
 
+     function _withdraw(
+        address caller,
+        address receiver,
+        address owner,
+        uint256 assets,
+        uint256 shares
+    ) internal virtual override {
+        require(!withdrawalPause(), "Vault: withdrawal paused");
+        address this_ = address(this);
+
+        uint256 liquid = IERC20(asset()).balanceOf(this_);
+        if (liquid >= assets) {
+            return super._withdraw(caller, receiver, owner, assets, shares);
+        }
+
+        uint256 staked = assets - liquid;
+
+        _pushToWithdrawalQueue(receiver, staked);
+
+        if (caller != owner) {
+            _spendAllowance(owner, caller, shares);
+        }
+
+        _burn(owner, shares);
+        if (liquid != 0) {
+            IERC20(asset()).safeTransfer(receiver, liquid);
+        }
+
+        // emitting event with transfered + new pending assets
+        emit Withdraw(caller, receiver, owner, assets, shares);
+    }
+
+    function _pushToWithdrawalQueue(address account, uint256 stakedShares) internal {
+
+        bytes32[] memory withdrawalRoots = IDelegationManager(delegationManager).queueWithdrawals(_getQueuedWithdrawalParams(stakedShares));
+
+        IDelegationManager.Withdrawal memory withdrawalData = IDelegationManager.Withdrawal({
+            staker: address(this),
+            delegatedTo: operator,
+            withdrawer: address(this),
+            nonce: nonce,
+            startBlock: uint32(block.number),
+            strategies: new IStrategy[](1),
+            shares: new uint256[](1)
+        });
+
+        bytes32 withdrawalRoot = IDelegationManager(delegationManager).calculateWithdrawalRoot(withdrawalData);
+        require(withdrawalRoots[0] == withdrawalRoot, "Vault: withdrawalRoot mismatch");
+
+        withdrawalData.strategies[0] = IStrategy(strategy);
+        withdrawalData.shares[0] = stakedShares;
+
+        _withdrawals[account].push(withdrawalData);
+
+        nonce += 1;
+    }
+
+    function _getQueuedWithdrawalParams(uint256 shares) internal view returns (IDelegationManager.QueuedWithdrawalParams[] memory queuedWithdrawalParams) {
+        
+        IDelegationManager.QueuedWithdrawalParams memory queuedWithdrawalParam = IDelegationManager.QueuedWithdrawalParams({
+            strategies: new IStrategy[](1),
+            shares: new uint256[](1),
+            withdrawer: address(this)
+        });
+
+        queuedWithdrawalParam.strategies[0] = IStrategy(strategy);
+        queuedWithdrawalParam.shares[0] = shares;
+        queuedWithdrawalParam.withdrawer = address(this);
+
+        queuedWithdrawalParams = new IDelegationManager.QueuedWithdrawalParams[](1);
+        queuedWithdrawalParams[0] = queuedWithdrawalParam;
+    }
+
+    function claim(address account, address recipient)
+        external
+        virtual
+        nonReentrant
+        returns (uint256 claimedAmount)
+    {
+        address sender = msg.sender;
+        require(sender == account || sender == address(this), "Vault: forbidden");
+
+        IDelegationManager.Withdrawal[] memory withdrawalData = _withdrawals[account];
+        require(withdrawalData.length > 0, "Vault: nothing to withdraw");
+
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = IERC20(asset());
+        uint256 minWithdrawalDelayBlocks = IDelegationManager(delegationManager).minWithdrawalDelayBlocks();
+        uint256 claimed;
+
+        uint256 balanceBefore = IERC20(asset()).balanceOf(address(this));
+        for (uint i = 0; i < withdrawalData.length; i++) {
+            if (withdrawalData[i].startBlock + minWithdrawalDelayBlocks <= block.number) {
+                IDelegationManager(delegationManager).completeQueuedWithdrawal(withdrawalData[i], tokens, 0, true);
+                delete _withdrawals[account][i];
+                claimed += 1;
+            }
+        }
+        uint256 balanceAfter = IERC20(asset()).balanceOf(address(this));
+
+        if (claimed == withdrawalData.length) {
+            delete _withdrawals[account];
+        }
+
+        claimedAmount = balanceAfter - balanceBefore;
+
+        if (claimedAmount > 0) {
+            IERC20(asset()).transfer(recipient, claimedAmount);
+        }
+
+        emit Claimed(account, recipient, claimedAmount);
+    }
+     
     /**
      * @dev Internal conversion function (from assets to shares) with support for rounding direction.
      */

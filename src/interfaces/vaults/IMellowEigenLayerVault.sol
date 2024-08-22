@@ -34,4 +34,7 @@ interface IMellowEigenLayerVault is IERC4626Vault {
     }
 
     function initialize(InitParams memory initParams) external;
+
+    event EigenLayerDeposited(address sender, uint256 vaultAmount);
+    event Claimed(address account, address recipient, uint256 amount);
 }
