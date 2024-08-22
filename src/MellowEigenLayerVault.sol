@@ -4,15 +4,19 @@ pragma solidity 0.8.25;
 import {ERC4626Vault} from "./ERC4626Vault.sol";
 import {VaultControl, VaultControlStorage} from "./VaultControl.sol";
 import "./interfaces/vaults/IMellowEigenLayerVault.sol";
+import "./ERC1271.sol";
 
 contract MellowEigenLayerVault is
     IMellowEigenLayerVault,
-    ERC4626Vault
+    ERC4626Vault,
+    ERC1271
 {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
     address public strategy;
+    address public delegationManager;
+    address public strategyManager;
 
     constructor(bytes32 contractName_, uint256 contractVersion_)
         VaultControlStorage(contractName_, contractVersion_)
@@ -23,13 +27,18 @@ contract MellowEigenLayerVault is
     }
 
     function __initialize(InitParams memory initParams) internal virtual onlyInitializing {
-        // EIP-1271 signature
-        bytes memory signature;
-        ISignatureUtils.SignatureWithExpiry memory signatureWithExpiry = ISignatureUtils.SignatureWithExpiry(signature, block.timestamp + 365 days);
-        bytes32 salt;
-        IDelegationManager(initParams.delegationManager).delegateTo(initParams.operator, signatureWithExpiry, salt);
+        DelegationParam memory delegationParam = initParams.delegationParam;
+        delegationManager = delegationParam.delegationManager;
+        strategyManager = delegationParam.strategyManager;
+        strategy = delegationParam.strategy;
+        uint256 expiry = block.timestamp + delegationParam.expiry;
+
+        address delegationApprover = IDelegationManager(delegationManager).delegationApprover(delegationParam.operator);
+        IDelegationManager(delegationParam.delegationManager).calculateDelegationApprovalDigestHash(address(this), delegationParam.operator, delegationApprover, delegationParam.salt, expiry);
+        ISignatureUtils.SignatureWithExpiry memory signatureWithExpiry = ISignatureUtils.SignatureWithExpiry(delegationParam.delegationSignature, expiry);
         
-        strategy = initParams.strategy;
+        IDelegationManager(delegationManager).delegateTo(delegationParam.operator, signatureWithExpiry, delegationParam.salt);
+        
         address underlyingToken = address(IStrategy(strategy).underlyingToken());
 
         __initializeERC4626(

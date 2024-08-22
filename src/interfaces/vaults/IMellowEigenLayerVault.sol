@@ -13,13 +13,19 @@ import "../eigen/IStrategyManager.sol";
 import "../eigen/IDelegationManager.sol";
 
 interface IMellowEigenLayerVault is IERC4626Vault {
-    struct InitParams {
-        uint256 limit;
+    struct DelegationParam {
         address strategyManager;
         address delegationManager;
         address strategy;
         address operator;
+        bytes delegationSignature;
+        bytes32 salt;
+        uint256 expiry;
+    }
+    struct InitParams {
+        uint256 limit;
         address admin;
+        DelegationParam delegationParam;
         bool depositPause;
         bool withdrawalPause;
         bool depositWhitelist;
