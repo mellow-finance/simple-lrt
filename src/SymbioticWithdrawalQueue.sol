@@ -53,8 +53,6 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         uint256 epoch = getCurrentEpoch();
 
         AccountData storage accountData = _accountData[account];
-        address this_ = address(this);
-
         assets += _withdrawalsOf(epoch, accountData.sharesToClaim[epoch]);
         epoch += 1;
         assets += _withdrawalsOf(epoch, accountData.sharesToClaim[epoch]);
@@ -174,14 +172,16 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
             return;
         }
         epochData.isClaimed = true;
-        try symbioticVault.claim(address(this), epoch) returns (uint256 claimedAssets) {
-            epochData.claimableAssets = claimedAssets;
-            emit EpochClaimed(epoch, claimedAssets);
-        } catch {
-            // if we failed to claim epoch we assume it is claimed
-            // most likely low funds in epoch got additionally slashed so we can't claim it (error becase of 0 amounts)
-            emit EpochClaimFailed(epoch);
+        address this_ = address(this);
+        if (symbioticVault.isWithdrawalsClaimed(epoch, this_)) {
+            return;
         }
+        if (symbioticVault.withdrawalsOf(epoch, this_) == 0) {
+            return;
+        }
+        uint256 claimedAssets = symbioticVault.claim(this_, epoch);
+        epochData.claimableAssets = claimedAssets;
+        emit EpochClaimed(epoch, claimedAssets);
     }
 
     function _claimable(AccountData storage accountData, uint256 epoch)

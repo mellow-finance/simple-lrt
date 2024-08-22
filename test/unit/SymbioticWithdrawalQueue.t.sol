@@ -546,6 +546,15 @@ contract Unit is BaseTest {
             withdrawalQueue.claim(user1, user1, amount1 / 2);
 
             assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "user1: pendingAssets");
+
+            uint256 epoch = SymbioticWithdrawalQueue(address(withdrawalQueue)).getCurrentEpoch() - 1;
+            bytes32 slot = bytes32(uint256(keccak256(bytes.concat(bytes32(epoch), bytes32(0)))));
+            vm.store(address(withdrawalQueue), slot, bytes32(0));
+
+            vm.prank(user1);
+            SymbioticWithdrawalQueue(address(withdrawalQueue)).pull(epoch);
+
+            assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "user1: pendingAssets");
         }
     }
 
