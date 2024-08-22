@@ -17,8 +17,7 @@ contract Unit is BaseTest {
     uint48 epochDuration = 3600;
 
     function testEthDeposit() external {
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(

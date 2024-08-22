@@ -25,8 +25,7 @@ contract Unit is BaseTest {
     function testWithdrawalQueue() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
@@ -126,8 +125,7 @@ contract Unit is BaseTest {
     function testWithdrawalQueueMultipleRequests() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
@@ -224,8 +222,7 @@ contract Unit is BaseTest {
     function testCurrentEpoch() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
@@ -276,8 +273,7 @@ contract Unit is BaseTest {
     function testPendingAssets() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
@@ -341,8 +337,7 @@ contract Unit is BaseTest {
     function testBalanceOf() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
@@ -419,8 +414,7 @@ contract Unit is BaseTest {
     function testPendingAssetsOf() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
@@ -558,8 +552,7 @@ contract Unit is BaseTest {
     function testClaimableAssetsOf() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
@@ -640,8 +633,7 @@ contract Unit is BaseTest {
     function testRequest() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
@@ -705,8 +697,7 @@ contract Unit is BaseTest {
     function testPull() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
@@ -773,8 +764,7 @@ contract Unit is BaseTest {
     function testClaim() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
@@ -850,8 +840,7 @@ contract Unit is BaseTest {
     function testHandlePendingEpochs() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(

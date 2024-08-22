@@ -13,15 +13,15 @@ import {MellowSymbioticVault} from "./MellowSymbioticVault.sol";
     2. At the same time, the old _totalSupply decreases. This allows tracking how many balances still need to be migrated.
     3. Once the old _totalSupply reaches zero, further migration to MellowSymbioticVault can be performed. This will remove unnecessary checks.
 */
-contract EthVaultCompat is IEthVaultCompat, MellowSymbioticVault {
+contract MellowVaultCompat is IEthVaultCompat, MellowSymbioticVault {
     // ERC20 slots
     mapping(address account => uint256) private _balances;
     mapping(address account => mapping(address spender => uint256)) private _allowances;
 
     uint256 private _totalSupply;
 
-    constructor() MellowSymbioticVault("EthVaultV1", 1) {}
-    
+    constructor(bytes32 name_, uint256 version_) MellowSymbioticVault(name_, version_) {}
+
     // decreases with migrations
     // when it becomes zero -> we can migrate to MellowSymbioticVault
     function compatTotalSupply() external view returns (uint256) {
