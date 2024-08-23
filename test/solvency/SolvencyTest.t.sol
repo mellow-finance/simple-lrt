@@ -15,7 +15,9 @@ contract SolvencyTest is BaseTest {
     function testSolvency() external {
         /*
             1. deploy
-
+            2. random transitions + validation
+            3. finalization
+            4. final validation
         */
     }
 }
