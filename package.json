@@ -5,6 +5,7 @@
   "repository": "https://github.com/mellow-finance/simple-lrt",
   "scripts": {
     "prettier": "forge fmt",
+    "test:eigen": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20591111 --match-path ./test/eigen/\\*",
     "test": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2160000",
     "compile": "forge build",
     "sizes": "forge build --sizes",

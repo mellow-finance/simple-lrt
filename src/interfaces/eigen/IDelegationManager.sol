@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.5.0;
 
-import "./IStrategy.sol";
 import "./ISignatureUtils.sol";
+import "./IStrategy.sol";
 
 /**
  * @title DelegationManager
@@ -112,10 +112,14 @@ interface IDelegationManager is ISignatureUtils {
     event OperatorMetadataURIUpdated(address indexed operator, string metadataURI);
 
     /// @notice Emitted whenever an operator's shares are increased for a given strategy. Note that shares is the delta in the operator's shares.
-    event OperatorSharesIncreased(address indexed operator, address staker, IStrategy strategy, uint256 shares);
+    event OperatorSharesIncreased(
+        address indexed operator, address staker, IStrategy strategy, uint256 shares
+    );
 
     /// @notice Emitted whenever an operator's shares are decreased for a given strategy. Note that shares is the delta in the operator's shares.
-    event OperatorSharesDecreased(address indexed operator, address staker, IStrategy strategy, uint256 shares);
+    event OperatorSharesDecreased(
+        address indexed operator, address staker, IStrategy strategy, uint256 shares
+    );
 
     /// @notice Emitted when @param staker delegates to @param operator.
     event StakerDelegated(address indexed staker, address indexed operator);
@@ -140,7 +144,9 @@ interface IDelegationManager is ISignatureUtils {
     event MinWithdrawalDelayBlocksSet(uint256 previousValue, uint256 newValue);
 
     /// @notice Emitted when the `strategyWithdrawalDelayBlocks` variable is modified from `previousValue` to `newValue`.
-    event StrategyWithdrawalDelayBlocksSet(IStrategy strategy, uint256 previousValue, uint256 newValue);
+    event StrategyWithdrawalDelayBlocksSet(
+        IStrategy strategy, uint256 previousValue, uint256 newValue
+    );
 
     /**
      * @notice Registers the caller as an operator in EigenLayer.
@@ -321,10 +327,10 @@ interface IDelegationManager is ISignatureUtils {
     /**
      * @notice Given array of strategies, returns array of shares for the operator
      */
-    function getOperatorShares(
-        address operator,
-        IStrategy[] memory strategies
-    ) external view returns (uint256[] memory);
+    function getOperatorShares(address operator, IStrategy[] memory strategies)
+        external
+        view
+        returns (uint256[] memory);
 
     /**
      * @notice Given a list of strategies, return the minimum number of blocks that must pass to withdraw
@@ -360,7 +366,10 @@ interface IDelegationManager is ISignatureUtils {
      * @dev Salts are used in the `delegateTo` and `delegateToBySignature` functions. Note that these functions only process the delegationApprover's
      * signature + the provided salt if the operator being delegated to has specified a nonzero address as their `delegationApprover`.
      */
-    function delegationApproverSaltIsSpent(address _delegationApprover, bytes32 salt) external view returns (bool);
+    function delegationApproverSaltIsSpent(address _delegationApprover, bytes32 salt)
+        external
+        view
+        returns (bool);
 
     /**
      * @notice Minimum delay enforced by this contract for completing queued withdrawals. Measured in blocks, and adjustable by this contract's owner,
@@ -444,5 +453,8 @@ interface IDelegationManager is ISignatureUtils {
     function cumulativeWithdrawalsQueued(address staker) external view returns (uint256);
 
     /// @notice Returns the keccak256 hash of `withdrawal`.
-    function calculateWithdrawalRoot(Withdrawal memory withdrawal) external pure returns (bytes32);
+    function calculateWithdrawalRoot(Withdrawal memory withdrawal)
+        external
+        pure
+        returns (bytes32);
 }

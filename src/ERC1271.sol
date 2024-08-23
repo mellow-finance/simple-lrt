@@ -5,14 +5,18 @@ import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 
 contract ERC1271 {
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
-    bytes4 constant internal MAGIC_VALUE = 0x1626ba7e;
+    bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
 
     /**
      * @dev Should return whether the signature provided is valid for the provided data
      * @param hash      Hash of the data to be signed
      * @param signature Signature byte array associated with _data
      */
-    function isValidSignature(bytes32 hash, bytes memory signature) external view returns (bytes4 magicValue) {
+    function isValidSignature(bytes32 hash, bytes memory signature)
+        external
+        view
+        returns (bytes4 magicValue)
+    {
         if (recoverSigner(hash, signature) == address(this)) {
             return MAGIC_VALUE;
         } else {
@@ -25,18 +29,21 @@ contract ERC1271 {
      * @dev Only for EthSign signatures
      * @param _hash       Hash of message that was signed
      * @param _signature  Signature encoded as (bytes32 r, bytes32 s, uint8 v)
-    */
-    function recoverSigner(
-        bytes32 _hash,
-        bytes memory _signature
-        ) internal pure returns (address signer) {
-        require(_signature.length == 65, "SignatureValidator#recoverSigner: invalid signature length");
+     */
+    function recoverSigner(bytes32 _hash, bytes memory _signature)
+        internal
+        pure
+        returns (address signer)
+    {
+        require(
+            _signature.length == 65, "SignatureValidator#recoverSigner: invalid signature length"
+        );
 
         // Variables are not scoped in Solidity.
-        uint8 v;   // = uint8(_signature[64]);
+        uint8 v; // = uint8(_signature[64]);
         bytes32 r; // = _signature.readBytes32(0);
         bytes32 s; // = _signature.readBytes32(32);
-        
+
         assembly {
             v := byte(0, mload(add(_signature, 0x41)))
             r := mload(add(_signature, 0x20))
@@ -68,10 +75,7 @@ contract ERC1271 {
         signer = ecrecover(_hash, v, r, s);
 
         // Prevent signer from being 0x0
-        require(
-            signer != address(0x0),
-            "SignatureValidator#recoverSigner: INVALID_SIGNER"
-        );
+        require(signer != address(0x0), "SignatureValidator#recoverSigner: INVALID_SIGNER");
 
         return signer;
     }
