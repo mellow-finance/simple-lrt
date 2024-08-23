@@ -258,10 +258,4 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, ERC4626Vault, ERC1271 
             assets += 1;
         }
     }
-
-    /// @notice Internal function used to fetch this contract's current balance of `underlyingToken`.
-    // slither-disable-next-line dead-code
-    function _tokenBalance() internal view virtual returns (uint256) {
-        return IERC20(asset()).balanceOf(strategy);
-    }
 }
