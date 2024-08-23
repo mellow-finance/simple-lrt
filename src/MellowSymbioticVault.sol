@@ -92,7 +92,6 @@ contract MellowSymbioticVault is
         uint256 assets,
         uint256 shares
     ) internal virtual override {
-        require(!withdrawalPause(), "Vault: withdrawal paused");
         address this_ = address(this);
 
         uint256 liquid = IERC20(asset()).balanceOf(this_);
@@ -102,7 +101,7 @@ contract MellowSymbioticVault is
 
         uint256 staked = assets - liquid;
         symbioticVault().withdraw(address(withdrawalQueue()), staked);
-        withdrawalQueue().request(owner, staked);
+        withdrawalQueue().request(receiver, staked);
 
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
@@ -115,10 +114,6 @@ contract MellowSymbioticVault is
 
         // emitting event with transfered + new pending assets
         emit Withdraw(caller, receiver, owner, assets, shares);
-    }
-
-    function _update(address from, address to, uint256 value) internal virtual override {
-        super._update(from, to, value);
     }
 
     // withdrawalQueue proxy functions
@@ -149,21 +144,23 @@ contract MellowSymbioticVault is
         uint256 assetAmount = asset_.balanceOf(this_);
         ISymbioticVault symbioticVault = symbioticVault();
 
-        if (assetAmount != 0) {
-            if (symbioticVault.isDepositLimit()) {
-                uint256 symbioticVaultTotalStake = symbioticVault.totalStake();
-                uint256 symbioticVaultLimit = symbioticVault.depositLimit();
-                if (symbioticVaultTotalStake >= symbioticVaultLimit) {
-                    return 0;
-                }
-                assetAmount = assetAmount.min(symbioticVaultLimit - symbioticVaultTotalStake);
-            }
+        if (assetAmount == 0) {
+            return 0;
+        }
 
-            asset_.safeIncreaseAllowance(address(symbioticVault), assetAmount);
-            (symbioticVaultStaked,) = symbioticVault.deposit(this_, assetAmount);
-            if (assetAmount != symbioticVaultStaked) {
-                asset_.forceApprove(address(symbioticVault), 0);
+        if (symbioticVault.isDepositLimit()) {
+            uint256 symbioticVaultTotalStake = symbioticVault.totalStake();
+            uint256 symbioticVaultLimit = symbioticVault.depositLimit();
+            if (symbioticVaultTotalStake >= symbioticVaultLimit) {
+                return 0;
             }
+            assetAmount = assetAmount.min(symbioticVaultLimit - symbioticVaultTotalStake);
+        }
+
+        asset_.safeIncreaseAllowance(address(symbioticVault), assetAmount);
+        (symbioticVaultStaked,) = symbioticVault.deposit(this_, assetAmount);
+        if (assetAmount != symbioticVaultStaked) {
+            asset_.forceApprove(address(symbioticVault), 0);
         }
 
         emit SymbioticPushed(msg.sender, symbioticVaultStaked);

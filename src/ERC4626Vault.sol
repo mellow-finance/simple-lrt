@@ -42,9 +42,6 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
             return 0;
         }
         uint256 limit_ = limit();
-        if (limit_ == type(uint256).max) {
-            return type(uint256).max;
-        }
         uint256 assets_ = totalAssets();
         return limit_ >= assets_ ? limit_ - assets_ : 0;
     }

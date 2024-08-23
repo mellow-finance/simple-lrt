@@ -17,6 +17,8 @@ contract Integration is BaseTest {
     uint48 epochDuration = 3600;
     address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
 
+    uint256 symbioticLimit = 1000 ether;
+
     function testDWFlow() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
@@ -25,12 +27,12 @@ contract Integration is BaseTest {
         ISymbioticVault symbioticVault = ISymbioticVault(
             symbioticHelper.createNewSymbioticVault(
                 SymbioticHelper.CreationParams({
-                    limitIncreaser: limitIncreaser,
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,
                     epochDuration: epochDuration,
                     asset: wsteth,
-                    limit: 1 ether
+                    isDepositLimit: false,
+                    depositLimit: symbioticLimit
                 })
             )
         );
