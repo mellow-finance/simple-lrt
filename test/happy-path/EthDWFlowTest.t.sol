@@ -20,22 +20,23 @@ contract Integration is BaseTest {
     address steth = 0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
     address weth = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
 
+    uint256 symbioticLimit = 1000 ether;
+
     function testEth() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVotesVault singleton =
-            new MellowSymbioticVotesVault("MellowSymbioticVotesVault", 1);
+        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
 
         ISymbioticVault symbioticVault = ISymbioticVault(
             symbioticHelper.createNewSymbioticVault(
                 SymbioticHelper.CreationParams({
-                    limitIncreaser: limitIncreaser,
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,
                     epochDuration: epochDuration,
                     asset: wsteth,
-                    limit: 1 ether
+                    isDepositLimit: false,
+                    depositLimit: symbioticLimit
                 })
             )
         );

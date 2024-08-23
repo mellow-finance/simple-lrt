@@ -26,7 +26,7 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
 
     function symbioticVault() external view returns (ISymbioticVault);
 
-    function currentEpoch() external view returns (uint256);
+    function getCurrentEpoch() external view returns (uint256);
 
     function handlePendingEpochs(address account) external;
 

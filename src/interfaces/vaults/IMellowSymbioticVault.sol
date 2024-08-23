@@ -34,6 +34,34 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
 
     function initialize(InitParams memory initParams) external;
 
+    function setFarm(uint256 farmId, FarmData memory farmData) external;
+
+    // withdrawalQueue proxy functions
+
+    function claimableAssetsOf(address account) external view returns (uint256 claimableAssets);
+
+    function pendingAssetsOf(address account) external view returns (uint256 pendingAssets);
+
+    function claim(address account, address recipient, uint256 maxAmount)
+        external
+        returns (uint256);
+    // symbiotic functions
+
+    function pushIntoSymbiotic() external returns (uint256 symbioticVaultStaked);
+
+    function pushRewards(uint256 farmId, bytes calldata symbioticRewardsData) external;
+    // helper functions
+
+    function getBalances(address account)
+        external
+        view
+        returns (
+            uint256 accountAssets,
+            uint256 accountInstantAssets,
+            uint256 accountShares,
+            uint256 accountInstantShares
+        );
+
     event RewardsPushed(
         uint256 indexed farmId, uint256 rewardAmount, uint256 curatorFee, uint256 timestamp
     );

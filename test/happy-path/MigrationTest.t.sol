@@ -19,13 +19,13 @@ contract Integration is BaseTest {
 
     uint256 symbioticLimit = 1000 ether;
 
-    function testDWFlow() external {
+    function testMigration() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
-        MellowSymbioticVault mellowSymbioticVault = new MellowSymbioticVault(bytes32(uint256(1)), 1);
-
+        MellowVaultCompat mellowSymbioticVault =
+            new MellowVaultCompat(keccak256("MellowSymbioticVault"), 1);
         ISymbioticVault symbioticVault = ISymbioticVault(
-            symbioticHelper.createNewSymbioticVault(
+            symbioticHelper.createSlashingSymbioticVault(
                 SymbioticHelper.CreationParams({
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,

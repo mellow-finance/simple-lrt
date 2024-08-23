@@ -10,12 +10,12 @@ import {SymbioticContracts} from "./SymbioticContracts.sol";
 
 contract SymbioticHelper {
     struct CreationParams {
-        address limitIncreaser;
         address vaultOwner;
         address vaultAdmin;
         uint48 epochDuration;
         address asset;
-        uint256 limit;
+        bool isDepositLimit;
+        uint256 depositLimit;
     }
 
     SymbioticContracts public immutable symbioticContracts;
@@ -39,8 +39,8 @@ contract SymbioticHelper {
                     burner: address(0),
                     epochDuration: params.epochDuration,
                     depositWhitelist: false,
-                    isDepositLimit: false,
-                    depositLimit: 0,
+                    isDepositLimit: params.isDepositLimit,
+                    depositLimit: params.depositLimit,
                     defaultAdminRoleHolder: params.vaultAdmin,
                     depositWhitelistSetRoleHolder: params.vaultAdmin,
                     depositorWhitelistRoleHolder: params.vaultAdmin,
@@ -71,8 +71,8 @@ contract SymbioticHelper {
                     burner: address(0),
                     epochDuration: params.epochDuration,
                     depositWhitelist: false,
-                    isDepositLimit: false,
-                    depositLimit: 0,
+                    isDepositLimit: params.isDepositLimit,
+                    depositLimit: params.depositLimit,
                     defaultAdminRoleHolder: params.vaultAdmin,
                     depositWhitelistSetRoleHolder: params.vaultAdmin,
                     depositorWhitelistRoleHolder: params.vaultAdmin,

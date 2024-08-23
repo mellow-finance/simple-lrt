@@ -49,7 +49,7 @@ contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
         return _entities.length;
     }
 
-    function isEntity_(address entity) external view returns (bool) {
+    function isEntity(address entity) external view returns (bool) {
         return _isEntity[entity];
     }
 
