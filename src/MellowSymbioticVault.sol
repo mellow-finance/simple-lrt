@@ -100,8 +100,8 @@ contract MellowSymbioticVault is
         }
 
         uint256 staked = assets - liquid;
+        withdrawalQueue().request(receiver, convertToShares(staked));
         symbioticVault().withdraw(address(withdrawalQueue()), staked);
-        withdrawalQueue().request(receiver, staked);
 
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
@@ -145,6 +145,10 @@ contract MellowSymbioticVault is
         ISymbioticVault symbioticVault = symbioticVault();
 
         if (assetAmount == 0) {
+            return 0;
+        }
+
+        if (symbioticVault.depositWhitelist() && !symbioticVault.isDepositorWhitelisted(this_)) {
             return 0;
         }
 

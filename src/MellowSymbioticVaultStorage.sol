@@ -50,6 +50,10 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
         return _symbioticStorage().farmIds.at(index);
     }
 
+    function symbioticFarmsContains(uint256 farmId) public view returns (bool) {
+        return _symbioticStorage().farmIds.contains(farmId);
+    }
+
     function symbioticFarm(uint256 farmId) public view returns (FarmData memory) {
         return _symbioticStorage().farms[farmId];
     }
