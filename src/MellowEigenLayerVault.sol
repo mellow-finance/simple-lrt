@@ -197,6 +197,8 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
         uint256 claimed;
 
         uint256 balanceBefore = IERC20(asset()).balanceOf(address(this));
+        uint256 eigenLayerClaimWithdrawalsMax = eigenLayerClaimWithdrawalsMax();
+
         for (uint256 i = 0; i < withdrawalData.length; i++) {
             if (withdrawalData[i].startBlock + minWithdrawalDelayBlocks <= block.number) {
                 eigenLayerDelegationManager().completeQueuedWithdrawal(
@@ -204,6 +206,9 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
                 );
                 delete _withdrawals[account][i];
                 claimed += 1;
+            }
+            if (claimed >= eigenLayerClaimWithdrawalsMax) {
+                break;
             }
         }
         require(claimed > 0, "Vault: nothing to claim");

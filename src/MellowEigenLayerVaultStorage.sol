@@ -27,6 +27,7 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
         _setEigenLayerStrategyManager(eigenLayerStorage.strategyManager);
         _setEigenLayerStrategy(eigenLayerStorage.strategy);
         _setEigenLayerStrategyOperator(eigenLayerStorage.operator);
+        _setEigenLayerClaimWithdrawalsMax(eigenLayerStorage.claimWithdrawalsMax);
     }
 
     function eigenLayerDelegationManager() public view returns (IDelegationManager) {
@@ -43,6 +44,10 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
 
     function eigenLayerStrategyOperator() public view returns (address) {
         return _eigenLayerStorage().operator;
+    }
+
+    function eigenLayerClaimWithdrawalsMax() public view returns (uint256) {
+        return _eigenLayerStorage().claimWithdrawalsMax;
     }
 
     function _setEigenLayerDelegationManager(IDelegationManager _delegationManager) internal {
@@ -67,6 +72,12 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
         EigenLayerStorage storage s = _eigenLayerStorage();
         s.operator = _operator;
         emit EigenLayerStrategyOperatorSet(address(_operator), block.timestamp);
+    }
+    
+    function _setEigenLayerClaimWithdrawalsMax(uint256 _claimWithdrawalsMax) internal {
+        EigenLayerStorage storage s = _eigenLayerStorage();
+        s.claimWithdrawalsMax = _claimWithdrawalsMax;
+        emit EigenLayerClaimWithdrawalsMaxSet(_claimWithdrawalsMax, block.timestamp);
     }
 
     function _eigenLayerStorage() private view returns (EigenLayerStorage storage $) {
