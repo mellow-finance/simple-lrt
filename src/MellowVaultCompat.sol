@@ -16,9 +16,9 @@ import {MellowSymbioticVault} from "./MellowSymbioticVault.sol";
 contract MellowVaultCompat is IEthVaultCompat, MellowSymbioticVault {
     // ERC20 slots
     mapping(address account => uint256) private _balances;
-    mapping(address account => mapping(address spender => uint256)) private _allowances;
-
+    bytes32 private _gap;
     uint256 private _totalSupply;
+    bytes32[16] private _reserved;
 
     constructor(bytes32 name_, uint256 version_) MellowSymbioticVault(name_, version_) {}
 
@@ -29,11 +29,8 @@ contract MellowVaultCompat is IEthVaultCompat, MellowSymbioticVault {
     }
 
     function migrateMultiple(address[] calldata users) external {
-        for (uint256 i = 0; i < users.length;) {
+        for (uint256 i = 0; i < users.length; ++i) {
             migrate(users[i]);
-            unchecked {
-                i++;
-            }
         }
     }
 
@@ -47,6 +44,7 @@ contract MellowVaultCompat is IEthVaultCompat, MellowSymbioticVault {
         unchecked {
             _totalSupply -= balance;
         }
+        emit Transfer(user, address(0), balance);
         _mint(user, balance);
     }
 

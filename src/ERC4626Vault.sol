@@ -28,7 +28,14 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         override(ERC4626Upgradeable, IERC4626)
         returns (uint256)
     {
-        return convertToShares(maxDeposit(account));
+        if (depositPause()) {
+            return 0;
+        }
+        uint256 assets = maxDeposit(account);
+        if (assets == type(uint256).max) {
+            return type(uint256).max;
+        }
+        return convertToShares(assets);
     }
 
     function maxDeposit(address account)
@@ -38,12 +45,44 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         override(ERC4626Upgradeable, IERC4626)
         returns (uint256)
     {
+        if (depositPause()) {
+            return 0;
+        }
         if (depositWhitelist() && !isDepositorWhitelisted(account)) {
             return 0;
         }
         uint256 limit_ = limit();
+        if (limit_ == type(uint256).max) {
+            return type(uint256).max;
+        }
         uint256 assets_ = totalAssets();
         return limit_ >= assets_ ? limit_ - assets_ : 0;
+    }
+
+    function maxWithdraw(address account)
+        public
+        view
+        virtual
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
+        if (withdrawalPause()) {
+            return 0;
+        }
+        return super.maxWithdraw(account);
+    }
+
+    function maxRedeem(address account)
+        public
+        view
+        virtual
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
+        if (withdrawalPause()) {
+            return 0;
+        }
+        return super.maxRedeem(account);
     }
 
     function deposit(uint256 assets, address receiver, address referral)
@@ -53,49 +92,5 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
     {
         shares = deposit(assets, receiver);
         emit ReferralDeposit(assets, receiver, referral);
-    }
-
-    function deposit(uint256 assets, address receiver)
-        public
-        virtual
-        override(ERC4626Upgradeable, IERC4626)
-        nonReentrant
-        returns (uint256)
-    {
-        require(!depositPause(), "Vault: deposits paused");
-        return super.deposit(assets, receiver);
-    }
-
-    function mint(uint256 shares, address receiver)
-        public
-        virtual
-        override(ERC4626Upgradeable, IERC4626)
-        nonReentrant
-        returns (uint256)
-    {
-        require(!depositPause(), "Vault: deposits paused");
-        return super.mint(shares, receiver);
-    }
-
-    function withdraw(uint256 shares, address receiver, address owner)
-        public
-        virtual
-        override(ERC4626Upgradeable, IERC4626)
-        nonReentrant
-        returns (uint256)
-    {
-        require(!withdrawalPause(), "Vault: withdrawals paused");
-        return super.withdraw(shares, receiver, owner);
-    }
-
-    function redeem(uint256 shares, address receiver, address owner)
-        public
-        virtual
-        override(ERC4626Upgradeable, IERC4626)
-        nonReentrant
-        returns (uint256)
-    {
-        require(!withdrawalPause(), "Vault: withdrawals paused");
-        return super.redeem(shares, receiver, owner);
     }
 }
