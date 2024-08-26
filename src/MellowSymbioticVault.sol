@@ -100,8 +100,8 @@ contract MellowSymbioticVault is
         }
 
         uint256 staked = assets - liquid;
-        withdrawalQueue().request(receiver, convertToShares(staked));
-        symbioticVault().withdraw(address(withdrawalQueue()), staked);
+        (, uint256 requestedShares) = symbioticVault().withdraw(address(withdrawalQueue()), staked);
+        withdrawalQueue().request(receiver, requestedShares);
 
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
