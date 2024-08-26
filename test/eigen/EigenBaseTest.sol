@@ -19,12 +19,14 @@ contract EigenBaseTest is Test {
     address immutable underlyingTokenAddress = address(IStrategy(strategyAddress).underlyingToken());
 
     function setUp() public {
-        IMellowEigenLayerVault.DelegationParam memory delegationParam = IMellowEigenLayerVault
-            .DelegationParam({
-            strategyManager: strategyManagerAddress,
-            delegationManager: delegationManagerAddress,
-            strategy: strategyAddress,
-            operator: operatorAddress,
+        IMellowEigenLayerVault.EigenLayerParam memory eigenLayerParam = IMellowEigenLayerVault
+            .EigenLayerParam({
+                storageParam: IMellowEigenLayerVaultStorage.EigenLayerStorage({
+                    delegationManager: IDelegationManager(delegationManagerAddress),
+                    strategyManager: IStrategyManager(strategyManagerAddress),
+                    strategy: IStrategy(strategyAddress),
+                    operator: operatorAddress
+                }),
             delegationSignature: abi.encode("signature"),
             salt: bytes32(uint256(0x666)),
             expiry: 365 days
@@ -33,7 +35,7 @@ contract EigenBaseTest is Test {
         IMellowEigenLayerVault.InitParams memory initParams = IMellowEigenLayerVault.InitParams({
             limit: 10000 ether,
             admin: admin,
-            delegationParam: delegationParam,
+            eigenLayerParam: eigenLayerParam,
             depositPause: false,
             withdrawalPause: false,
             depositWhitelist: false,

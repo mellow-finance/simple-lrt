@@ -29,7 +29,7 @@ contract DWFlowTest is EigenBaseTest {
         vm.deal(user, 10 ether);
 
         uint256 minWithdrawalDelayBlocks =
-            IDelegationManager(mellowEigenLayerVault.delegationManager()).minWithdrawalDelayBlocks();
+            IDelegationManager(mellowEigenLayerVault.eigenLayerDelegationManager()).minWithdrawalDelayBlocks();
         vm.startPrank(user);
 
         ISTETH(underlyingTokenAddress).submit{value: 1 ether}(user);
