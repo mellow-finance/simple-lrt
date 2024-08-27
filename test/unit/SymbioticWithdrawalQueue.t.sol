@@ -906,7 +906,7 @@ contract Unit is BaseTest {
 
         skip(epochDuration * 2);
         uint256 epoch = withdrawalQueue.getCurrentEpoch() - 1;
-        assertFalse(withdrawalQueue.epochData(epoch).isClaimed);
+        assertFalse(withdrawalQueue.getEpochData(epoch).isClaimed);
 
         assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
         assertEq(
@@ -914,7 +914,7 @@ contract Unit is BaseTest {
         );
 
         withdrawalQueue.handlePendingEpochs(user1);
-        assertTrue(withdrawalQueue.epochData(epoch).isClaimed);
+        assertTrue(withdrawalQueue.getEpochData(epoch).isClaimed);
 
         assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
         assertEq(

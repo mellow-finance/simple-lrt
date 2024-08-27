@@ -20,7 +20,7 @@ import "./IMellowSymbioticVault.sol";
     2. At the same time, the old _totalSupply decreases. This allows tracking how many balances still need to be migrated.
     3. Once the old _totalSupply reaches zero, further migration to MellowSymbioticVault can be performed. This will remove unnecessary checks.
 */
-interface IMellowVaultCompat {
+interface IMellowVaultCompat is IMellowSymbioticVault {
     // decreases with migrations
     // when it becomes zero -> we can migrate to MellowSymbioticVault
     function compatTotalSupply() external view returns (uint256);

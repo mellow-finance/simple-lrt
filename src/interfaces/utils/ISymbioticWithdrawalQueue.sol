@@ -51,10 +51,10 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
      * @param epoch Number of the epoch,
      * @return epochData Specific `EpochData` for the `epoch`.
      */
-    function epochData(uint256 epoch) external view returns (EpochData memory);
+    function getEpochData(uint256 epoch) external view returns (EpochData memory);
 
     /**
-     * @notice Returns total amount of queued `assets`  
+     * @notice Returns total amount of queued `assets`
      * @return assets Amount of `assets` in the queue.
      */
     function pendingAssets() external view returns (uint256);
@@ -66,14 +66,14 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
     function balanceOf(address account) external view returns (uint256);
 
     /**
-     * @notice Returns amount of `asset` that are at the withdrawal queue for the `account`. 
+     * @notice Returns amount of `asset` that are at the withdrawal queue for the `account`.
      * @param account Receiver address.
      * @return assets Amount of `asset` in withdrawal queue and can not be claimed at this time.
      */
     function pendingAssetsOf(address account) external view returns (uint256 assets);
 
     /**
-     * @notice Returns amount of `asset` that can be claimed for the `account`. 
+     * @notice Returns amount of `asset` that can be claimed for the `account`.
      * @param account Receiver address.
      * @return assets Amount of `asset` that can be claimed.
      */
@@ -81,9 +81,9 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
 
     /**
      * @notice Pushes to the Withdrawal Queue the withdraw `amount` from `account`.
-     * @param account Address of the account to be withdrawn. 
+     * @param account Address of the account to be withdrawn.
      * @param amount Amount of assets  to be withdrawn.
-     * 
+     *
      * @custom:effects
      * - Emits WithdrawalRequested event.
      */
@@ -93,7 +93,7 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
      * @notice Claims assets from the Simbiotic vault in favor of the Withdrawal Queue till the epoch `epoch`.
      * @dev Pulls only requested amount of assets.
      * @param epoch Number of the epoch.
-     * 
+     *
      * @custom:effects
      * - Emits EpochClaimed event.
      */
@@ -101,7 +101,7 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
 
     /**
      * @notice Finalizes process for the requested withdrawal in favor of `recipient`.
-     * @param account Address of the account to be withdrawn. 
+     * @param account Address of the account to be withdrawn.
      * @param recipient Address of the recipient of withrawing assets.
      * @param maxAmount Maximum of amount of assets to be withdrawn.
      */
@@ -113,7 +113,7 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
      * @notice Claimed from the Simbiotic Vault till the current epoch.
      * @dev Updates `epochData` and `accountData` mappings.
      * @param account Address of the account for which assets will be claimable.
-     * 
+     *
      * @custom:effects
      * - Emits EpochClaimed event.
      */

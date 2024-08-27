@@ -30,7 +30,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     /// @inheritdoc ISymbioticWithdrawalQueue
-    function epochData(uint256 epoch) external view returns (EpochData memory) {
+    function getEpochData(uint256 epoch) external view returns (EpochData memory) {
         return _epochData[epoch];
     }
 
@@ -214,7 +214,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     /**
-     * Returns wheter `epoch` is claimable if `currentEpoch` is current epoch. 
+     * Returns wheter `epoch` is claimable if `currentEpoch` is current epoch.
      * @param epoch Number of epoch to check.
      * @param currentEpoch Nmber of Current epoch.
      */
