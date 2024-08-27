@@ -32,26 +32,79 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
         string symbol;
     }
 
+    /**
+     * @notice Initilize state of the Vault.
+     * @param initParams Struct with initial params.
+     */
     function initialize(InitParams memory initParams) external;
 
+    /**
+     * @notice Set farm for the Vault
+     * @param farmId Id of Farm.
+     * @param farmData Struct with Farm data.
+     */
     function setFarm(uint256 farmId, FarmData memory farmData) external;
 
-    // withdrawalQueue proxy functions
-
+    /**
+     * @notice Returns amount of `asset` that can be claimed for the `account`. 
+     * @param account Receiver address.
+     * @return claimableAssets Amount of `asset` that can be claimed.
+     */
     function claimableAssetsOf(address account) external view returns (uint256 claimableAssets);
 
+    /**
+     * @notice Returns amount of `asset` that are at the withdrawal queue for the `account`. 
+     * @param account Receiver address.
+     * @return pendingAssets Amount of `asset` in withdrawal queue and can not be claimed at this time.
+     */
     function pendingAssetsOf(address account) external view returns (uint256 pendingAssets);
 
+    /**
+     * @notice Finalize withdrawal process for the account and transfer assets to the recipient.
+     * @param account Withdrawal address.
+     * @param recipient Receiver address.
+     * @param maxAmount Maximum amount of assets to withdraw.
+     * @return shares Actual claimed shares.
+     * 
+     * @custom:requirements
+     * - `account` MUST be equal to `msg.sender`
+     * 
+     * @custom:effects
+     * - Finalize withdrawal process and transfers not more than `maxAmount` of `asset` to the `recipient`.
+     */
     function claim(address account, address recipient, uint256 maxAmount)
         external
         returns (uint256);
-    // symbiotic functions
 
+    /**
+     * @notice Pushes all avaliable balance of underlying token into Simbiotic.
+     * @return symbioticVaultStaked Actual staked share inte Simbiotic.
+     * 
+     * @custom:effects
+     * - Transfers whole balance of `asset` of the Vault to the Simbiotic Vault.
+     * - Emits SymbioticPushed event.
+     */
     function pushIntoSymbiotic() external returns (uint256 symbioticVaultStaked);
 
+    /**
+     * @notice Pushes rewards to the Curator of the Vault.
+     * @param farmId Id of Farm.
+     * @param symbioticRewardsData Specific Simbiotic data for claimRewards() method.
+     * 
+     * @custom:effects
+     * - Transfers a part of Simbiotic reward token balance of the Vault to the Curator as fees.
+     * - Emits RewardsPushed event.
+     */
     function pushRewards(uint256 farmId, bytes calldata symbioticRewardsData) external;
-    // helper functions
 
+    /**
+     * @notice Returns all balances for the account.
+     * @param account Account address.
+     * @return accountAssets Total amount of assets belongs to the account.
+     * @return accountInstantAssets Amount of assets that can be withdrawn instantly.
+     * @return accountShares Total amount of shares belongs to the account.
+     * @return accountInstantShares Shares that can be withdrawn instantly.
+     */
     function getBalances(address account)
         external
         view

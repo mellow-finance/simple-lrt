@@ -48,8 +48,7 @@ contract MellowSymbioticVault is
         );
     }
 
-    // setters getters
-
+    /// @inheritdoc IMellowSymbioticVault
     function setFarm(uint256 farmId, FarmData memory farmData) external onlyRole(SET_FARM_ROLE) {
         _setFarmChecks(farmId, farmData);
         _setFarm(farmId, farmData);
@@ -64,7 +63,10 @@ contract MellowSymbioticVault is
         require(farmData.curatorFeeD6 <= D6, "Vault: invalid curator fee");
     }
 
-    // ERC4626 overrides
+    /**
+     * @notice Returns the total amount of the underlying asset that is managed by Vault.
+     * @return assets Whole amount of assets under control of the Vault.
+     */
     function totalAssets()
         public
         view
@@ -76,6 +78,23 @@ contract MellowSymbioticVault is
             + symbioticVault().activeBalanceOf(address(this));
     }
 
+    /**
+     * Deposits `assets` amount of `asset` in favor of the `caller.`
+     * @param caller Address of `msg.sender` who calls top level `deposit` method.
+     * @param receiver Address that will recieve `shares`.
+     * @param assets Amount of `asset` that is deposition into the Vault.
+     * @param shares Amount of shares that will be minted in favor of `receiver`.
+     * 
+     * @custom:requirements
+     * - The `assets` to deposit MUST be greater than 0.
+     * 
+     * @custom:effects
+     * - Transfers `assets` of `asset` to the Vault.
+     * - Mints amount of `shares` in favor of `receiver`.
+     * - Deposits amount of `assets` into Simbiotic Vault.
+     * - Emits Deposit event.
+     * - Emits SymbioticPushed event.
+     */
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
         internal
         virtual
@@ -85,6 +104,22 @@ contract MellowSymbioticVault is
         pushIntoSymbiotic();
     }
 
+    /**
+     * Initializes withdrawal process of `assets` of `owner` in favor of `receiver`.
+     * 
+     * @dev Instatntly transfers a part of `assets` if there is non zero balance of `asset` of the Vault.
+     * @dev If liquid part is less than `assets` then pushes the left amount of shares into the `withdrawalQueue`.
+     * 
+     * @param caller Address of `msg.sender`.
+     * @param receiver Address that will recieve `assets`.
+     * @param owner Address of owner of `shares`.
+     * @param assets Amount of underlying tokens.
+     * @param shares Amount of `shares`.
+     * 
+     * @custom:effects
+     * - Emits Withdraw event.
+     * - Emits WithdrawalRequested event if liquid part is less than `assets` amount.
+     */
     function _withdraw(
         address caller,
         address receiver,
@@ -116,16 +151,17 @@ contract MellowSymbioticVault is
         emit Withdraw(caller, receiver, owner, assets, shares);
     }
 
-    // withdrawalQueue proxy functions
-
+    /// @inheritdoc IMellowSymbioticVault
     function claimableAssetsOf(address account) external view returns (uint256 claimableAssets) {
         claimableAssets = withdrawalQueue().claimableAssetsOf(account);
     }
 
+    /// @inheritdoc IMellowSymbioticVault
     function pendingAssetsOf(address account) external view returns (uint256 pendingAssets) {
         pendingAssets = withdrawalQueue().pendingAssetsOf(account);
     }
 
+    /// @inheritdoc IMellowSymbioticVault
     function claim(address account, address recipient, uint256 maxAmount)
         external
         virtual
@@ -136,8 +172,7 @@ contract MellowSymbioticVault is
         return withdrawalQueue().claim(account, recipient, maxAmount);
     }
 
-    // symbiotic functions
-
+    /// @inheritdoc IMellowSymbioticVault
     function pushIntoSymbiotic() public virtual returns (uint256 symbioticVaultStaked) {
         IERC20 asset_ = IERC20(asset());
         address this_ = address(this);
@@ -170,6 +205,7 @@ contract MellowSymbioticVault is
         emit SymbioticPushed(msg.sender, symbioticVaultStaked);
     }
 
+    /// @inheritdoc IMellowSymbioticVault
     function pushRewards(uint256 farmId, bytes calldata symbioticRewardsData)
         external
         nonReentrant
@@ -198,8 +234,7 @@ contract MellowSymbioticVault is
         emit RewardsPushed(farmId, rewardAmount, curatorFee, block.timestamp);
     }
 
-    // helper functions
-
+    /// @inheritdoc IMellowSymbioticVault
     function getBalances(address account)
         public
         view
@@ -210,10 +245,10 @@ contract MellowSymbioticVault is
             uint256 accountInstantShares
         )
     {
-        uint256 intantAssets = IERC20(asset()).balanceOf(address(this));
+        uint256 instantAssets = IERC20(asset()).balanceOf(address(this));
         accountShares = balanceOf(account);
         accountAssets = convertToAssets(accountShares);
-        accountInstantAssets = accountAssets.min(intantAssets);
+        accountInstantAssets = accountAssets.min(instantAssets);
         accountInstantShares = convertToShares(accountInstantAssets);
     }
 }

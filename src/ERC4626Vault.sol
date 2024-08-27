@@ -5,6 +5,10 @@ import "./interfaces/vaults/IERC4626Vault.sol";
 
 import {VaultControl} from "./VaultControl.sol";
 
+/**
+ * @dev Abstract contract implementation of the ERC4626 "Tokenized Vault Standard", as defined in
+ * https://eips.ethereum.org/EIPS/eip-4626[ERC-4626].
+ */
 abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vault {
     function __initializeERC4626(
         address _admin,
@@ -21,6 +25,10 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         __ERC4626_init(IERC20(_asset));
     }
 
+    /**
+     * @notice Maximum amount of shares that can be minted from the Vault for the receiver, through a mint call.
+     * @param account Receiver address.
+     */
     function maxMint(address account)
         public
         view
@@ -38,6 +46,10 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         return convertToShares(assets);
     }
 
+    /**
+     * @notice Maximum amount of the underlying asset that can be deposited into the Vault for the receiver, through a deposit call.
+     * @param account Receiver address.
+     */
     function maxDeposit(address account)
         public
         view
@@ -59,6 +71,10 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         return limit_ >= assets_ ? limit_ - assets_ : 0;
     }
 
+    /**
+     * @notice Maximum amount of the underlying asset that can be withdrawn from the owner balance in the Vault, through a withdraw call.
+     * @param account Receiver address
+     */
     function maxWithdraw(address account)
         public
         view
@@ -72,6 +88,10 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         return super.maxWithdraw(account);
     }
 
+    /**
+     * @notice Maximum amount of Vault shares that can be redeemed from the owner balance in the Vault, through a redeem call.
+     * @param account Owner address.
+     */
     function maxRedeem(address account)
         public
         view
@@ -85,6 +105,7 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         return super.maxRedeem(account);
     }
 
+    /// @inheritdoc IERC4626Vault
     function deposit(uint256 assets, address receiver, address referral)
         public
         virtual
