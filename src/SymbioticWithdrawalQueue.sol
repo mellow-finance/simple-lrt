@@ -132,7 +132,12 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         _handlePendingEpochs(_accountData[account], getCurrentEpoch());
     }
 
-    // --- internal functions ---
+    /**
+     * @notice Returns amount of `assets` that will be withdrawn for the corresponding `shares`.
+     * @param epoch Number of the Simbiotic epoch.
+     * @param shares Withdrawal shares.
+     * @return assets Amount of assets corresponding to `shares` that will be withdrawn.
+     */
     function _withdrawalsOf(uint256 epoch, uint256 shares) private view returns (uint256) {
         if (shares == 0) {
             return 0;
@@ -208,6 +213,11 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         return _withdrawalsOf(epoch, shares);
     }
 
+    /**
+     * Returns wheter `epoch` is claimable if `currentEpoch` is current epoch. 
+     * @param epoch Number of epoch to check.
+     * @param currentEpoch Nmber of Current epoch.
+     */
     function _isClaimableInSymbiotic(uint256 epoch, uint256 currentEpoch)
         private
         pure
