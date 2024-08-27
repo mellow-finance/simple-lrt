@@ -32,22 +32,27 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
         _setDepositWhitelist(_depositWhitelist);
     }
 
+    /// @inheritdoc IVaultControlStorage
     function depositPause() public view returns (bool) {
         return _vaultStorage().depositPause;
     }
 
+    /// @inheritdoc IVaultControlStorage
     function withdrawalPause() public view returns (bool) {
         return _vaultStorage().withdrawalPause;
     }
 
+    /// @inheritdoc IVaultControlStorage
     function limit() public view returns (uint256) {
         return _vaultStorage().limit;
     }
 
+    /// @inheritdoc IVaultControlStorage
     function depositWhitelist() public view returns (bool) {
         return _vaultStorage().depositWhitelist;
     }
 
+    /// @inheritdoc IVaultControlStorage
     function isDepositorWhitelisted(address account) public view returns (bool) {
         return _vaultStorage().isDepositorWhitelisted[account];
     }

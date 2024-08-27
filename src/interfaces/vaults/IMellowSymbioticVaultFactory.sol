@@ -6,6 +6,8 @@ import {TransparentUpgradeableProxy} from
 
 import {IMellowSymbioticVault} from "./IMellowSymbioticVault.sol";
 
+import {IWithdrawalQueue} from "../utils/IWithdrawalQueue.sol";
+
 interface IMellowSymbioticVaultFactory {
     struct InitParams {
         address proxyAdmin;
@@ -18,6 +20,20 @@ interface IMellowSymbioticVaultFactory {
         string name;
         string symbol;
     }
+
+    function singleton() external view returns (address);
+
+    function create(InitParams memory initParams)
+        external
+        returns (IMellowSymbioticVault vault, IWithdrawalQueue withdrawalQueue);
+
+    function entities() external view returns (address[] memory);
+
+    function entitiesLength() external view returns (uint256);
+
+    function isEntity(address entity) external view returns (bool);
+
+    function entityAt(uint256 index) external view returns (address);
 
     event EntityCreated(address indexed vault, uint256 timestamp);
 }

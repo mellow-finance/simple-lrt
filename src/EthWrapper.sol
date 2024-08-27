@@ -6,9 +6,13 @@ import "./interfaces/utils/IEthWrapper.sol";
 contract EthWrapper is IEthWrapper {
     using SafeERC20 for IERC20;
 
+    /// @inheritdoc IEthWrapper
     address public immutable WETH;
+    /// @inheritdoc IEthWrapper
     address public immutable wstETH;
+    /// @inheritdoc IEthWrapper
     address public immutable stETH;
+    /// @inheritdoc IEthWrapper
     address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     constructor(address WETH_, address wstETH_, address stETH_) {
@@ -55,6 +59,7 @@ contract EthWrapper is IEthWrapper {
 
     receive() external payable {}
 
+    /// @inheritdoc IEthWrapper
     function deposit(
         address depositToken,
         uint256 amount,

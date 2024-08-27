@@ -12,6 +12,16 @@ interface IVaultControlStorage {
         mapping(address account => bool status) isDepositorWhitelisted;
     }
 
+    function depositPause() external view returns (bool);
+
+    function withdrawalPause() external view returns (bool);
+
+    function limit() external view returns (uint256);
+
+    function depositWhitelist() external view returns (bool);
+
+    function isDepositorWhitelisted(address account) external view returns (bool);
+
     event LimitSet(uint256 limit, uint256 timestamp, address sender);
     event DepositPauseSet(bool paused, uint256 timestamp, address sender);
     event WithdrawalPauseSet(bool paused, uint256 timestamp, address sender);

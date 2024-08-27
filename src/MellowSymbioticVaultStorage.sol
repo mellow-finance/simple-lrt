@@ -30,30 +30,37 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
         _setWithdrawalQueue(IWithdrawalQueue(_withdrawalQueue));
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticVault() public view returns (ISymbioticVault) {
         return _symbioticStorage().symbioticVault;
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function withdrawalQueue() public view returns (IWithdrawalQueue) {
         return _symbioticStorage().withdrawalQueue;
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticFarmIds() public view returns (uint256[] memory) {
         return _symbioticStorage().farmIds.values();
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticFarmCount() public view returns (uint256) {
         return _symbioticStorage().farmIds.length();
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticFarmIdAt(uint256 index) public view returns (uint256) {
         return _symbioticStorage().farmIds.at(index);
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticFarmsContains(uint256 farmId) public view returns (bool) {
         return _symbioticStorage().farmIds.contains(farmId);
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticFarm(uint256 farmId) public view returns (FarmData memory) {
         return _symbioticStorage().farms[farmId];
     }

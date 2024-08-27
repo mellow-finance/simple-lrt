@@ -26,11 +26,29 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
 
     function symbioticVault() external view returns (ISymbioticVault);
 
+    function collateral() external view returns (address);
+
     function getCurrentEpoch() external view returns (uint256);
 
-    function handlePendingEpochs(address account) external;
+    function epochData(uint256 epoch) external view returns (EpochData memory);
+
+    function pendingAssets() external view returns (uint256);
+
+    function balanceOf(address account) external view returns (uint256);
+
+    function pendingAssetsOf(address account) external view returns (uint256 assets);
+
+    function claimableAssetsOf(address account) external view returns (uint256 assets);
+
+    function request(address account, uint256 amount) external;
 
     function pull(uint256 epoch) external;
+
+    function claim(address account, address recipient, uint256 maxAmount)
+        external
+        returns (uint256 amount);
+
+    function handlePendingEpochs(address account) external;
 
     event WithdrawalRequested(address account, uint256 epoch, uint256 amount);
     event EpochClaimed(uint256 epoch, uint256 claimedAssets);

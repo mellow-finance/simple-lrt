@@ -8,11 +8,14 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
+    /// @inheritdoc ISymbioticWithdrawalQueue
     address public immutable vault;
+    /// @inheritdoc ISymbioticWithdrawalQueue
     ISymbioticVault public immutable symbioticVault;
+    /// @inheritdoc ISymbioticWithdrawalQueue
     address public immutable collateral;
 
-    mapping(uint256 epoch => EpochData data) private _epochData;
+    mapping(uint256 epoch => EpochData data) public _epochData;
     mapping(address account => AccountData data) private _accountData;
 
     constructor(address _vault, address _symbioticVault) {
@@ -21,12 +24,17 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         collateral = symbioticVault.collateral();
     }
 
+    /// @inheritdoc ISymbioticWithdrawalQueue
     function getCurrentEpoch() public view returns (uint256) {
         return symbioticVault.currentEpoch();
     }
 
-    // --- total balances ---
+    /// @inheritdoc ISymbioticWithdrawalQueue
+    function epochData(uint256 epoch) external view returns (EpochData memory) {
+        return _epochData[epoch];
+    }
 
+    /// @inheritdoc ISymbioticWithdrawalQueue
     function pendingAssets() public view returns (uint256) {
         uint256 epoch = getCurrentEpoch();
         address this_ = address(this);
@@ -34,21 +42,12 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
             + symbioticVault.withdrawalsOf(epoch + 1, this_);
     }
 
-    // --- user balances ---
-
+    /// @inheritdoc ISymbioticWithdrawalQueue
     function balanceOf(address account) public view returns (uint256) {
         return claimableAssetsOf(account) + pendingAssetsOf(account);
     }
 
-    function _withdrawalsOf(uint256 epoch, uint256 shares) private view returns (uint256) {
-        if (shares == 0) {
-            return 0;
-        }
-        return shares.mulDiv(
-            symbioticVault.withdrawalsOf(epoch, address(this)), _epochData[epoch].sharesToClaim
-        );
-    }
-
+    /// @inheritdoc ISymbioticWithdrawalQueue
     function pendingAssetsOf(address account) public view returns (uint256 assets) {
         uint256 epoch = getCurrentEpoch();
 
@@ -58,6 +57,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         assets += _withdrawalsOf(epoch, accountData.sharesToClaim[epoch]);
     }
 
+    /// @inheritdoc ISymbioticWithdrawalQueue
     function claimableAssetsOf(address account) public view returns (uint256 assets) {
         AccountData storage accountData = _accountData[account];
         assets = accountData.claimableAssets;
@@ -73,8 +73,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
     }
 
-    // --- actions ---
-
+    /// @inheritdoc ISymbioticWithdrawalQueue
     function request(address account, uint256 amount) external {
         require(msg.sender == vault, "SymbioticWithdrawalQueue: forbidden");
         if (amount == 0) {
@@ -94,7 +93,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         emit WithdrawalRequested(account, epoch, amount);
     }
 
-    // permissionless functon
+    /// @inheritdoc ISymbioticWithdrawalQueue
     function pull(uint256 epoch) public {
         require(
             _isClaimableInSymbiotic(epoch, getCurrentEpoch()),
@@ -103,6 +102,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         _pullFromSymbioticForEpoch(epoch);
     }
 
+    /// @inheritdoc ISymbioticWithdrawalQueue
     function claim(address account, address recipient, uint256 maxAmount)
         external
         returns (uint256 amount)
@@ -127,12 +127,20 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         emit Claimed(account, recipient, amount);
     }
 
-    // permissionless functon
+    /// @inheritdoc ISymbioticWithdrawalQueue
     function handlePendingEpochs(address account) public {
         _handlePendingEpochs(_accountData[account], getCurrentEpoch());
     }
 
     // --- internal functions ---
+    function _withdrawalsOf(uint256 epoch, uint256 shares) private view returns (uint256) {
+        if (shares == 0) {
+            return 0;
+        }
+        return shares.mulDiv(
+            symbioticVault.withdrawalsOf(epoch, address(this)), _epochData[epoch].sharesToClaim
+        );
+    }
 
     function _handlePendingEpochs(AccountData storage accountData, uint256 currentEpoch) private {
         uint256 epoch = accountData.claimEpoch;

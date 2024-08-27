@@ -21,6 +21,7 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         __ERC4626_init(IERC20(_asset));
     }
 
+    /// @inheritdoc IERC4626
     function maxMint(address account)
         public
         view
@@ -38,6 +39,7 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         return convertToShares(assets);
     }
 
+    /// @inheritdoc IERC4626
     function maxDeposit(address account)
         public
         view
@@ -59,6 +61,7 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         return limit_ >= assets_ ? limit_ - assets_ : 0;
     }
 
+    /// @inheritdoc IERC4626
     function maxWithdraw(address account)
         public
         view
@@ -72,6 +75,7 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         return super.maxWithdraw(account);
     }
 
+    /// @inheritdoc IERC4626
     function maxRedeem(address account)
         public
         view
@@ -85,6 +89,7 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         return super.maxRedeem(account);
     }
 
+    /// @inheritdoc IERC4626Vault
     function deposit(uint256 assets, address receiver, address referral)
         public
         virtual

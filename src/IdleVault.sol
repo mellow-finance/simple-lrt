@@ -8,6 +8,7 @@ import "./interfaces/vaults/IIdleVault.sol";
 contract IdleVault is IIdleVault, ERC4626Vault {
     constructor() VaultControlStorage("IdleVault", 1) {}
 
+    /// @inheritdoc IIdleVault
     function initialize(InitParams memory initParams) external initializer {
         __initializeERC4626(
             initParams.admin,

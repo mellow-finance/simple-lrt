@@ -14,19 +14,16 @@ contract MellowSymbioticVault is
     using SafeERC20 for IERC20;
     using Math for uint256;
 
-    // constants
-
     uint256 private constant D6 = 1e6;
     bytes32 private constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
     bytes32 private constant REMOVE_FARM_ROLE = keccak256("REMOVE_FARM_ROLE");
-
-    // initializer
 
     constructor(bytes32 contractName_, uint256 contractVersion_)
         MellowSymbioticVaultStorage(contractName_, contractVersion_)
         VaultControlStorage(contractName_, contractVersion_)
     {}
 
+    /// @inheritdoc IMellowSymbioticVault
     function initialize(InitParams memory initParams) public virtual initializer {
         __initialize(initParams);
     }
@@ -48,8 +45,7 @@ contract MellowSymbioticVault is
         );
     }
 
-    // setters getters
-
+    /// @inheritdoc IMellowSymbioticVault
     function setFarm(uint256 farmId, FarmData memory farmData) external onlyRole(SET_FARM_ROLE) {
         _setFarmChecks(farmId, farmData);
         _setFarm(farmId, farmData);
@@ -64,7 +60,7 @@ contract MellowSymbioticVault is
         require(farmData.curatorFeeD6 <= D6, "Vault: invalid curator fee");
     }
 
-    // ERC4626 overrides
+    /// @inheritdoc IERC4626
     function totalAssets()
         public
         view
@@ -76,6 +72,7 @@ contract MellowSymbioticVault is
             + symbioticVault().activeBalanceOf(address(this));
     }
 
+    /// @inheritdoc ERC4626Upgradeable
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
         internal
         virtual
@@ -85,6 +82,7 @@ contract MellowSymbioticVault is
         pushIntoSymbiotic();
     }
 
+    /// @inheritdoc ERC4626Upgradeable
     function _withdraw(
         address caller,
         address receiver,
@@ -116,16 +114,17 @@ contract MellowSymbioticVault is
         emit Withdraw(caller, receiver, owner, assets, shares);
     }
 
-    // withdrawalQueue proxy functions
-
+    /// @inheritdoc IMellowSymbioticVault
     function claimableAssetsOf(address account) external view returns (uint256 claimableAssets) {
         claimableAssets = withdrawalQueue().claimableAssetsOf(account);
     }
 
+    /// @inheritdoc IMellowSymbioticVault
     function pendingAssetsOf(address account) external view returns (uint256 pendingAssets) {
         pendingAssets = withdrawalQueue().pendingAssetsOf(account);
     }
 
+    /// @inheritdoc IMellowSymbioticVault
     function claim(address account, address recipient, uint256 maxAmount)
         external
         virtual
@@ -136,8 +135,7 @@ contract MellowSymbioticVault is
         return withdrawalQueue().claim(account, recipient, maxAmount);
     }
 
-    // symbiotic functions
-
+    /// @inheritdoc IMellowSymbioticVault
     function pushIntoSymbiotic() public virtual returns (uint256 symbioticVaultStaked) {
         IERC20 asset_ = IERC20(asset());
         address this_ = address(this);
@@ -170,6 +168,7 @@ contract MellowSymbioticVault is
         emit SymbioticPushed(msg.sender, symbioticVaultStaked);
     }
 
+    /// @inheritdoc IMellowSymbioticVault
     function pushRewards(uint256 farmId, bytes calldata symbioticRewardsData)
         external
         nonReentrant
@@ -198,8 +197,7 @@ contract MellowSymbioticVault is
         emit RewardsPushed(farmId, rewardAmount, curatorFee, block.timestamp);
     }
 
-    // helper functions
-
+    /// @inheritdoc IMellowSymbioticVault
     function getBalances(address account)
         public
         view
@@ -210,10 +208,10 @@ contract MellowSymbioticVault is
             uint256 accountInstantShares
         )
     {
-        uint256 intantAssets = IERC20(asset()).balanceOf(address(this));
+        uint256 instantAssets = IERC20(asset()).balanceOf(address(this));
         accountShares = balanceOf(account);
         accountAssets = convertToAssets(accountShares);
-        accountInstantAssets = accountAssets.min(intantAssets);
+        accountInstantAssets = accountAssets.min(instantAssets);
         accountInstantShares = convertToShares(accountInstantAssets);
     }
 }

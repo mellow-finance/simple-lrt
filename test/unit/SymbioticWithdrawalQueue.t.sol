@@ -829,7 +829,7 @@ contract Unit is BaseTest {
             withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, "stage 1: claimableAssetsOf"
         );
 
-        uint256 currentEpoch = withdrawalQueue.getCurrentEpoch();
+        // uint256 currentEpoch = withdrawalQueue.getCurrentEpoch();
 
         vm.expectRevert();
         withdrawalQueue.claim(user1, user1, amount1 / 2);
@@ -905,15 +905,17 @@ contract Unit is BaseTest {
         assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
 
         skip(epochDuration * 2);
+        uint256 epoch = withdrawalQueue.getCurrentEpoch() - 1;
+        assertFalse(withdrawalQueue.epochData(epoch).isClaimed);
 
         assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
         assertEq(
             withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, "stage 1: claimableAssetsOf"
         );
 
-        uint256 currentEpoch = withdrawalQueue.getCurrentEpoch();
-
         withdrawalQueue.handlePendingEpochs(user1);
+        assertTrue(withdrawalQueue.epochData(epoch).isClaimed);
+
         assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
         assertEq(
             withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, "stage 1: claimableAssetsOf"
