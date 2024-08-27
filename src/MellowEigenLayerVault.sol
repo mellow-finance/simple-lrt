@@ -227,6 +227,39 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
         emit Claimed(account, recipient, claimedAmount);
     }
 
+    function pendingAssetsOf(address account) public view returns (uint256 assets) {
+        return _assetsOf(account, true);
+    }
+
+    function claimableAssetsOf(address account) public view returns (uint256 assets) {
+        return _assetsOf(account, false);
+    }
+
+    function _assetsOf(address account, bool up) internal view returns (uint256 assets) {
+
+        IDelegationManager.Withdrawal[] memory withdrawalData = _withdrawals[account];
+
+        uint256 _block = block.number - eigenLayerDelegationManager().minWithdrawalDelayBlocks();
+
+        uint256 shares;
+        uint256 share;
+
+        for (uint i = 0; i < withdrawalData.length; i++) {
+            share = withdrawalData[i].shares[0];
+            if (up) {
+                if (withdrawalData[i].startBlock > _block) {
+                    shares += share;
+                }
+            } else {
+                if (withdrawalData[i].startBlock <= _block) {
+                    shares += share;
+                }
+            }
+        }
+
+        assets = eigenLayerStrategy().sharesToUnderlyingView(shares);
+    }
+    
     /**
      * @dev Internal conversion function (from assets to shares) with support for rounding direction.
      */
