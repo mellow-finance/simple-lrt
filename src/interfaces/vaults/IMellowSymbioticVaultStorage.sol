@@ -24,6 +24,10 @@ interface IMellowSymbioticVaultStorage {
         mapping(uint256 farmId => FarmData data) farms;
     }
 
+    /**
+     * @notice Returns address of the underlying Symbiotic Vault.
+     * @return address Address of the underlying Symbiotic Vault.
+     */
     function symbioticVault() external view returns (ISymbioticVault);
 
     function withdrawalQueue() external view returns (IWithdrawalQueue);
