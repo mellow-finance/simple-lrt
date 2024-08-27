@@ -152,7 +152,6 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
             eigenLayerDelegationManager().calculateWithdrawalRoot(withdrawalData);
         require(withdrawalRoots[0] == withdrawalRoot, "Vault: withdrawalRoot mismatch");
 
-
         _withdrawals[account].push(withdrawalData);
 
         nonce += 1;
@@ -172,7 +171,6 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
 
         queuedWithdrawalParam.strategies[0] = eigenLayerStrategy();
         queuedWithdrawalParam.shares[0] = shares;
-        queuedWithdrawalParam.withdrawer = address(this);
 
         queuedWithdrawalParams = new IDelegationManager.QueuedWithdrawalParams[](1);
         queuedWithdrawalParams[0] = queuedWithdrawalParam;
@@ -294,5 +292,24 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
         } else if (rounding == Math.Rounding.Ceil) {
             assets += 1;
         }
+    }
+
+    // helper functions
+
+    function getBalances(address account)
+        public
+        view
+        returns (
+            uint256 accountAssets,
+            uint256 accountInstantAssets,
+            uint256 accountShares,
+            uint256 accountInstantShares
+        )
+    {
+        uint256 instantAssets = IERC20(asset()).balanceOf(address(this));
+        accountShares = balanceOf(account);
+        accountAssets = convertToAssets(accountShares);
+        accountInstantAssets = accountAssets.min(instantAssets);
+        accountInstantShares = convertToShares(accountInstantAssets);
     }
 }
