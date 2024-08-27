@@ -110,6 +110,9 @@ contract Unit is BaseTest {
             })
         );
 
+        assertTrue(c.symbioticFarmsContains(1));
+        assertFalse(c.symbioticFarmsContains(2));
+
         IMellowSymbioticVaultStorage.FarmData memory farmData = c.symbioticFarm(1);
         assertEq(farmData.rewardToken, rewardToken1);
         assertEq(farmData.symbioticFarm, symbioticFarm1);
