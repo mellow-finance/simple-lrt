@@ -15,10 +15,10 @@ interface IERC4626Vault is IERC4626 {
      * @param assets Amount of underlying tokens.
      * @param receiver Receiver address.
      * @param referral Refferal address.
-     * 
+     *
      * @custom:requirements
      * - The `assets` to deposit MUST be greater than 0.
-     * 
+     *
      * @custom:effects
      * - Transfers the underlying token with `assets` from the sender to the Vault.
      * - Mints the `shares` of LRT to the `receiver`.
