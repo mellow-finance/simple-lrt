@@ -4,7 +4,7 @@ pragma solidity 0.8.25;
 import "./SymbioticWithdrawalQueue.sol";
 import "./interfaces/utils/IMigrator.sol";
 
-contract Migrator is IMigrator {
+contract TwoStepMigrator is IMigrator {
     /// @inheritdoc IMigrator
     address public immutable singleton;
     /// @inheritdoc IMigrator
@@ -93,7 +93,6 @@ contract Migrator is IMigrator {
             "Migrator: migration delay not passed"
         );
         _migrate(migrationIndex);
-        delete migration[migrationIndex];
         delete timestamps[migrationIndex];
     }
 
@@ -113,9 +112,6 @@ contract Migrator is IMigrator {
 
     function _checkPermissions(Parameters memory params) internal view {
         address this_ = address(this);
-        require(
-            ProxyAdmin(params.proxyAdmin).owner() == this_, "Migrator: ProxyAdmin owner mismatch"
-        );
         bytes32 ADMIN_ROLE = keccak256("admin");
         require(
             IAccessControlEnumerable(params.vault).hasRole(ADMIN_ROLE, this_),
@@ -139,7 +135,6 @@ contract Migrator is IMigrator {
         Parameters memory params = migration[migrationIndex];
         _checkParams(params);
         _checkPermissions(params);
-        IMellowSymbioticVault.InitParams memory initParams = vaultInitParams[migrationIndex];
         IDefaultBondStrategy strategy = IDefaultBondStrategy(params.defaultBondStrategy);
         strategy.processAll();
         address bondModule = strategy.bondModule();
@@ -150,11 +145,14 @@ contract Migrator is IMigrator {
             )
         );
         require(success, "Migrator: DefaultCollateral withdraw failed");
-        ProxyAdmin(params.proxyAdmin).upgradeAndCall(
-            ITransparentUpgradeableProxy(params.vault),
-            singleton,
-            abi.encodeWithSelector(IMellowSymbioticVault.initialize.selector, initParams)
+    }
+
+    function initializeVault(uint256 migrationIndex) external {
+        require(msg.sender == admin, "Migrator: not admin");
+        IMellowSymbioticVault(migration[migrationIndex].vault).initialize(
+            vaultInitParams[migrationIndex]
         );
-        ProxyAdmin(params.proxyAdmin).transferOwnership(params.proxyAdminOwner);
+        delete vaultInitParams[migrationIndex];
+        delete migration[migrationIndex];
     }
 }

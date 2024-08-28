@@ -5,7 +5,6 @@ import "../BaseTest.sol";
 
 contract Integration is BaseTest {
     address symbioticVaultConfigurator;
-    address migratorAdmin = makeAddr("migratorAdmin");
     uint256 migratorDelay = 1 days;
     address symbioticVaultOwner = makeAddr("symbioticVaultOwner");
     address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
@@ -22,12 +21,14 @@ contract Integration is BaseTest {
     address proxyAdmin = 0xd67241F8FA670D1eaEd14b7A17B82819087AE86d;
     address proxyAdminOwner = 0x3995c5a3A74f3B3049fD5DA7C7D7BaB0b581A6e1;
 
-    function testMigrationOnchain() external {
+    address migratorAdmin = proxyAdminOwner;
+
+    function testTwoStepMigrationOnchain() external {
         symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
 
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
-        Migrator migrator = new Migrator(
+        TwoStepMigrator migrator = new TwoStepMigrator(
             address(mellowVaultCompat),
             address(symbioticVaultConfigurator),
             address(migratorAdmin),
@@ -62,11 +63,13 @@ contract Integration is BaseTest {
 
         vm.stopPrank();
 
-        vm.prank(proxyAdminOwner);
-        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
-
-        vm.prank(migratorAdmin);
+        vm.startPrank(migratorAdmin);
         migrator.migrate(migrationIndex);
+        ProxyAdmin(proxyAdmin).upgradeAndCall(
+            ITransparentUpgradeableProxy(mellowLRT), address(mellowVaultCompat), new bytes(0)
+        );
+        migrator.initializeVault(migrationIndex);
+        vm.stopPrank();
 
         MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
     }

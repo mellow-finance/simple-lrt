@@ -65,7 +65,6 @@ interface IMigrator {
         address token;
         address bond;
         address defaultBondStrategy;
-        IMellowSymbioticVault.InitParams initParams;
     }
 
     function singleton() external view returns (address);
@@ -73,7 +72,17 @@ interface IMigrator {
     function admin() external view returns (address);
     function migrationDelay() external view returns (uint256);
     function migrations() external view returns (uint256);
-    function stagedMigrations(uint256 index) external view returns (Parameters memory);
+    function migration(uint256 index)
+        external
+        view
+        returns (
+            address vault,
+            address proxyAdmin,
+            address proxyAdminOwner,
+            address token,
+            address bond,
+            address defaultBondStrategy
+        );
 
     function stageMigration(
         address defaultBondStrategy,
