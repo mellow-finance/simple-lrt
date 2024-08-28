@@ -11,7 +11,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @title IERC4626Vault
  * @notice Extension of the IERC4626 interface that introduces a `deposit` method with an additional referral address parameter.
  * @dev This interface enhances the standard ERC4626 vault by adding referral-based deposits.
- * @dev Also extends the VaultControl interface for managing deposit limits, deposit pause and withdrawal pause. 
+ * @dev Also extends the VaultControl interface for managing deposit limits, deposit pause and withdrawal pause.
  */
 interface IERC4626Vault is IERC4626 {
     /**
