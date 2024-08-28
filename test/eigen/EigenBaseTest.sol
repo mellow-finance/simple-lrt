@@ -21,13 +21,14 @@ contract EigenBaseTest is Test {
     function setUp() public {
         IMellowEigenLayerVault.EigenLayerParam memory eigenLayerParam = IMellowEigenLayerVault
             .EigenLayerParam({
-                storageParam: IMellowEigenLayerVaultStorage.EigenLayerStorage({
-                    delegationManager: IDelegationManager(delegationManagerAddress),
-                    strategyManager: IStrategyManager(strategyManagerAddress),
-                    strategy: IStrategy(strategyAddress),
-                    operator: operatorAddress,
-                    claimWithdrawalsMax: 1
-                }),
+            storageParam: IMellowEigenLayerVaultStorage.EigenLayerStorage({
+                delegationManager: IDelegationManager(delegationManagerAddress),
+                strategyManager: IStrategyManager(strategyManagerAddress),
+                strategy: IStrategy(strategyAddress),
+                operator: operatorAddress,
+                claimWithdrawalsMax: 1,
+                nonce: 0
+            }),
             delegationSignature: abi.encode("signature"),
             salt: bytes32(uint256(0x666)),
             expiry: 365 days

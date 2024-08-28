@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.5.0;
 
-import "./IStrategy.sol";
 import "./IDelegationManager.sol";
+import "./IStrategy.sol";
 
 /**
  * @title Interface for the primary entrypoint for funds into EigenLayer.

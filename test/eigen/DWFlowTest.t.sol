@@ -5,7 +5,6 @@ import "./EigenBaseTest.sol";
 import "src/interfaces/tokens/ISTETH.sol";
 
 contract DWFlowTest is EigenBaseTest {
-
     function testDeposit() public {
         vm.deal(user, 10 ether);
 
@@ -28,8 +27,9 @@ contract DWFlowTest is EigenBaseTest {
     function testDepositWithdraw() public {
         vm.deal(user, 10 ether);
 
-        uint256 minWithdrawalDelayBlocks =
-            IDelegationManager(mellowEigenLayerVault.eigenLayerDelegationManager()).minWithdrawalDelayBlocks();
+        uint256 minWithdrawalDelayBlocks = IDelegationManager(
+            mellowEigenLayerVault.eigenLayerDelegationManager()
+        ).minWithdrawalDelayBlocks();
         vm.startPrank(user);
 
         ISTETH(underlyingTokenAddress).submit{value: 1 ether}(user);
@@ -44,9 +44,12 @@ contract DWFlowTest is EigenBaseTest {
         mellowEigenLayerVault.withdraw(maxAssets, user, user);
 
         console2.log("user vault balance1: ", mellowEigenLayerVault.balanceOf(user));
-        
+
         vm.roll(block.number + minWithdrawalDelayBlocks);
 
+        mellowEigenLayerVault.claim(user, user);
+
+        vm.expectRevert("Vault: no active withdrawals");
         mellowEigenLayerVault.claim(user, user);
 
         console2.log("user stETH balance1: ", IERC20(underlyingTokenAddress).balanceOf(user));

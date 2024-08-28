@@ -15,17 +15,22 @@ interface IMellowEigenLayerVaultStorage {
         IStrategy strategy;
         address operator;
         uint256 claimWithdrawalsMax;
+        uint256 nonce;
     }
 
     function eigenLayerDelegationManager() external view returns (IDelegationManager);
 
     function eigenLayerStrategyManager() external view returns (IStrategyManager);
-    
+
     function eigenLayerStrategy() external view returns (IStrategy);
 
     function eigenLayerStrategyOperator() external view returns (address);
 
     function eigenLayerClaimWithdrawalsMax() external view returns (uint256);
+
+    function eigenLayerNonce() external view returns (uint256);
+
+    event EigenLayerNonceIncreased(uint256 nonce, uint256 timestamp);
 
     event EigenLayerDelegationManagerSet(address delegationManager, uint256 timestamp);
 

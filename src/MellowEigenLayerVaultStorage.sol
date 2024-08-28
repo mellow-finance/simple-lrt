@@ -6,6 +6,10 @@ import "./interfaces/vaults/IMellowEigenLayerVaultStorage.sol";
 abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage, Initializable {
     using EnumerableSet for EnumerableSet.UintSet;
 
+    /**
+     * @dev At the the slot `storageSlotRef` located mapping(address account => IDelegationManager.Withdrawal[])
+     * @dev At the the slot `storageSlotRef`+1 starts EigenLayerStorage struct
+     */
     bytes32 private immutable storageSlotRef;
 
     constructor(bytes32 name_, uint256 version_) {
@@ -14,7 +18,9 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
                 uint256(
                     keccak256(
                         abi.encodePacked(
-                            "mellow.simple-lrt.storage.MellowEigenLayerVaultStorage", name_, version_
+                            "mellow.simple-lrt.storage.MellowEigenLayerVaultStorage",
+                            name_,
+                            version_
                         )
                     )
                 ) - 1
@@ -22,7 +28,10 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
         ) & ~bytes32(uint256(0xff));
     }
 
-    function __initializeMellowEigenLayerVaultStorage(EigenLayerStorage memory eigenLayerStorage) internal onlyInitializing {
+    function __initializeMellowEigenLayerVaultStorage(EigenLayerStorage memory eigenLayerStorage)
+        internal
+        onlyInitializing
+    {
         _setEigenLayerDelegationManager(eigenLayerStorage.delegationManager);
         _setEigenLayerStrategyManager(eigenLayerStorage.strategyManager);
         _setEigenLayerStrategy(eigenLayerStorage.strategy);
@@ -50,6 +59,20 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
         return _eigenLayerStorage().claimWithdrawalsMax;
     }
 
+    function eigenLayerNonce() public view returns (uint256) {
+        return _eigenLayerStorage().nonce;
+    }
+
+    function eigenLayerAccountWithdrawals(address account)
+        public
+        view
+        returns (IDelegationManager.Withdrawal[] memory)
+    {
+        mapping(address account => IDelegationManager.Withdrawal[]) storage s =
+            _getEigenLayerWithdrawalQueue();
+        return s[account];
+    }
+
     function _setEigenLayerDelegationManager(IDelegationManager _delegationManager) internal {
         EigenLayerStorage storage s = _eigenLayerStorage();
         s.delegationManager = _delegationManager;
@@ -73,15 +96,32 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
         s.operator = _operator;
         emit EigenLayerStrategyOperatorSet(address(_operator), block.timestamp);
     }
-    
+
     function _setEigenLayerClaimWithdrawalsMax(uint256 _claimWithdrawalsMax) internal {
         EigenLayerStorage storage s = _eigenLayerStorage();
         s.claimWithdrawalsMax = _claimWithdrawalsMax;
         emit EigenLayerClaimWithdrawalsMaxSet(_claimWithdrawalsMax, block.timestamp);
     }
 
-    function _eigenLayerStorage() private view returns (EigenLayerStorage storage $) {
+    function _increaseEigenLayerNonce() internal {
+        EigenLayerStorage storage s = _eigenLayerStorage();
+        s.nonce += 1;
+        emit EigenLayerNonceIncreased(s.nonce, block.timestamp);
+    }
+
+    function _getEigenLayerWithdrawalQueue()
+        internal
+        view
+        returns (mapping(address account => IDelegationManager.Withdrawal[]) storage withdrawals)
+    {
         bytes32 slot = storageSlotRef;
+        assembly {
+            withdrawals.slot := slot
+        }
+    }
+
+    function _eigenLayerStorage() private view returns (EigenLayerStorage storage $) {
+        bytes32 slot = bytes32(uint256(storageSlotRef) + 1);
         assembly {
             $.slot := slot
         }

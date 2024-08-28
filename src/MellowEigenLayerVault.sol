@@ -9,16 +9,17 @@ import {VaultControl, VaultControlStorage} from "./VaultControl.sol";
 
 import {MellowSymbioticVaultStorage} from "./MellowSymbioticVaultStorage.sol";
 
-import "./interfaces/vaults/IMellowEigenLayerVault.sol";
 import "./MellowEigenLayerVaultStorage.sol";
+import "./interfaces/vaults/IMellowEigenLayerVault.sol";
 
-contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultStorage, ERC4626Vault, ERC1271 {
+contract MellowEigenLayerVault is
+    IMellowEigenLayerVault,
+    MellowEigenLayerVaultStorage,
+    ERC4626Vault,
+    ERC1271
+{
     using SafeERC20 for IERC20;
     using Math for uint256;
-
-    uint256 private nonce;
-
-    mapping(address account => IDelegationManager.Withdrawal[] data) private _withdrawals;
 
     constructor(bytes32 contractName_, uint256 contractVersion_)
         MellowEigenLayerVaultStorage(contractName_, contractVersion_)
@@ -33,7 +34,8 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
         EigenLayerParam memory eigenLayerParam = initParams.eigenLayerParam;
         EigenLayerStorage memory eigenLayerStorageParam = eigenLayerParam.storageParam;
 
-        address underlyingToken = address(IStrategy(eigenLayerStorageParam.strategy).underlyingToken());
+        address underlyingToken =
+            address(IStrategy(eigenLayerStorageParam.strategy).underlyingToken());
         __initializeMellowEigenLayerVaultStorage(eigenLayerStorageParam);
         __initializeERC4626(
             initParams.admin,
@@ -49,7 +51,8 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
         address delegationApprover =
             eigenLayerDelegationManager().delegationApprover(eigenLayerStorageParam.operator);
 
-        IDelegationManager(eigenLayerStorageParam.delegationManager).calculateDelegationApprovalDigestHash(
+        IDelegationManager(eigenLayerStorageParam.delegationManager)
+            .calculateDelegationApprovalDigestHash(
             address(this),
             eigenLayerStorageParam.operator,
             delegationApprover,
@@ -57,8 +60,8 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
             eigenLayerParam.expiry
         );
 
-        ISignatureUtils.SignatureWithExpiry memory signatureWithExpiry =
-            ISignatureUtils.SignatureWithExpiry(eigenLayerParam.delegationSignature, eigenLayerParam.expiry);
+        ISignatureUtils.SignatureWithExpiry memory signatureWithExpiry = ISignatureUtils
+            .SignatureWithExpiry(eigenLayerParam.delegationSignature, eigenLayerParam.expiry);
 
         eigenLayerDelegationManager().delegateTo(
             eigenLayerStorageParam.operator, signatureWithExpiry, eigenLayerParam.salt
@@ -84,7 +87,7 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
     {
         super._deposit(caller, receiver, assets, shares);
 
-        IERC20(asset()).approve(address(eigenLayerStrategyManager()), assets);
+        IERC20(asset()).safeIncreaseAllowance(address(eigenLayerStrategyManager()), assets);
 
         uint256 actualShares = eigenLayerStrategyManager().depositIntoStrategy(
             eigenLayerStrategy(), IERC20(asset()), assets
@@ -128,18 +131,16 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
     }
 
     function _pushToWithdrawalQueue(address account, uint256 stakedAssets) internal {
-
         uint256 stakedShares = previewWithdraw(stakedAssets);
 
-        bytes32[] memory withdrawalRoots = eigenLayerDelegationManager().queueWithdrawals(
-            _getQueuedWithdrawalParams(stakedShares)
-        );
+        bytes32[] memory withdrawalRoots =
+            eigenLayerDelegationManager().queueWithdrawals(_getQueuedWithdrawalParams(stakedShares));
 
         IDelegationManager.Withdrawal memory withdrawalData = IDelegationManager.Withdrawal({
             staker: address(this),
             delegatedTo: eigenLayerStrategyOperator(),
             withdrawer: address(this),
-            nonce: nonce,
+            nonce: eigenLayerNonce(),
             startBlock: uint32(block.number),
             strategies: new IStrategy[](1),
             shares: new uint256[](1)
@@ -152,9 +153,11 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
             eigenLayerDelegationManager().calculateWithdrawalRoot(withdrawalData);
         require(withdrawalRoots[0] == withdrawalRoot, "Vault: withdrawalRoot mismatch");
 
-        _withdrawals[account].push(withdrawalData);
+        mapping(address account => IDelegationManager.Withdrawal[]) storage withdrawals =
+            _getEigenLayerWithdrawalQueue();
+        withdrawals[account].push(withdrawalData);
 
-        nonce += 1;
+        _increaseEigenLayerNonce();
     }
 
     function _getQueuedWithdrawalParams(uint256 shares)
@@ -182,30 +185,48 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
         nonReentrant
         returns (uint256 claimedAmount)
     {
+        uint256 eigenLayerClaimWithdrawalsMax = eigenLayerClaimWithdrawalsMax();
+        return _claim(account, recipient, eigenLayerClaimWithdrawalsMax);
+    }
+
+    function claim(address account, address recipient, uint256 maxWithdrawals)
+        external
+        virtual
+        nonReentrant
+        returns (uint256 claimedAmount)
+    {
+        return _claim(account, recipient, maxWithdrawals);
+    }
+
+    function _claim(address account, address recipient, uint256 maxWithdrawals)
+        internal
+        returns (uint256 claimedAmount)
+    {
         address sender = msg.sender;
         require(sender == account || sender == address(this), "Vault: forbidden");
 
-        IDelegationManager.Withdrawal[] memory withdrawalData = _withdrawals[account];
+        mapping(address account => IDelegationManager.Withdrawal[]) storage withdrawals =
+            _getEigenLayerWithdrawalQueue();
+        IDelegationManager.Withdrawal[] storage withdrawalData = withdrawals[account];
+
         require(withdrawalData.length > 0, "Vault: no active withdrawals");
 
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = IERC20(asset());
-        uint256 minWithdrawalDelayBlocks =
-            eigenLayerDelegationManager().minWithdrawalDelayBlocks();
+        uint256 minWithdrawalDelayBlocks = eigenLayerDelegationManager().minWithdrawalDelayBlocks();
         uint256 claimed;
 
         uint256 balanceBefore = IERC20(asset()).balanceOf(address(this));
-        uint256 eigenLayerClaimWithdrawalsMax = eigenLayerClaimWithdrawalsMax();
 
         for (uint256 i = 0; i < withdrawalData.length; i++) {
             if (withdrawalData[i].startBlock + minWithdrawalDelayBlocks <= block.number) {
                 eigenLayerDelegationManager().completeQueuedWithdrawal(
                     withdrawalData[i], tokens, 0, true
                 );
-                delete _withdrawals[account][i];
+                delete withdrawalData[i];
                 claimed += 1;
             }
-            if (claimed >= eigenLayerClaimWithdrawalsMax) {
+            if (claimed >= maxWithdrawals) {
                 break;
             }
         }
@@ -213,13 +234,13 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
         uint256 balanceAfter = IERC20(asset()).balanceOf(address(this));
 
         if (claimed == withdrawalData.length) {
-            delete _withdrawals[account];
+            delete withdrawals[account];
         }
 
         claimedAmount = balanceAfter - balanceBefore;
 
         if (claimedAmount > 0) {
-            IERC20(asset()).transfer(recipient, claimedAmount);
+            IERC20(asset()).safeTransfer(recipient, claimedAmount);
         }
 
         emit Claimed(account, recipient, claimedAmount);
@@ -234,64 +255,52 @@ contract MellowEigenLayerVault is IMellowEigenLayerVault, MellowEigenLayerVaultS
     }
 
     function _assetsOf(address account, bool up) internal view returns (uint256 assets) {
-
-        IDelegationManager.Withdrawal[] memory withdrawalData = _withdrawals[account];
+        mapping(address account => IDelegationManager.Withdrawal[]) storage withdrawals =
+            _getEigenLayerWithdrawalQueue();
 
         uint256 _block = block.number - eigenLayerDelegationManager().minWithdrawalDelayBlocks();
 
+        IDelegationManager.Withdrawal memory withdrawal;
         uint256 shares;
-        uint256 share;
 
-        for (uint i = 0; i < withdrawalData.length; i++) {
-            share = withdrawalData[i].shares[0];
+        for (uint256 i = 0; i < withdrawals[account].length; i++) {
+            withdrawal = withdrawals[account][i];
             if (up) {
-                if (withdrawalData[i].startBlock > _block) {
-                    shares += share;
+                if (withdrawal.startBlock > _block) {
+                    shares += withdrawal.shares[0];
                 }
             } else {
-                if (withdrawalData[i].startBlock <= _block) {
-                    shares += share;
+                if (withdrawal.startBlock <= _block) {
+                    shares += withdrawal.shares[0];
                 }
             }
         }
 
         assets = eigenLayerStrategy().sharesToUnderlyingView(shares);
     }
-    
+
     /**
      * @dev Internal conversion function (from assets to shares) with support for rounding direction.
      */
-    function _convertToShares(uint256 assets, Math.Rounding rounding)
+    function _convertToShares(uint256 assets, Math.Rounding)
         internal
         view
         override
         returns (uint256 shares)
     {
         shares = eigenLayerStrategy().underlyingToSharesView(assets);
-
-        if (shares > 0 && rounding == Math.Rounding.Floor) {
-            shares -= 1;
-        } else if (rounding == Math.Rounding.Ceil) {
-            shares += 1;
-        }
     }
 
     /**
      * @dev Internal conversion function (from shares to assets) with support for rounding direction.
      */
-    function _convertToAssets(uint256 shares, Math.Rounding rounding)
+    function _convertToAssets(uint256 shares, Math.Rounding)
         internal
         view
         override
         returns (uint256 assets)
     {
         assets = eigenLayerStrategy().sharesToUnderlyingView(shares);
-
-        if (assets > 0 && rounding == Math.Rounding.Floor) {
-            assets -= 1;
-        } else if (rounding == Math.Rounding.Ceil) {
-            assets += 1;
-        }
     }
 
     // helper functions
