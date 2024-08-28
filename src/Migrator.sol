@@ -108,7 +108,9 @@ contract Migrator is IMigrator {
         require(msg.sender == admin, "Migrator: not admin");
         require(timestamps[vault] != 0, "Migrator: migration not staged");
         Parameters memory params = _migration[vault];
-        ProxyAdmin(params.proxyAdmin).transferOwnership(params.proxyAdminOwner);
+        if (ProxyAdmin(params.proxyAdmin).owner() == address(this)) {
+            ProxyAdmin(params.proxyAdmin).transferOwnership(params.proxyAdminOwner);
+        }
         delete _migration[vault];
         delete timestamps[vault];
         delete _vaultInitParams[vault];
