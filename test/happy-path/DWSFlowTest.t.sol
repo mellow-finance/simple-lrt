@@ -104,7 +104,7 @@ contract Integration is BaseTest {
             slashing
         */
 
-        IVetoSlasher slasher = IVetoSlasher(symbioticVault.slasher());
+        // IVetoSlasher slasher = IVetoSlasher(symbioticVault.slasher());
 
         // slasher.requestSlash(
         //     subnetwork,

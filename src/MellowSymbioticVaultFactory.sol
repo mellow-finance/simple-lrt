@@ -3,18 +3,20 @@ pragma solidity 0.8.25;
 
 import "./interfaces/vaults/IMellowSymbioticVaultFactory.sol";
 
-import {IWithdrawalQueue, SymbioticWithdrawalQueue} from "./SymbioticWithdrawalQueue.sol";
+import {SymbioticWithdrawalQueue} from "./SymbioticWithdrawalQueue.sol";
 
 contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
-    address public immutable singleton;
-
     mapping(address => bool) private _isEntity;
     address[] private _entities;
+
+    /// @inheritdoc IMellowSymbioticVaultFactory
+    address public immutable singleton;
 
     constructor(address singleton_) {
         singleton = singleton_;
     }
 
+    /// @inheritdoc IMellowSymbioticVaultFactory
     function create(InitParams memory initParams)
         external
         returns (IMellowSymbioticVault vault, IWithdrawalQueue withdrawalQueue)
@@ -41,18 +43,22 @@ contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
         emit EntityCreated(address(vault), block.timestamp);
     }
 
+    /// @inheritdoc IMellowSymbioticVaultFactory
     function entities() external view returns (address[] memory) {
         return _entities;
     }
 
+    /// @inheritdoc IMellowSymbioticVaultFactory
     function entitiesLength() external view returns (uint256) {
         return _entities.length;
     }
 
+    /// @inheritdoc IMellowSymbioticVaultFactory
     function isEntity(address entity) external view returns (bool) {
         return _isEntity[entity];
     }
 
+    /// @inheritdoc IMellowSymbioticVaultFactory
     function entityAt(uint256 index) external view returns (address) {
         return _entities[index];
     }

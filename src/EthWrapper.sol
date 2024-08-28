@@ -6,9 +6,13 @@ import "./interfaces/utils/IEthWrapper.sol";
 contract EthWrapper is IEthWrapper {
     using SafeERC20 for IERC20;
 
+    /// @inheritdoc IEthWrapper
     address public immutable WETH;
+    /// @inheritdoc IEthWrapper
     address public immutable wstETH;
+    /// @inheritdoc IEthWrapper
     address public immutable stETH;
+    /// @inheritdoc IEthWrapper
     address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     constructor(address WETH_, address wstETH_, address stETH_) {
@@ -17,6 +21,16 @@ contract EthWrapper is IEthWrapper {
         stETH = stETH_;
     }
 
+    /**
+     * @notice Wraps `depositToken` into wstETH if possible.
+     * @param depositToken Address of deposit token.
+     * @param amount Amount of `depositToken`.
+     * @return amount Of wstETH after wrapping.
+     *
+     * @custom:requirements
+     * - `depositToken` MUST be one of: ETH, WETH, stETH, wstETH.
+     * - `amount` MUST be grather than 0.
+     */
     function _wrap(address depositToken, uint256 amount) internal returns (uint256) {
         require(amount > 0, "EthWrapper: amount must be greater than 0");
         require(
@@ -55,6 +69,7 @@ contract EthWrapper is IEthWrapper {
 
     receive() external payable {}
 
+    /// @inheritdoc IEthWrapper
     function deposit(
         address depositToken,
         uint256 amount,

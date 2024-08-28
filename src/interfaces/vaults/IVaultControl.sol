@@ -12,4 +12,46 @@ import {ReentrancyGuardUpgradeable} from
 
 import "./IVaultControlStorage.sol";
 
-interface IVaultControl is IVaultControlStorage {}
+/**
+ * @title IVaultControl
+ * @notice Interface defining control of the Vault state.
+ */
+interface IVaultControl is IVaultControlStorage {
+    /**
+     * @notice Sets a new `_limit` for the Vault.
+     * @param _limit New limit.
+     */
+    function setLimit(uint256 _limit) external;
+
+    /**
+     * @notice Pauses any withdrawals.
+     */
+    function pauseWithdrawals() external;
+
+    /**
+     * @notice Unauses withdrawals.
+     */
+    function unpauseWithdrawals() external;
+
+    /**
+     * @notice Pauses any deposits.
+     */
+    function pauseDeposits() external;
+
+    /**
+     * @notice Unauses deposits.
+     */
+    function unpauseDeposits() external;
+
+    /**
+     * @notice Sets `depositWhitelist` to true.
+     */
+    function setDepositWhitelist(bool status) external;
+
+    /**
+     * @notice Sets `status` for the `account` at whitelist,
+     * @param account Address of the account.
+     * @param status A new stataus.
+     */
+    function setDepositorWhitelistStatus(address account, bool status) external;
+}

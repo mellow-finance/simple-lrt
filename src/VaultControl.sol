@@ -11,8 +11,6 @@ abstract contract VaultControl is
     ReentrancyGuardUpgradeable,
     AccessControlEnumerableUpgradeable
 {
-    // roles
-
     bytes32 private constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
     bytes32 private constant PAUSE_WITHDRAWALS_ROLE = keccak256("PAUSE_WITHDRAWALS_ROLE");
     bytes32 private constant UNPAUSE_WITHDRAWALS_ROLE = keccak256("UNPAUSE_WITHDRAWALS_ROLE");
@@ -36,34 +34,39 @@ abstract contract VaultControl is
         __initializeVaultControlStorage(_limit, _depositPause, _withdrawalPause, _depositWhitelist);
     }
 
-    // setters getters
-
+    /// @inheritdoc IVaultControl
     function setLimit(uint256 _limit) external onlyRole(SET_LIMIT_ROLE) {
         _setLimit(_limit);
     }
 
+    /// @inheritdoc IVaultControl
     function pauseWithdrawals() external onlyRole(PAUSE_WITHDRAWALS_ROLE) {
         _setWithdrawalPause(true);
         _revokeRole(PAUSE_WITHDRAWALS_ROLE, _msgSender());
     }
 
+    /// @inheritdoc IVaultControl
     function unpauseWithdrawals() external onlyRole(UNPAUSE_WITHDRAWALS_ROLE) {
         _setWithdrawalPause(false);
     }
 
+    /// @inheritdoc IVaultControl
     function pauseDeposits() external onlyRole(PAUSE_DEPOSITS_ROLE) {
         _setDepositPause(true);
         _revokeRole(PAUSE_DEPOSITS_ROLE, _msgSender());
     }
 
+    /// @inheritdoc IVaultControl
     function unpauseDeposits() external onlyRole(UNPAUSE_DEPOSITS_ROLE) {
         _setDepositPause(false);
     }
 
+    /// @inheritdoc IVaultControl
     function setDepositWhitelist(bool status) external onlyRole(SET_DEPOSIT_WHITELIST_ROLE) {
         _setDepositWhitelist(status);
     }
 
+    /// @inheritdoc IVaultControl
     function setDepositorWhitelistStatus(address account, bool status)
         external
         onlyRole(SET_DEPOSITOR_WHITELIST_STATUS_ROLE)

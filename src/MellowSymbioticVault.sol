@@ -14,19 +14,16 @@ contract MellowSymbioticVault is
     using SafeERC20 for IERC20;
     using Math for uint256;
 
-    // constants
-
     uint256 private constant D6 = 1e6;
     bytes32 private constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
     bytes32 private constant REMOVE_FARM_ROLE = keccak256("REMOVE_FARM_ROLE");
-
-    // initializer
 
     constructor(bytes32 contractName_, uint256 contractVersion_)
         MellowSymbioticVaultStorage(contractName_, contractVersion_)
         VaultControlStorage(contractName_, contractVersion_)
     {}
 
+    /// @inheritdoc IMellowSymbioticVault
     function initialize(InitParams memory initParams) public virtual initializer {
         __initialize(initParams);
     }
@@ -63,10 +60,7 @@ contract MellowSymbioticVault is
         require(farmData.curatorFeeD6 <= D6, "Vault: invalid curator fee");
     }
 
-    /**
-     * @notice Returns the total amount of the underlying asset that is managed by Vault.
-     * @return assets Whole amount of assets under control of the Vault.
-     */
+    /// @inheritdoc IERC4626
     function totalAssets()
         public
         view
@@ -78,23 +72,7 @@ contract MellowSymbioticVault is
             + symbioticVault().activeBalanceOf(address(this));
     }
 
-    /**
-     * Deposits `assets` amount of `asset` in favor of the `caller.`
-     * @param caller Address of `msg.sender` who calls top level `deposit` method.
-     * @param receiver Address that will recieve `shares`.
-     * @param assets Amount of `asset` that is deposition into the Vault.
-     * @param shares Amount of shares that will be minted in favor of `receiver`.
-     * 
-     * @custom:requirements
-     * - The `assets` to deposit MUST be greater than 0.
-     * 
-     * @custom:effects
-     * - Transfers `assets` of `asset` to the Vault.
-     * - Mints amount of `shares` in favor of `receiver`.
-     * - Deposits amount of `assets` into Simbiotic Vault.
-     * - Emits Deposit event.
-     * - Emits SymbioticPushed event.
-     */
+    /// @inheritdoc ERC4626Upgradeable
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
         internal
         virtual
@@ -104,22 +82,7 @@ contract MellowSymbioticVault is
         pushIntoSymbiotic();
     }
 
-    /**
-     * Initializes withdrawal process of `assets` of `owner` in favor of `receiver`.
-     * 
-     * @dev Instatntly transfers a part of `assets` if there is non zero balance of `asset` of the Vault.
-     * @dev If liquid part is less than `assets` then pushes the left amount of shares into the `withdrawalQueue`.
-     * 
-     * @param caller Address of `msg.sender`.
-     * @param receiver Address that will recieve `assets`.
-     * @param owner Address of owner of `shares`.
-     * @param assets Amount of underlying tokens.
-     * @param shares Amount of `shares`.
-     * 
-     * @custom:effects
-     * - Emits Withdraw event.
-     * - Emits WithdrawalRequested event if liquid part is less than `assets` amount.
-     */
+    /// @inheritdoc ERC4626Upgradeable
     function _withdraw(
         address caller,
         address receiver,

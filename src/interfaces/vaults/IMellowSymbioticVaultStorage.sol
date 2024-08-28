@@ -8,6 +8,10 @@ import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
+/**
+ * @title IMellowSymbioticVaultStorage
+ * @notice Interface defining intaraction with storage of the Vault.
+ */
 interface IMellowSymbioticVaultStorage {
     struct FarmData {
         address rewardToken;
@@ -26,9 +30,38 @@ interface IMellowSymbioticVaultStorage {
 
     /**
      * @notice Returns address of the underlying Symbiotic Vault.
-     * @return address Address of the underlying Symbiotic Vault.
      */
     function symbioticVault() external view returns (ISymbioticVault);
+
+    /**
+     * @notice Returns address of the linked withdrawal queue.
+     */
+    function withdrawalQueue() external view returns (IWithdrawalQueue);
+
+    /**
+     * @notice Returns array of the linked farm ids.
+     */
+    function symbioticFarmIds() external view returns (uint256[] memory);
+
+    /**
+     * @notice Returns count of linked Farms.
+     */
+    function symbioticFarmCount() external view returns (uint256);
+
+    /**
+     * @notice Returns address of the linked withdrawal queue.
+     */
+    function symbioticFarmIdAt(uint256 index) external view returns (uint256);
+
+    /**
+     * @notice Returns whether the Vault has `farmId`.
+     */
+    function symbioticFarmsContains(uint256 farmId) external view returns (bool);
+
+    /**
+     * @notice Returns FarmData by `farmId`.
+     */
+    function symbioticFarm(uint256 farmId) external view returns (FarmData memory);
 
     event SymbioticVaultSet(address symbioticVault, uint256 timestamp);
 

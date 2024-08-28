@@ -17,7 +17,7 @@ contract MockSymbioticFarm is IStakerRewards {
         external
     {}
 
-    function claimRewards(address recipient, address token, bytes calldata data) external {
+    function claimRewards(address recipient, address token, bytes calldata /* data */ ) external {
         IERC20(token).transfer(recipient, IERC20(token).balanceOf(address(this)));
     }
 
@@ -195,8 +195,8 @@ contract Unit is BaseTest {
             )
         );
 
-        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue withdrawalQueue) = factory
-            .create(
+        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+        factory.create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
@@ -479,8 +479,8 @@ contract Unit is BaseTest {
             )
         );
 
-        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue withdrawalQueue) = factory
-            .create(
+        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+        factory.create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
@@ -553,8 +553,8 @@ contract Unit is BaseTest {
             )
         );
 
-        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue withdrawalQueue) = factory
-            .create(
+        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+        factory.create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
@@ -598,8 +598,8 @@ contract Unit is BaseTest {
 
         MockSymbioticVault symbioticVault = new MockSymbioticVault();
 
-        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue withdrawalQueue) = factory
-            .create(
+        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+        factory.create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
@@ -651,8 +651,8 @@ contract Unit is BaseTest {
             )
         );
 
-        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue withdrawalQueue) = factory
-            .create(
+        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+        factory.create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,

@@ -6,6 +6,7 @@ import "./interfaces/vaults/IMellowSymbioticVaultStorage.sol";
 abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, Initializable {
     using EnumerableSet for EnumerableSet.UintSet;
 
+    ///@notice The first slot of the storage.
     bytes32 private immutable storageSlotRef;
 
     constructor(bytes32 name_, uint256 version_) {
@@ -22,6 +23,18 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
         ) & ~bytes32(uint256(0xff));
     }
 
+    /**
+     * @notice Initialize storage of the Vault.
+     * @param _symbioticVault Address of the Simbiotic Vault.
+     * @param _withdrawalQueue Address of the Withdrawal queue.
+     *
+     * @custom:requirements
+     * - MUST not be initialized before.
+     *
+     * @custom:effects
+     * - Emits WithdrawalQueueSet event
+     * - Emits SymbioticVaultSet event
+     */
     function __initializeMellowSymbioticVaultStorage(
         address _symbioticVault,
         address _withdrawalQueue
@@ -30,46 +43,75 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
         _setWithdrawalQueue(IWithdrawalQueue(_withdrawalQueue));
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticVault() public view returns (ISymbioticVault) {
         return _symbioticStorage().symbioticVault;
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function withdrawalQueue() public view returns (IWithdrawalQueue) {
         return _symbioticStorage().withdrawalQueue;
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticFarmIds() public view returns (uint256[] memory) {
         return _symbioticStorage().farmIds.values();
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticFarmCount() public view returns (uint256) {
         return _symbioticStorage().farmIds.length();
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticFarmIdAt(uint256 index) public view returns (uint256) {
         return _symbioticStorage().farmIds.at(index);
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticFarmsContains(uint256 farmId) public view returns (bool) {
         return _symbioticStorage().farmIds.contains(farmId);
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticFarm(uint256 farmId) public view returns (FarmData memory) {
         return _symbioticStorage().farms[farmId];
     }
 
+    /**
+     * @notice Sets a new Simbiotic Vault address.
+     * @param _symbioticVault Address the Simbiotic Vault.
+     *
+     * @custom:effects
+     * - Emits SymbioticVaultSet event
+     */
     function _setSymbioticVault(ISymbioticVault _symbioticVault) internal {
         SymbioticStorage storage s = _symbioticStorage();
         s.symbioticVault = _symbioticVault;
         emit SymbioticVaultSet(address(_symbioticVault), block.timestamp);
     }
 
+    /**
+     * @notice Sets a new Withdrawal queue address.
+     * @param _withdrawalQueue Address the Withdrawal queue.
+     *
+     * @custom:effects
+     * - Emits WithdrawalQueueSet event
+     */
     function _setWithdrawalQueue(IWithdrawalQueue _withdrawalQueue) internal {
         SymbioticStorage storage s = _symbioticStorage();
         s.withdrawalQueue = _withdrawalQueue;
         emit WithdrawalQueueSet(address(_withdrawalQueue), block.timestamp);
     }
 
+    /**
+     * @notice Sets a new Farm.
+     * @param farmId Id of a new Farm.
+     * @param farmData Specific data of a new Farm.
+     *
+     * @custom:effects
+     * - Emits FarmSet event
+     */
     function _setFarm(uint256 farmId, FarmData memory farmData) internal {
         SymbioticStorage storage s = _symbioticStorage();
         s.farms[farmId] = farmData;
@@ -81,6 +123,9 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
         emit FarmSet(farmId, farmData, block.timestamp);
     }
 
+    /**
+     * @notice Returns slot `$` of the Simbiotic Vault storage.
+     */
     function _symbioticStorage() private view returns (SymbioticStorage storage $) {
         bytes32 slot = storageSlotRef;
         assembly {

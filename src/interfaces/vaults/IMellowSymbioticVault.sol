@@ -19,6 +19,10 @@ import {ReentrancyGuardUpgradeable} from
 import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 import {IStakerRewards} from "@symbiotic/rewards/interfaces/stakerRewards/IStakerRewards.sol";
 
+/**
+ * @title IMellowSymbioticVault
+ * @notice Interface of the Vault of interaction with underlying Simbiotic Vault.
+ */
 interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
     struct InitParams {
         uint256 limit;
@@ -33,8 +37,11 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
     }
 
     /**
-     * @notice Initilize state of the Vault.
-     * @param initParams Struct with initial params.
+     * @notice Initialize state of the Vault.
+     * @param initParams Struct with initialize params.
+     *
+     * @custom:requirements
+     * - MUST not be initialized at the call.
      */
     function initialize(InitParams memory initParams) external;
 
@@ -42,18 +49,22 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
      * @notice Set farm for the Vault
      * @param farmId Id of Farm.
      * @param farmData Struct with Farm data.
+     *
+     * @custom:requirements
+     * - `FarmData.rewardToken` MUST be Vault or Simbiotic Vault.
+     * - `farmData.curatorFeeD6` MUST be not greather than 10**6.
      */
     function setFarm(uint256 farmId, FarmData memory farmData) external;
 
     /**
-     * @notice Returns amount of `asset` that can be claimed for the `account`. 
+     * @notice Returns amount of `asset` that can be claimed for the `account`.
      * @param account Receiver address.
      * @return claimableAssets Amount of `asset` that can be claimed.
      */
     function claimableAssetsOf(address account) external view returns (uint256 claimableAssets);
 
     /**
-     * @notice Returns amount of `asset` that are at the withdrawal queue for the `account`. 
+     * @notice Returns amount of `asset` that are at the withdrawal queue for the `account`.
      * @param account Receiver address.
      * @return pendingAssets Amount of `asset` in withdrawal queue and can not be claimed at this time.
      */
@@ -65,10 +76,10 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
      * @param recipient Receiver address.
      * @param maxAmount Maximum amount of assets to withdraw.
      * @return shares Actual claimed shares.
-     * 
+     *
      * @custom:requirements
      * - `account` MUST be equal to `msg.sender`
-     * 
+     *
      * @custom:effects
      * - Finalize withdrawal process and transfers not more than `maxAmount` of `asset` to the `recipient`.
      */
@@ -79,7 +90,7 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
     /**
      * @notice Pushes all avaliable balance of underlying token into Simbiotic.
      * @return symbioticVaultStaked Actual staked share inte Simbiotic.
-     * 
+     *
      * @custom:effects
      * - Transfers whole balance of `asset` of the Vault to the Simbiotic Vault.
      * - Emits SymbioticPushed event.
@@ -90,7 +101,7 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
      * @notice Pushes rewards to the Curator of the Vault.
      * @param farmId Id of Farm.
      * @param symbioticRewardsData Specific Simbiotic data for claimRewards() method.
-     * 
+     *
      * @custom:effects
      * - Transfers a part of Simbiotic reward token balance of the Vault to the Curator as fees.
      * - Emits RewardsPushed event.
