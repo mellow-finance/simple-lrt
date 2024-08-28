@@ -22,14 +22,20 @@ contract EthWrapper is IEthWrapper {
     }
 
     /**
-     * @notice Wraps `depositToken` into wstETH if possible.
-     * @param depositToken Address of deposit token.
-     * @param amount Amount of `depositToken`.
-     * @return amount Of wstETH after wrapping.
+     * @notice Wraps the specified `depositToken` into `wstETH` if applicable.
+     * @param depositToken The address of the token being deposited, which must be one of: ETH, WETH, stETH, or wstETH.
+     * @param amount The amount of `depositToken` to be wrapped.
+     * @return The resulting amount of `wstETH` after the wrapping process.
      *
      * @custom:requirements
-     * - `depositToken` MUST be one of: ETH, WETH, stETH, wstETH.
-     * - `amount` MUST be grather than 0.
+     * - `depositToken` MUST be one of the following: ETH, WETH, stETH, or wstETH.
+     * - `amount` MUST be greater than 0.
+     *
+     * @dev The function handles the wrapping of different types of tokens into `wstETH`. If the token is ETH, it is first converted
+     *      to stETH and then wrapped into `wstETH`. If the token is WETH, it is unwrapped to ETH first, and if the token is stETH,
+     *      it is directly wrapped into `wstETH`.
+     *
+     * @dev `msg.value` is expected only when the deposit token is ETH. The function enforces that no ETH is sent for other deposit tokens.
      */
     function _wrap(address depositToken, uint256 amount) internal returns (uint256) {
         require(amount > 0, "EthWrapper: amount must be greater than 0");
@@ -39,18 +45,22 @@ contract EthWrapper is IEthWrapper {
             "EthWrapper: invalid depositToken"
         );
 
+        // If the deposit token is not ETH, ensure no ETH is sent and transfer the deposit tokens from the sender
         if (depositToken != ETH) {
             require(msg.value == 0, "EthWrapper: cannot send ETH with depositToken");
             IERC20(depositToken).safeTransferFrom(msg.sender, address(this), amount);
         } else {
+            // If the deposit token is ETH, ensure the correct ETH amount is sent
             require(msg.value == amount, "EthWrapper: incorrect amount of ETH");
         }
 
+        // Unwrap WETH to ETH if the deposit token is WETH
         if (depositToken == WETH) {
             IWETH(WETH).withdraw(amount);
             depositToken = ETH;
         }
 
+        // Convert ETH to stETH and wrap it to wstETH
         if (depositToken == ETH) {
             (bool success,) = payable(wstETH).call{value: amount}("");
             require(success, "EthWrapper: ETH transfer failed");
@@ -58,6 +68,7 @@ contract EthWrapper is IEthWrapper {
             amount = IERC20(wstETH).balanceOf(address(this));
         }
 
+        // Wrap stETH to wstETH
         if (depositToken == stETH) {
             IERC20(stETH).safeIncreaseAllowance(wstETH, amount);
             amount = IWSTETH(wstETH).wrap(amount);

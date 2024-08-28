@@ -9,9 +9,21 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 
 /**
  * @title IIdleVault
- * @notice
+ * @notice Interface for an Idle Vault that extends the IERC4626Vault standard.
+ *         This contract handles vault initialization with specific parameters.
  */
 interface IIdleVault is IERC4626Vault {
+    /**
+     * @notice Struct to store the initialization parameters for the vault.
+     * @param asset The address of the underlying ERC20 token.
+     * @param limit The maximum limit for deposits.
+     * @param depositPause Flag indicating if deposits are paused.
+     * @param withdrawalPause Flag indicating if withdrawals are paused.
+     * @param depositWhitelist Flag indicating if a whitelist is required for deposits.
+     * @param admin The address of the admin managing the vault.
+     * @param name The name of the vault token.
+     * @param symbol The symbol of the vault token.
+     */
     struct InitParams {
         address asset;
         uint256 limit;
@@ -24,16 +36,22 @@ interface IIdleVault is IERC4626Vault {
     }
 
     /**
-     * @notice Initialize state of the Vault.
-     * @param initParams Struct with initialize params.
+     * @notice Initializes the vault with the provided parameters.
+     * @param initParams A struct containing the initialization parameters.
      *
      * @custom:requirements
-     * - MUST not be initialized at the call.
+     * - The vault MUST not have been initialized previously.
      *
      * @custom:effects
-     * - Emits IdleVaultInitialized event.
+     * - Sets up the initial state of the vault, including asset, limits, pause states, whitelist, and metadata.
+     * - Emits the `IdleVaultInitialized` event.
      */
     function initialize(InitParams memory initParams) external;
 
+    /**
+     * @notice Emitted when the Idle Vault is successfully initialized.
+     * @param initParams The initialization parameters used during setup.
+     * @param timestamp The timestamp when the vault was initialized.
+     */
     event IdleVaultInitialized(InitParams initParams, uint256 timestamp);
 }

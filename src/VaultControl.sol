@@ -20,6 +20,21 @@ abstract contract VaultControl is
     bytes32 private constant SET_DEPOSITOR_WHITELIST_STATUS_ROLE =
         keccak256("SET_DEPOSITOR_WHITELIST_STATUS_ROLE");
 
+    /**
+     * @notice Initializes the vault control settings, including roles, limits, and pause states.
+     * @param _admin The address of the admin who will be granted the `DEFAULT_ADMIN_ROLE`.
+     * @param _limit The initial limit on deposits for the vault.
+     * @param _depositPause A boolean indicating whether deposits should be paused initially.
+     * @param _withdrawalPause A boolean indicating whether withdrawals should be paused initially.
+     * @param _depositWhitelist A boolean indicating whether a deposit whitelist should be enabled initially.
+     *
+     * @dev This function performs the following steps:
+     * - Initializes the reentrancy guard to prevent reentrancy attacks.
+     * - Initializes the access control system, setting up roles and permissions.
+     * - Grants the `DEFAULT_ADMIN_ROLE` to the specified `_admin` address.
+     * - Initializes the vault control storage with the specified limits, pause states, and whitelist configuration.
+     * - This function is intended to be called during the initialization phase and is protected by the `onlyInitializing` modifier.
+     */
     function __initializeVaultControl(
         address _admin,
         uint256 _limit,

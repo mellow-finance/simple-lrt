@@ -11,123 +11,136 @@ import {IWithdrawalQueue} from "./IWithdrawalQueue.sol";
 
 /**
  * @title ISymbioticWithdrawalQueue
- * @notice Handle withdrawal process from Simbiotic Vault.
- * It is a specific extension of IWithdrawalQueue for interacting with Simbiotic Vault.
+ * @notice Interface to handle the withdrawal process from the Symbiotic Vault.
+ * @dev This interface is an extension of IWithdrawalQueue for interacting specifically with the Symbiotic Vault.
  */
 interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
+    /**
+     * @notice Struct to hold epoch-related data.
+     * @param isClaimed Indicates whether the epoch has been claimed.
+     * @param sharesToClaim The amount of shares to be claimed.
+     * @param claimableAssets The amount of assets that can be claimed.
+     */
     struct EpochData {
         bool isClaimed;
         uint256 sharesToClaim;
         uint256 claimableAssets;
     }
 
+    /**
+     * @notice Struct to store account-related data for withdrawals.
+     * @param sharesToClaim A mapping of epochs to shares to be claimed for a given epoch.
+     * @param claimableAssets The total amount of assets that can be claimed.
+     * @param claimEpoch The most recent epoch requested for withdrawal.
+     */
     struct AccountData {
-        mapping(uint256 epoch => uint256 shares) sharesToClaim;
+        mapping(uint256 => uint256) sharesToClaim;
         uint256 claimableAssets;
         uint256 claimEpoch;
     }
 
     /**
-     * @notice Returns address of the linked Vault.
-     * @return vault Address of the linked Vault.
+     * @notice Returns the address of the associated MellowSymbioticVault.
+     * @return vault The address of the MellowSymbioticVault.
      */
     function vault() external view returns (address);
 
     /**
-     * @notice Returns address of the underlying Simbiotic Vault.
-     * @return simbioticVault Address of the underlying Simbiotic Vault.
+     * @notice Returns the address of the associated Symbiotic Vault.
+     * @return symbioticVault The address of the Symbiotic Vault.
      */
     function symbioticVault() external view returns (ISymbioticVault);
 
     /**
-     * @notice Returns address of the collateral token.
-     * @return collateralAddress Address of the collateral token.
+     * @notice Returns the address of the collateral token used by the vault.
+     * @dev The collateral token is the same as the vault's asset.
+     * @return collateralAddress The address of the collateral token.
      */
     function collateral() external view returns (address);
 
     /**
-     * @notice Returns current epoch of the Simbiotic Vault.
-     * @return currentEpoch Current epoch of the Simbiotic Vault.
+     * @notice Returns the current epoch of the Symbiotic Vault.
+     * @return currentEpoch The current epoch of the Symbiotic Vault.
      */
     function getCurrentEpoch() external view returns (uint256);
 
     /**
-     * @notice Returns `EpochData` for `epoch`.
-     * @param epoch Number of the epoch,
-     * @return epochData Specific `EpochData` for the `epoch`.
+     * @notice Returns the data for a specific epoch.
+     * @param epoch The epoch number to retrieve data for.
+     * @return epochData The data for the specified epoch.
      */
     function getEpochData(uint256 epoch) external view returns (EpochData memory);
 
     /**
-     * @notice Returns total amount of queued `assets`
-     * @return assets Amount of `assets` in the queue.
+     * @notice Returns the total amount of pending assets awaiting withdrawal.
+     * @dev This amount may decrease due to slashing events in the Symbiotic Vault.
+     * @return assets The total amount of assets pending withdrawal.
      */
     function pendingAssets() external view returns (uint256);
 
     /**
-     * @notice Returns total balance of `account` in the queue, both pendinf and claimable.
-     * @param account Address of the account.
+     * @notice Returns the total balance of an account in the withdrawal queue, both pending and claimable.
+     * @param account The address of the account.
+     * @return assets The total balance of the account in the withdrawal queue.
      */
     function balanceOf(address account) external view returns (uint256);
 
     /**
-     * @notice Returns amount of `asset` that are at the withdrawal queue for the `account`.
-     * @param account Receiver address.
-     * @return assets Amount of `asset` in withdrawal queue and can not be claimed at this time.
+     * @notice Returns the amount of assets in the withdrawal queue for a specific account that cannot be claimed yet.
+     * @param account The address of the account.
+     * @return assets The amount of pending assets in the withdrawal queue for the account.
      */
     function pendingAssetsOf(address account) external view returns (uint256 assets);
 
     /**
-     * @notice Returns amount of `asset` that can be claimed for the `account`.
-     * @param account Receiver address.
-     * @return assets Amount of `asset` that can be claimed.
+     * @notice Returns the amount of assets that can be claimed by an account.
+     * @param account The address of the account.
+     * @return assets The amount of assets claimable by the account.
      */
     function claimableAssetsOf(address account) external view returns (uint256 assets);
 
     /**
-     * @notice Pushes to the Withdrawal Queue the withdraw `amount` from `account`.
-     * @param account Address of the account to be withdrawn.
-     * @param amount Amount of assets  to be withdrawn.
-     *
-     * @custom:effects
-     * - Emits WithdrawalRequested event.
+     * @notice Adds a withdrawal request for a specific account and amount to the queue.
+     * @param account The address of the account requesting withdrawal.
+     * @param amount The amount of assets to withdraw.
+     * @dev Emits a WithdrawalRequested event.
      */
     function request(address account, uint256 amount) external;
 
     /**
-     * @notice Claims assets from the Simbiotic vault in favor of the Withdrawal Queue till the epoch `epoch`.
-     * @dev Pulls only requested amount of assets.
-     * @param epoch Number of the epoch.
-     *
-     * @custom:effects
-     * - Emits EpochClaimed event.
+     * @notice Claims assets from the Symbiotic Vault for a specified epoch to the Withdrawal Queue address.
+     * @param epoch The epoch number.
+     * @dev Emits an EpochClaimed event.
      */
     function pull(uint256 epoch) external;
 
     /**
-     * @notice Finalizes process for the requested withdrawal in favor of `recipient`.
-     * @param account Address of the account to be withdrawn.
-     * @param recipient Address of the recipient of withrawing assets.
-     * @param maxAmount Maximum of amount of assets to be withdrawn.
+     * @notice Finalizes the withdrawal process for a specific account and transfers assets to the recipient.
+     * @param account The address of the account requesting the withdrawal.
+     * @param recipient The address of the recipient receiving the withdrawn assets.
+     * @param maxAmount The maximum amount of assets to withdraw.
+     * @return amount The actual amount of assets withdrawn.
      */
     function claim(address account, address recipient, uint256 maxAmount)
         external
         returns (uint256 amount);
 
     /**
-     * @notice Claims assets from the Simbiotic Vault at `account` `claimEpoch` and `claimEpoch`-1.
-     * @dev Updates `epochData` and `accountData` mappings.
-     * @dev In case `account` `claimEpoch` is zero, nothing is claimed.
-     * @dev In case `account` `claimEpoch` is not zero, it claims for `claimEpoch` and `claimEpoch`-1.
-     * @param account Address of the account for which assets will be claimable.
-     *
-     * @custom:effects
-     * - Emits EpochClaimed event.
+     * @notice Handles the pending epochs for a specific account and makes assets claimable for recent epochs.
+     * @param account The address of the account.
+     * @dev Emits an EpochClaimed event.
      */
     function handlePendingEpochs(address account) external;
 
-    event WithdrawalRequested(address account, uint256 epoch, uint256 amount);
-    event EpochClaimed(uint256 epoch, uint256 claimedAssets);
-    event EpochClaimFailed(uint256 epoch);
-    event Claimed(address account, address recipient, uint256 amount);
+    /// @notice Emitted when a withdrawal request is created.
+    event WithdrawalRequested(address indexed account, uint256 indexed epoch, uint256 amount);
+
+    /// @notice Emitted when assets are successfully claimed for a specific epoch.
+    event EpochClaimed(uint256 indexed epoch, uint256 claimedAssets);
+
+    /// @notice Emitted when claiming assets for a specific epoch fails.
+    event EpochClaimFailed(uint256 indexed epoch);
+
+    /// @notice Emitted when assets are successfully withdrawn and transferred to a recipient.
+    event Claimed(address indexed account, address indexed recipient, uint256 amount);
 }

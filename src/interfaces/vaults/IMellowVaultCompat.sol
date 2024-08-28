@@ -14,30 +14,34 @@ import "./IMellowSymbioticVault.sol";
 
 /**
  * @title IMellowVaultCompat
- * @notice  @notice This contract is an intermediate step in the migration from mellow-lrt/src/Vault.sol to simple-lrt/src/MellowSymbioticVault.sol.
- *
- * @dev  Migration *ogic:
- *   1. On every transfer/mint/burn, the _update function is called, which transfers the user's balance from the old storage slot to the new one.
- *   2. At the same time, the old _totalSupply decreases. This allows tracking how many balances still need to be migrated.
- *   3. Once the old _totalSupply reaches zero, further migration to MellowSymbioticVault can be performed. This will remove unnecessary checks.
+ * @notice This interface facilitates the migration of vaults from the older Mellow Vault to the newer Mellow Symbiotic Vault.
+ * @dev Migration logic includes transferring user balances from old storage to new storage and gradually decreasing the old `_totalSupply`.
+ *      Once the old `_totalSupply` reaches zero, full migration to `MellowSymbioticVault` can be completed, removing redundant checks.
  */
 interface IMellowVaultCompat is IMellowSymbioticVault {
     /**
-     * @notice Reflects current totalSupply of migrating Vault
-     * @dev Decreases with migrations.
-     * @dev when it becomes zero -> we can migrate to MellowSymbioticVault.
+     * @notice Returns the current total supply of the migrating vault.
+     * @dev The total supply decreases as users are migrated to the new vault.
+     *      When it reaches zero, complete migration to the `MellowSymbioticVault` can be finalized.
+     * @return compatTotalSupply The remaining total supply of the migrating vault.
      */
     function compatTotalSupply() external view returns (uint256);
 
     /**
-     * @notice Migrates balances of `users` from default ERC20 stores to ERC20Upgradeable stores.
-     * @param users Array of user addresses to migrate.
+     * @notice Migrates the balances of multiple users from the old ERC20 storage to the new ERC20Upgradeable storage.
+     * @param users An array of addresses corresponding to the users whose balances are being migrated.
+     *
+     * @custom:effects
+     * - Transfers the user balances from the old vault storage to the new storage.
      */
     function migrateMultiple(address[] calldata users) external;
 
     /**
-     * @notice Migrates user balance from default ERC20 stores to ERC20Upgradeable stores.
-     * @param user Address of migrating user.
+     * @notice Migrates the balance of a single user from the old ERC20 storage to the new ERC20Upgradeable storage.
+     * @param user The address of the user whose balance is being migrated.
+     *
+     * @custom:effects
+     * - Transfers the user's balance from the old vault storage to the new storage.
      */
     function migrate(address user) external;
 }

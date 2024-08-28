@@ -24,16 +24,17 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
     }
 
     /**
-     * @notice Initialize storage of the Vault.
-     * @param _symbioticVault Address of the Simbiotic Vault.
-     * @param _withdrawalQueue Address of the Withdrawal queue.
+     * @notice Initializes the storage of the Mellow Symbiotic Vault.
+     * @param _symbioticVault The address of the underlying Symbiotic Vault.
+     * @param _withdrawalQueue The address of the associated Withdrawal Queue.
      *
      * @custom:requirements
-     * - MUST not be initialized before.
+     * - This function MUST be called only once, during the initialization phase (i.e., it MUST not have been initialized before).
      *
      * @custom:effects
-     * - Emits WithdrawalQueueSet event
-     * - Emits SymbioticVaultSet event
+     * - Sets the Symbiotic Vault address and the Withdrawal Queue address in storage.
+     * - Emits the `SymbioticVaultSet` event, signaling that the Symbiotic Vault has been successfully set.
+     * - Emits the `WithdrawalQueueSet` event, signaling that the Withdrawal Queue has been successfully set.
      */
     function __initializeMellowSymbioticVaultStorage(
         address _symbioticVault,
@@ -79,11 +80,12 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
     }
 
     /**
-     * @notice Sets a new Simbiotic Vault address.
-     * @param _symbioticVault Address the Simbiotic Vault.
+     * @notice Sets a new Symbiotic Vault address in the vault's storage.
+     * @param _symbioticVault The address of the new Symbiotic Vault to be set.
      *
      * @custom:effects
-     * - Emits SymbioticVaultSet event
+     * - Updates the Symbiotic Vault address in the storage.
+     * - Emits the `SymbioticVaultSet` event with the new Symbiotic Vault address and the current timestamp.
      */
     function _setSymbioticVault(ISymbioticVault _symbioticVault) internal {
         SymbioticStorage storage s = _symbioticStorage();
@@ -92,11 +94,12 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
     }
 
     /**
-     * @notice Sets a new Withdrawal queue address.
-     * @param _withdrawalQueue Address the Withdrawal queue.
+     * @notice Sets a new Withdrawal Queue address in the vault's storage.
+     * @param _withdrawalQueue The address of the new Withdrawal Queue to be set.
      *
      * @custom:effects
-     * - Emits WithdrawalQueueSet event
+     * - Updates the Withdrawal Queue address in storage.
+     * - Emits the `WithdrawalQueueSet` event with the new Withdrawal Queue address and the current timestamp.
      */
     function _setWithdrawalQueue(IWithdrawalQueue _withdrawalQueue) internal {
         SymbioticStorage storage s = _symbioticStorage();
@@ -105,12 +108,15 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
     }
 
     /**
-     * @notice Sets a new Farm.
-     * @param farmId Id of a new Farm.
-     * @param farmData Specific data of a new Farm.
+     * @notice Sets a new Farm with the provided `farmId` and `farmData` in the vault's storage.
+     * @param farmId The ID of the farm to be added or updated.
+     * @param farmData The data structure containing details of the new or updated farm.
      *
      * @custom:effects
-     * - Emits FarmSet event
+     * - Updates the storage with the provided `farmData` for the given `farmId`.
+     * - Adds the `farmId` to the list of active farm IDs if the farm has a valid reward token address.
+     * - Removes the `farmId` from the list of active farm IDs if the reward token address is zero.
+     * - Emits the `FarmSet` event with the `farmId`, `farmData`, and the current timestamp.
      */
     function _setFarm(uint256 farmId, FarmData memory farmData) internal {
         SymbioticStorage storage s = _symbioticStorage();
@@ -124,7 +130,10 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
     }
 
     /**
-     * @notice Returns slot `$` of the Simbiotic Vault storage.
+     * @notice Accesses the Symbiotic Vault storage slot.
+     * @return $ A reference to the SymbioticStorage struct stored in the specified slot.
+     *
+     * @dev This function uses inline assembly to access a predefined storage slot.
      */
     function _symbioticStorage() private view returns (SymbioticStorage storage $) {
         bytes32 slot = storageSlotRef;
