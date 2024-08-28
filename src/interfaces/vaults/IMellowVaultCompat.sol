@@ -12,21 +12,32 @@ import {
 
 import "./IMellowSymbioticVault.sol";
 
-/*
-    This contract is an intermediate step in the migration from mellow-lrt/src/Vault.sol to simple-lrt/src/MellowSymbioticVault.sol.
-    Migration logic:
-
-    1. On every transfer/mint/burn, the _update function is called, which transfers the user's balance from the old storage slot to the new one.
-    2. At the same time, the old _totalSupply decreases. This allows tracking how many balances still need to be migrated.
-    3. Once the old _totalSupply reaches zero, further migration to MellowSymbioticVault can be performed. This will remove unnecessary checks.
-*/
+/**
+ * @title IMellowVaultCompat
+ * @notice  @notice This contract is an intermediate step in the migration from mellow-lrt/src/Vault.sol to simple-lrt/src/MellowSymbioticVault.sol.
+ *
+ * @dev  Migration *ogic:
+ *   1. On every transfer/mint/burn, the _update function is called, which transfers the user's balance from the old storage slot to the new one.
+ *   2. At the same time, the old _totalSupply decreases. This allows tracking how many balances still need to be migrated.
+ *   3. Once the old _totalSupply reaches zero, further migration to MellowSymbioticVault can be performed. This will remove unnecessary checks.
+ */
 interface IMellowVaultCompat is IMellowSymbioticVault {
-    // decreases with migrations
-    // when it becomes zero -> we can migrate to MellowSymbioticVault
+    /**
+     * @notice Reflects current totalSupply of migrating Vault
+     * @dev Decreases with migrations.
+     * @dev when it becomes zero -> we can migrate to MellowSymbioticVault.
+     */
     function compatTotalSupply() external view returns (uint256);
 
+    /**
+     * @notice Migrates balances of `users` from default ERC20 stores to ERC20Upgradeable stores.
+     * @param users Array of user addresses to migrate.
+     */
     function migrateMultiple(address[] calldata users) external;
 
-    // helps migrate user balance from default ERC20 stores to ERC20Upgradeable stores
+    /**
+     * @notice Migrates user balance from default ERC20 stores to ERC20Upgradeable stores.
+     * @param user Address of migrating user.
+     */
     function migrate(address user) external;
 }

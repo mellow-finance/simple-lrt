@@ -21,6 +21,16 @@ contract EthWrapper is IEthWrapper {
         stETH = stETH_;
     }
 
+    /**
+     * @notice Wraps `depositToken` into wstETH if possible.
+     * @param depositToken Address of deposit token.
+     * @param amount Amount of `depositToken`.
+     * @return amount Of wstETH after wrapping.
+     * 
+     * @custom:requirements
+     * - `depositToken` MUST be one of: ETH, WETH, stETH, wstETH.
+     * - `amount` MUST be grather than 0.
+     */
     function _wrap(address depositToken, uint256 amount) internal returns (uint256) {
         require(amount > 0, "EthWrapper: amount must be greater than 0");
         require(

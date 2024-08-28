@@ -15,7 +15,9 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     /// @inheritdoc ISymbioticWithdrawalQueue
     address public immutable collateral;
 
+    /// @notice Mapping contains claim `EpochData` for epochs.
     mapping(uint256 epoch => EpochData data) public _epochData;
+    ///@notice Mapping contains claim `AccountData` for accounts.
     mapping(address account => AccountData data) private _accountData;
 
     constructor(address _vault, address _symbioticVault) {
@@ -133,7 +135,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     /**
-     * @notice Returns amount of `assets` that will be withdrawn for the corresponding `shares`.
+     * @notice Returns amount of collateral that will be withdrawn for the corresponding `shares` at a given epoch (zero if claimed).
      * @param epoch Number of the Simbiotic epoch.
      * @param shares Withdrawal shares.
      * @return assets Amount of assets corresponding to `shares` that will be withdrawn.
@@ -147,6 +149,20 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         );
     }
 
+    /**
+     * @notice Claims collateral from the Simbiotic Vault at `accountData` `claimEpoch` and `claimEpoch`-1.
+     * @dev Updates `epochData` and `accountData` mappings.
+     * @param accountData Contains specific claim data for the account.
+     * @param currentEpoch Current epoch.
+     * 
+     * @custom:requirements
+     * - In case `accountData` `claimEpoch` is zero, nothing is claiming.
+     * - In case `accountData` `claimEpoch` is not zero, it claims for `claimEpoch` and `claimEpoch`-1.
+     * - Checks whether `claimEpoch` and `claimEpoch`-1 are claimable.
+     * 
+     * @custom:effects
+     * - Emits EpochClaimed event.
+     */
     function _handlePendingEpochs(AccountData storage accountData, uint256 currentEpoch) private {
         uint256 epoch = accountData.claimEpoch;
         if (epoch > 0) {
@@ -155,6 +171,20 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         _handlePendingEpoch(accountData, epoch, currentEpoch);
     }
 
+    /**
+     * @notice Claims collateral from the Simbiotic Vault at `epoch`.
+     * @dev Updates `epochData` and `accountData` mappings.
+     * @param accountData Contains specific claim data for the account.
+     * @param epoch Number epoch to claim at.
+     * @param currentEpoch Current epoch.
+     * 
+     * @custom:requirements
+     * - In case `epoch` is zero, nothing is claimed.
+     * - Checks whether `epoch` is claimable.
+     *
+     * @custom:effects
+     * - Emits EpochClaimed event.
+     */
     function _handlePendingEpoch(
         AccountData storage accountData,
         uint256 epoch,
@@ -179,6 +209,17 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         delete accountData.sharesToClaim[epoch];
     }
 
+    /**
+     * @notice Claims collateral from Simbiotic Vault at given `epoch`.
+     * @param epoch Number epoch to claim at.
+     * 
+     * @custom:requirements
+     * - Checks whether `epoch` is claimed.
+     * - Checks whether there is claimable withdrawals.
+     * 
+     * @custom:effects
+     * - Emits EpochClaimed event.
+     */
     function _pullFromSymbioticForEpoch(uint256 epoch) private {
         EpochData storage epochData = _epochData[epoch];
         if (epochData.isClaimed) {
@@ -197,6 +238,11 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         emit EpochClaimed(epoch, claimedAssets);
     }
 
+    /**
+     * @notice Returns claimable collateral amount for given `accountData`.
+     * @param accountData Contains specific claim data for the account.
+     * @param epoch Number epoch to claim at.
+     */
     function _claimable(AccountData storage accountData, uint256 epoch)
         private
         view

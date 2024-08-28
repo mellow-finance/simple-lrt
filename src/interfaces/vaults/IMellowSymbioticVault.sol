@@ -19,6 +19,10 @@ import {ReentrancyGuardUpgradeable} from
 import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 import {IStakerRewards} from "@symbiotic/rewards/interfaces/stakerRewards/IStakerRewards.sol";
 
+/**
+ * @title IMellowSymbioticVault
+ * @notice Interface of the Vault of interaction with underlying Simbiotic Vault.
+ */
 interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
     struct InitParams {
         uint256 limit;
@@ -33,8 +37,11 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
     }
 
     /**
-     * @notice Initilize state of the Vault.
-     * @param initParams Struct with initial params.
+     * @notice Initialize state of the Vault.
+     * @param initParams Struct with initialize params.
+     * 
+     * @custom:requirements
+     * - MUST not be initialized at the call.
      */
     function initialize(InitParams memory initParams) external;
 
@@ -42,6 +49,10 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
      * @notice Set farm for the Vault
      * @param farmId Id of Farm.
      * @param farmData Struct with Farm data.
+     * 
+     * @custom:requirements
+     * - `FarmData.rewardToken` MUST be Vault or Simbiotic Vault.
+     * - `farmData.curatorFeeD6` MUST be not greather than 10**6.
      */
     function setFarm(uint256 farmId, FarmData memory farmData) external;
 

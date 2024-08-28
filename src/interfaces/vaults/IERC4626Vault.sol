@@ -7,6 +7,10 @@ import {
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+/**
+ * @title IERC4626Vault
+ * @notice Extension of IERC4626 interface. There is added a ne method `deposit` with refferal address parameter.
+ */
 interface IERC4626Vault is IERC4626 {
     event ReferralDeposit(uint256 asset, address reciever, address referral);
 

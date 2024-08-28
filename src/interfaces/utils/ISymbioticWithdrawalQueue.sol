@@ -9,6 +9,11 @@ import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault
 
 import {IWithdrawalQueue} from "./IWithdrawalQueue.sol";
 
+/**
+ * @title ISymbioticWithdrawalQueue
+ * @notice Handle withdrawal process from Simbiotic Vault.
+ * It is a specific extension of IWithdrawalQueue for interacting with Simbiotic Vault.
+ */
 interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
     struct EpochData {
         bool isClaimed;
@@ -110,8 +115,10 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
         returns (uint256 amount);
 
     /**
-     * @notice Claimed from the Simbiotic Vault till the current epoch.
+     * @notice Claims assets from the Simbiotic Vault at `account` `claimEpoch` and `claimEpoch`-1.
      * @dev Updates `epochData` and `accountData` mappings.
+     * @dev In case `account` `claimEpoch` is zero, nothing is claimed.
+     * @dev In case `account` `claimEpoch` is not zero, it claims for `claimEpoch` and `claimEpoch`-1.
      * @param account Address of the account for which assets will be claimable.
      *
      * @custom:effects

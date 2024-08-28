@@ -94,6 +94,10 @@ contract Migrator is IMigrator {
         delete timestamps[migrationIndex];
     }
 
+    /**
+     * @notice Checks correctness of parameters `params`.
+     * @param params Checking parameters.
+     */
     function _checkParams(Parameters memory params) internal view {
         require(params.initParams.withdrawalQueue == address(0), "non-zero withdrawalQueue");
         require(
@@ -115,6 +119,10 @@ contract Migrator is IMigrator {
         }
     }
 
+    /**
+     * @notice Checks necessary permissions for migration process.
+     * @param params Checking parameters.
+     */
     function _checkPermissions(Parameters memory params) internal view {
         address this_ = address(this);
         require(
@@ -139,6 +147,10 @@ contract Migrator is IMigrator {
         );
     }
 
+    /**
+     * @notice Migrates staged migration with `migrationIndex`
+     * @param migrationIndex Index of staged migration.
+     */
     function _migrate(Parameters memory params) internal {
         IDefaultBondStrategy strategy = IDefaultBondStrategy(params.defaultBondStrategy);
         strategy.processAll();
