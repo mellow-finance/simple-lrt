@@ -15,7 +15,11 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 interface IMellowEigenLayerVault is IERC4626Vault {
     struct EigenLayerParam {
-        IMellowEigenLayerVaultStorage.EigenLayerStorage storageParam;
+        IStrategyManager strategyManager;
+        IDelegationManager delegationManager;
+        IStrategy strategy;
+        address operator;
+        uint256 claimWithdrawalsMax;
         bytes delegationSignature;
         bytes32 salt;
         uint256 expiry;

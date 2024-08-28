@@ -32,11 +32,15 @@ contract MellowEigenLayerVault is
 
     function __initialize(InitParams memory initParams) internal virtual onlyInitializing {
         EigenLayerParam memory eigenLayerParam = initParams.eigenLayerParam;
-        EigenLayerStorage memory eigenLayerStorageParam = eigenLayerParam.storageParam;
 
-        address underlyingToken =
-            address(IStrategy(eigenLayerStorageParam.strategy).underlyingToken());
-        __initializeMellowEigenLayerVaultStorage(eigenLayerStorageParam);
+        address underlyingToken = address(IStrategy(eigenLayerParam.strategy).underlyingToken());
+        __initializeMellowEigenLayerVaultStorage(
+            eigenLayerParam.delegationManager,
+            eigenLayerParam.strategyManager,
+            eigenLayerParam.strategy,
+            eigenLayerParam.operator,
+            eigenLayerParam.claimWithdrawalsMax
+        );
         __initializeERC4626(
             initParams.admin,
             initParams.limit,
@@ -49,12 +53,11 @@ contract MellowEigenLayerVault is
         );
 
         address delegationApprover =
-            eigenLayerDelegationManager().delegationApprover(eigenLayerStorageParam.operator);
+            eigenLayerDelegationManager().delegationApprover(eigenLayerParam.operator);
 
-        IDelegationManager(eigenLayerStorageParam.delegationManager)
-            .calculateDelegationApprovalDigestHash(
+        IDelegationManager(eigenLayerParam.delegationManager).calculateDelegationApprovalDigestHash(
             address(this),
-            eigenLayerStorageParam.operator,
+            eigenLayerParam.operator,
             delegationApprover,
             eigenLayerParam.salt,
             eigenLayerParam.expiry
@@ -64,7 +67,7 @@ contract MellowEigenLayerVault is
             .SignatureWithExpiry(eigenLayerParam.delegationSignature, eigenLayerParam.expiry);
 
         eigenLayerDelegationManager().delegateTo(
-            eigenLayerStorageParam.operator, signatureWithExpiry, eigenLayerParam.salt
+            eigenLayerParam.operator, signatureWithExpiry, eigenLayerParam.salt
         );
     }
 

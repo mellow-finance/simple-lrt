@@ -6,10 +6,6 @@ import "./interfaces/vaults/IMellowEigenLayerVaultStorage.sol";
 abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage, Initializable {
     using EnumerableSet for EnumerableSet.UintSet;
 
-    /**
-     * @dev At the the slot `storageSlotRef` located mapping(address account => IDelegationManager.Withdrawal[])
-     * @dev At the the slot `storageSlotRef`+1 starts EigenLayerStorage struct
-     */
     bytes32 private immutable storageSlotRef;
 
     constructor(bytes32 name_, uint256 version_) {
@@ -28,15 +24,18 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
         ) & ~bytes32(uint256(0xff));
     }
 
-    function __initializeMellowEigenLayerVaultStorage(EigenLayerStorage memory eigenLayerStorage)
-        internal
-        onlyInitializing
-    {
-        _setEigenLayerDelegationManager(eigenLayerStorage.delegationManager);
-        _setEigenLayerStrategyManager(eigenLayerStorage.strategyManager);
-        _setEigenLayerStrategy(eigenLayerStorage.strategy);
-        _setEigenLayerStrategyOperator(eigenLayerStorage.operator);
-        _setEigenLayerClaimWithdrawalsMax(eigenLayerStorage.claimWithdrawalsMax);
+    function __initializeMellowEigenLayerVaultStorage(
+        IDelegationManager delegationManager,
+        IStrategyManager strategyManager,
+        IStrategy strategy,
+        address operator,
+        uint256 claimWithdrawalsMax
+    ) internal onlyInitializing {
+        _setEigenLayerDelegationManager(delegationManager);
+        _setEigenLayerStrategyManager(strategyManager);
+        _setEigenLayerStrategy(strategy);
+        _setEigenLayerStrategyOperator(operator);
+        _setEigenLayerClaimWithdrawalsMax(claimWithdrawalsMax);
     }
 
     function eigenLayerDelegationManager() public view returns (IDelegationManager) {
@@ -112,16 +111,14 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
     function _getEigenLayerWithdrawalQueue()
         internal
         view
-        returns (mapping(address account => IDelegationManager.Withdrawal[]) storage withdrawals)
+        returns (mapping(address account => IDelegationManager.Withdrawal[]) storage)
     {
-        bytes32 slot = storageSlotRef;
-        assembly {
-            withdrawals.slot := slot
-        }
+        EigenLayerStorage storage s = _eigenLayerStorage();
+        return s.withdrawals;
     }
 
     function _eigenLayerStorage() private view returns (EigenLayerStorage storage $) {
-        bytes32 slot = bytes32(uint256(storageSlotRef) + 1);
+        bytes32 slot = bytes32(uint256(storageSlotRef));
         assembly {
             $.slot := slot
         }

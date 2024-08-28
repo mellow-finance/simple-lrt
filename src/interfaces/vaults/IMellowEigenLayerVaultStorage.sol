@@ -16,6 +16,7 @@ interface IMellowEigenLayerVaultStorage {
         address operator;
         uint256 claimWithdrawalsMax;
         uint256 nonce;
+        mapping(address account => IDelegationManager.Withdrawal[]) withdrawals;
     }
 
     function eigenLayerDelegationManager() external view returns (IDelegationManager);
