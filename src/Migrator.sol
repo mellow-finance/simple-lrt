@@ -16,12 +16,11 @@ contract Migrator is IMigrator {
     /// @inheritdoc IMigrator
     uint256 public migrations = 0;
 
-    // Mapping to store migration parameters by migration index
-    mapping(uint256 => Parameters) public migration;
-    // Mapping to store migration timestamps by migration index
-    mapping(uint256 => uint256) public timestamps;
-    // Mapping to store vault initialization parameters by migration index
-    mapping(uint256 => IMellowSymbioticVault.InitParams) public vaultInitParams;
+    /// @inheritdoc IMigrator
+    mapping(address vault => uint256) public timestamps;
+
+    mapping(address vault => Parameters) private _migration;
+    mapping(address vault => IMellowSymbioticVault.InitParams) private _vaultInitParams;
 
     /**
      * @notice Constructor to initialize the Migrator contract with the required parameters.
@@ -43,18 +42,33 @@ contract Migrator is IMigrator {
     }
 
     /// @inheritdoc IMigrator
+    function migration(address vault) external view returns (Parameters memory) {
+        return _migration[vault];
+    }
+
+    /// @inheritdoc IMigrator
+    function vaultInitParams(address vault)
+        external
+        view
+        returns (IMellowSymbioticVault.InitParams memory)
+    {
+        return _vaultInitParams[vault];
+    }
+
+    /// @inheritdoc IMigrator
     function stageMigration(
         address defaultBondStrategy,
         address vaultAdmin,
         address proxyAdmin,
         address proxyAdminOwner,
         address symbioticVault
-    ) external returns (uint256 migrationIndex) {
+    ) external {
         require(msg.sender == admin, "Migrator: not admin");
 
         address vault = IDefaultBondStrategy(defaultBondStrategy).vault();
-        address token = IMellowLRT(vault).underlyingTokens()[0];
+        require(timestamps[vault] == 0, "Migrator: migration already staged");
 
+        address token = IMellowLRT(vault).underlyingTokens()[0];
         // Retrieve bond data and ensure valid bond address
         bytes memory bonds = IDefaultBondStrategy(defaultBondStrategy).tokenToData(token);
         IDefaultBondStrategy.Data[] memory data = abi.decode(bonds, (IDefaultBondStrategy.Data[]));
@@ -73,11 +87,9 @@ contract Migrator is IMigrator {
         });
         _checkParams(params);
 
-        migrationIndex = migrations++;
-        migration[migrationIndex] = params;
-
+        _migration[vault] = params;
         // Set vault initialization parameters
-        vaultInitParams[migrationIndex] = IMellowSymbioticVault.InitParams({
+        _vaultInitParams[vault] = IMellowSymbioticVault.InitParams({
             limit: IMellowLRT(vault).configurator().maximalTotalSupply(),
             symbioticVault: symbioticVault,
             withdrawalQueue: address(new SymbioticWithdrawalQueue(vault, symbioticVault)),
@@ -88,29 +100,28 @@ contract Migrator is IMigrator {
             name: IERC20Metadata(vault).name(),
             symbol: IERC20Metadata(vault).symbol()
         });
-
-        timestamps[migrationIndex] = block.timestamp;
+        timestamps[vault] = block.timestamp;
     }
 
     /// @inheritdoc IMigrator
-    function cancelMigration(uint256 migrationIndex) external {
+    function cancelMigration(address vault) external {
         require(msg.sender == admin, "Migrator: not admin");
-        delete migration[migrationIndex];
-        delete vaultInitParams[migrationIndex];
-        delete timestamps[migrationIndex];
+        delete _migration[vault];
+        delete timestamps[vault];
+        delete _vaultInitParams[vault];
     }
 
     /// @inheritdoc IMigrator
-    function migrate(uint256 migrationIndex) external {
+    function migrate(address vault) external {
         require(msg.sender == admin, "Migrator: not admin");
         require(
-            timestamps[migrationIndex] != 0
-                && timestamps[migrationIndex] + migrationDelay <= block.timestamp,
+            timestamps[vault] != 0 && timestamps[vault] + migrationDelay <= block.timestamp,
             "Migrator: migration delay not passed"
         );
-        _migrate(migrationIndex);
-        delete migration[migrationIndex];
-        delete timestamps[migrationIndex];
+        _migrate(vault);
+        delete _migration[vault];
+        delete timestamps[vault];
+        delete _vaultInitParams[vault];
     }
 
     /**
@@ -175,7 +186,7 @@ contract Migrator is IMigrator {
 
     /**
      * @notice Executes the migration process for the specified migration index.
-     * @param migrationIndex The index of the migration to be processed.
+     * @param vault Address of the vault to migrate.
      *
      * @dev This function:
      * - Validates the migration parameters and permissions.
@@ -184,15 +195,15 @@ contract Migrator is IMigrator {
      * - Upgrades the vault to the new implementation and initializes it with the new parameters.
      * - Transfers ownership of the ProxyAdmin contract to the new owner.
      */
-    function _migrate(uint256 migrationIndex) internal {
-        Parameters memory params = migration[migrationIndex];
+    function _migrate(address vault) internal {
+        Parameters memory params = _migration[vault];
 
         // Check migration parameters and permissions
         _checkParams(params);
         _checkPermissions(params);
 
         // Retrieve initialization parameters for the new vault
-        IMellowSymbioticVault.InitParams memory initParams = vaultInitParams[migrationIndex];
+        IMellowSymbioticVault.InitParams memory initParams = _vaultInitParams[vault];
 
         // Process all bond strategies and withdraw collateral from the bond
         IDefaultBondStrategy strategy = IDefaultBondStrategy(params.defaultBondStrategy);
@@ -215,5 +226,18 @@ contract Migrator is IMigrator {
 
         // Transfer ownership of the ProxyAdmin to the new owner
         ProxyAdmin(params.proxyAdmin).transferOwnership(params.proxyAdminOwner);
+    }
+
+    function reassignProxyAdmin(address vault) external {
+        require(msg.sender == admin, "Migrator: not admin");
+        require(
+            timestamps[vault] != 0 && timestamps[vault] + migrationDelay <= block.timestamp,
+            "Migrator: migration delay not passed"
+        );
+        Parameters memory params = _migration[vault];
+        ProxyAdmin(params.proxyAdmin).transferOwnership(params.proxyAdminOwner);
+        delete _migration[vault];
+        delete timestamps[vault];
+        delete _vaultInitParams[vault];
     }
 }
