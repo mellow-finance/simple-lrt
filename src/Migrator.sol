@@ -228,6 +228,7 @@ contract Migrator is IMigrator {
         ProxyAdmin(params.proxyAdmin).transferOwnership(params.proxyAdminOwner);
     }
 
+    /// @inheritdoc IMigrator
     function reassignProxyAdmin(address vault) external {
         require(msg.sender == admin, "Migrator: not admin");
         require(
