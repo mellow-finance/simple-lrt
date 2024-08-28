@@ -161,10 +161,4 @@ interface IMigrator {
      * @param vault The address of the vault being migrated.
      */
     function migrate(address vault) external;
-
-    /**
-     * @notice Reassigns the proxy admin for a given vault after migration.
-     * @param vault The address of the vault whose proxy admin is to be reassigned.
-     */
-    function reassignProxyAdmin(address vault) external;
 }

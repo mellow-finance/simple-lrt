@@ -115,7 +115,7 @@ contract Integration is BaseTest {
         ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
 
         vm.prank(migratorAdmin);
-        migrator.reassignProxyAdmin(mellowLRT);
+        migrator.cancelMigration(mellowLRT);
     }
 }
 

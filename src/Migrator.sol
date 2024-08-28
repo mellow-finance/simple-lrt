@@ -106,6 +106,9 @@ contract Migrator is IMigrator {
     /// @inheritdoc IMigrator
     function cancelMigration(address vault) external {
         require(msg.sender == admin, "Migrator: not admin");
+        require(timestamps[vault] != 0, "Migrator: migration not staged");
+        Parameters memory params = _migration[vault];
+        ProxyAdmin(params.proxyAdmin).transferOwnership(params.proxyAdminOwner);
         delete _migration[vault];
         delete timestamps[vault];
         delete _vaultInitParams[vault];
@@ -226,19 +229,5 @@ contract Migrator is IMigrator {
 
         // Transfer ownership of the ProxyAdmin to the new owner
         ProxyAdmin(params.proxyAdmin).transferOwnership(params.proxyAdminOwner);
-    }
-
-    /// @inheritdoc IMigrator
-    function reassignProxyAdmin(address vault) external {
-        require(msg.sender == admin, "Migrator: not admin");
-        require(
-            timestamps[vault] != 0 && timestamps[vault] + migrationDelay <= block.timestamp,
-            "Migrator: migration delay not passed"
-        );
-        Parameters memory params = _migration[vault];
-        ProxyAdmin(params.proxyAdmin).transferOwnership(params.proxyAdminOwner);
-        delete _migration[vault];
-        delete timestamps[vault];
-        delete _vaultInitParams[vault];
     }
 }
