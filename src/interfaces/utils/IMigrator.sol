@@ -75,6 +75,8 @@ interface IMigrator {
     function migrationDelay() external view returns (uint256);
     function migrations() external view returns (uint256);
 
+    function stagedMigrations(uint256 index) external view returns (Parameters memory);
+
     function stageMigration(
         address defaultBondStrategy,
         address proxyAdmin,

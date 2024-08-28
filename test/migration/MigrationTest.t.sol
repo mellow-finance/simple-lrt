@@ -92,6 +92,67 @@ contract Integration is BaseTest {
         vm.prank(migratorAdmin);
         migrator.migrate(migrationIndex);
     }
+
+    function testMigrationOnchainCheap() external {
+        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+
+        MellowVaultCompat mellowVaultCompat =
+            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
+        Migrator migrator = new Migrator(
+            address(mellowVaultCompat),
+            address(symbioticVaultConfigurator),
+            address(migratorAdmin),
+            migratorDelay
+        );
+
+        IVaultConfigurator.InitParams memory emptyParams;
+        emptyParams.vaultParams.collateral = wsteth;
+        address symbioticVault = symbioticHelper.createNewSymbioticVault(
+            SymbioticHelper.CreationParams({
+                vaultOwner: symbioticVaultOwner,
+                vaultAdmin: symbioticVaultOwner,
+                asset: wsteth,
+                epochDuration: epochDuration,
+                isDepositLimit: false,
+                depositLimit: 0
+            })
+        );
+
+        vm.prank(migratorAdmin);
+        uint256 migrationIndex = migrator.stageMigration(
+            defaultBondStrategy,
+            proxyAdmin,
+            proxyAdminOwner,
+            IMellowSymbioticVault.InitParams({
+                limit: 10000 ether,
+                symbioticVault: symbioticVault,
+                withdrawalQueue: address(0),
+                admin: vaultAdmin,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                name: "Mellow Test ETH",
+                symbol: "mETH (test)"
+            }),
+            emptyParams
+        );
+
+        skip(migratorDelay);
+
+        vm.startPrank(vaultAdmin);
+        bytes32 ADMIN_ROLE = keccak256("admin");
+        IAccessControlEnumerable(mellowLRT).grantRole(ADMIN_ROLE, address(migrator));
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(ADMIN_ROLE, address(migrator));
+        IManagedValidator(managedValidator).grantRole(address(migrator), 255);
+
+        vm.stopPrank();
+
+        vm.prank(proxyAdminOwner);
+        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
+
+        vm.prank(migratorAdmin);
+        migrator.migrate(migrationIndex);
+    }
 }
 
 interface IManagedValidator {

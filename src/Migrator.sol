@@ -33,6 +33,11 @@ contract Migrator is IMigrator {
     }
 
     /// @inheritdoc IMigrator
+    function stagedMigrations(uint256 index) external view returns (Parameters memory) {
+        return _migration[index];
+    }
+
+    /// @inheritdoc IMigrator
     function stageMigration(
         address defaultBondStrategy,
         address proxyAdmin,
@@ -102,7 +107,7 @@ contract Migrator is IMigrator {
             underlyingTokens.length == 1 && underlyingTokens[0] == params.token,
             "Invalid vault token"
         );
-        if (params.initParams.symbioticVault != address(0)) {
+        if (params.initParams.symbioticVault == address(0)) {
             require(
                 params.symbioticVaultParams.vaultParams.collateral == params.token,
                 "Invalid symbioticVault collateral"
