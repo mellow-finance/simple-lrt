@@ -39,7 +39,7 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
     /**
      * @notice Initialize state of the Vault.
      * @param initParams Struct with initialize params.
-     * 
+     *
      * @custom:requirements
      * - MUST not be initialized at the call.
      */
@@ -49,7 +49,7 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
      * @notice Set farm for the Vault
      * @param farmId Id of Farm.
      * @param farmData Struct with Farm data.
-     * 
+     *
      * @custom:requirements
      * - `FarmData.rewardToken` MUST be Vault or Simbiotic Vault.
      * - `farmData.curatorFeeD6` MUST be not greather than 10**6.

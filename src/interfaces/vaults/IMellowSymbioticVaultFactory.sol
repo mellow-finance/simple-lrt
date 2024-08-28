@@ -33,7 +33,7 @@ interface IMellowSymbioticVaultFactory {
      * @param initParams Initial parameters for a new Vault.
      * @return vault Address of a new deployed Vault.
      * @return withdrawalQueue Address of a new deployed WithdrawalQueue.
-     * 
+     *
      * @custom:effects
      * - Emits EntityCreated event
      */

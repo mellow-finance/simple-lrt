@@ -26,10 +26,10 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
      * @param _depositPause Value of `depositPause` state.
      * @param _withdrawalPause Value of `withdrawalPause` state.
      * @param _depositWhitelist Value of `depositWhitelist` state.
-     * 
+     *
      * @custom:requirements
      * - MUST not be initialzed before.
-     * 
+     *
      * @custom:effects
      * - Emits LimitSet event.
      * - Emits DepositPauseSet event.
@@ -76,7 +76,7 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     /**
      * @notice Sets a new `limit` for the Vault.
      * @param _limit Address the Simbiotic Vault.
-     * 
+     *
      * @custom:effects
      * - Emits LimitSet event.
      */
@@ -89,7 +89,7 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     /**
      * @notice Sets a new `depositPause` state for the Vault.
      * @param _paused A new value of `depositPause`.
-     * 
+     *
      * @custom:effects
      * - Emits DepositPauseSet event.
      */
@@ -102,7 +102,7 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     /**
      * @notice Sets a new `withdrawalPause` state for the Vault.
      * @param _paused A new value of `withdrawalPause`.
-     * 
+     *
      * @custom:effects
      * - Emits WithdrawalPauseSet event.
      */
@@ -115,7 +115,7 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     /**
      * @notice Sets a new `depositWhitelist` state for the Vault.
      * @param _status A new value of `withdrawalPause`.
-     * 
+     *
      * @custom:effects
      * - Emits DepositWhitelistSet event.
      */
@@ -129,7 +129,7 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
      * @notice Sets a new `status` state for the `account` at `isDepositorWhitelisted`.
      * @param account Address of the account.
      * @param status A new status for the `account`.
-     * 
+     *
      * @custom:effects
      * - Emits DepositorWhitelistStatusSet event.
      */

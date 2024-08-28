@@ -154,12 +154,12 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
      * @dev Updates `epochData` and `accountData` mappings.
      * @param accountData Contains specific claim data for the account.
      * @param currentEpoch Current epoch.
-     * 
+     *
      * @custom:requirements
      * - In case `accountData` `claimEpoch` is zero, nothing is claiming.
      * - In case `accountData` `claimEpoch` is not zero, it claims for `claimEpoch` and `claimEpoch`-1.
      * - Checks whether `claimEpoch` and `claimEpoch`-1 are claimable.
-     * 
+     *
      * @custom:effects
      * - Emits EpochClaimed event.
      */
@@ -177,7 +177,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
      * @param accountData Contains specific claim data for the account.
      * @param epoch Number epoch to claim at.
      * @param currentEpoch Current epoch.
-     * 
+     *
      * @custom:requirements
      * - In case `epoch` is zero, nothing is claimed.
      * - Checks whether `epoch` is claimable.
@@ -212,11 +212,11 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     /**
      * @notice Claims collateral from Simbiotic Vault at given `epoch`.
      * @param epoch Number epoch to claim at.
-     * 
+     *
      * @custom:requirements
      * - Checks whether `epoch` is claimed.
      * - Checks whether there is claimable withdrawals.
-     * 
+     *
      * @custom:effects
      * - Emits EpochClaimed event.
      */

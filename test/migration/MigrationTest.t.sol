@@ -22,77 +22,6 @@ contract Integration is BaseTest {
     address proxyAdmin = 0xd67241F8FA670D1eaEd14b7A17B82819087AE86d;
     address proxyAdminOwner = 0x3995c5a3A74f3B3049fD5DA7C7D7BaB0b581A6e1;
 
-    function testMigrationOnchain() external {
-        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
-
-        MellowVaultCompat mellowVaultCompat =
-            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
-        Migrator migrator = new Migrator(
-            address(mellowVaultCompat),
-            address(symbioticVaultConfigurator),
-            address(migratorAdmin),
-            migratorDelay
-        );
-
-        vm.prank(migratorAdmin);
-        uint256 migrationIndex = migrator.stageMigration(
-            defaultBondStrategy,
-            proxyAdmin,
-            proxyAdminOwner,
-            IMellowSymbioticVault.InitParams({
-                limit: 10000 ether,
-                symbioticVault: address(0),
-                withdrawalQueue: address(0),
-                admin: vaultAdmin,
-                depositPause: false,
-                withdrawalPause: false,
-                depositWhitelist: false,
-                name: "Mellow Test ETH",
-                symbol: "mETH (test)"
-            }),
-            IVaultConfigurator.InitParams({
-                version: 1,
-                owner: symbioticVaultOwner,
-                vaultParams: IVault.InitParams({
-                    collateral: wsteth,
-                    delegator: address(0),
-                    slasher: address(0),
-                    burner: address(0),
-                    epochDuration: epochDuration,
-                    depositWhitelist: false,
-                    isDepositLimit: false,
-                    depositLimit: 0,
-                    defaultAdminRoleHolder: symbioticVaultOwner,
-                    depositWhitelistSetRoleHolder: symbioticVaultOwner,
-                    depositorWhitelistRoleHolder: symbioticVaultOwner,
-                    isDepositLimitSetRoleHolder: symbioticVaultOwner,
-                    depositLimitSetRoleHolder: symbioticVaultOwner
-                }),
-                delegatorIndex: 0,
-                delegatorParams: hex"00000000000000000000000000000000000000000000000000000000000000200000000000000000000000009b4e5e7438c17f13bf368d331c864b01b64458bc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000009b4e5e7438c17f13bf368d331c864b01b64458bc00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000009b4e5e7438c17f13bf368d331c864b01b64458bc00000000000000000000000000000000000000000000000000000000000000010000000000000000000000009b4e5e7438c17f13bf368d331c864b01b64458bc",
-                withSlasher: true,
-                slasherIndex: 0,
-                slasherParams: hex"00000000000000000000000000000000000000000000000000000000000151800000000000000000000000000000000000000000000000000000000000000003"
-            })
-        );
-
-        skip(migratorDelay);
-
-        vm.startPrank(vaultAdmin);
-        bytes32 ADMIN_ROLE = keccak256("admin");
-        IAccessControlEnumerable(mellowLRT).grantRole(ADMIN_ROLE, address(migrator));
-        IAccessControlEnumerable(defaultBondStrategy).grantRole(ADMIN_ROLE, address(migrator));
-        IManagedValidator(managedValidator).grantRole(address(migrator), 255);
-
-        vm.stopPrank();
-
-        vm.prank(proxyAdminOwner);
-        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
-
-        vm.prank(migratorAdmin);
-        migrator.migrate(migrationIndex);
-    }
-
     function testMigrationOnchainCheap() external {
         symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
 
@@ -120,21 +49,7 @@ contract Integration is BaseTest {
 
         vm.prank(migratorAdmin);
         uint256 migrationIndex = migrator.stageMigration(
-            defaultBondStrategy,
-            proxyAdmin,
-            proxyAdminOwner,
-            IMellowSymbioticVault.InitParams({
-                limit: 10000 ether,
-                symbioticVault: symbioticVault,
-                withdrawalQueue: address(0),
-                admin: vaultAdmin,
-                depositPause: false,
-                withdrawalPause: false,
-                depositWhitelist: false,
-                name: "Mellow Test ETH",
-                symbol: "mETH (test)"
-            }),
-            emptyParams
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
         );
 
         skip(migratorDelay);

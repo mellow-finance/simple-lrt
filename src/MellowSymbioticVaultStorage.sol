@@ -27,10 +27,10 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
      * @notice Initialize storage of the Vault.
      * @param _symbioticVault Address of the Simbiotic Vault.
      * @param _withdrawalQueue Address of the Withdrawal queue.
-     * 
+     *
      * @custom:requirements
      * - MUST not be initialized before.
-     * 
+     *
      * @custom:effects
      * - Emits WithdrawalQueueSet event
      * - Emits SymbioticVaultSet event
@@ -81,7 +81,7 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
     /**
      * @notice Sets a new Simbiotic Vault address.
      * @param _symbioticVault Address the Simbiotic Vault.
-     * 
+     *
      * @custom:effects
      * - Emits SymbioticVaultSet event
      */
@@ -94,7 +94,7 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
     /**
      * @notice Sets a new Withdrawal queue address.
      * @param _withdrawalQueue Address the Withdrawal queue.
-     * 
+     *
      * @custom:effects
      * - Emits WithdrawalQueueSet event
      */
@@ -108,7 +108,7 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
      * @notice Sets a new Farm.
      * @param farmId Id of a new Farm.
      * @param farmData Specific data of a new Farm.
-     * 
+     *
      * @custom:effects
      * - Emits FarmSet event
      */

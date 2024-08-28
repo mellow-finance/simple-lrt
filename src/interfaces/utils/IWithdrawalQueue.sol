@@ -33,11 +33,11 @@ interface IWithdrawalQueue {
      * @notice Claims `amount` of collateral from the Simbiotic Vault at current and previous epochs.
      * @param account Address of the account.
      * @param amount Amount of collateral.
-     * 
+     *
      * @custom:requirements
      * - `msg.sender` MUST be the Vault.
      * - `amount` MUST be grather than zero.
-     * 
+     *
      * @custom:effects
      * - Emits WithdrawalRequested event.
      */
@@ -46,11 +46,11 @@ interface IWithdrawalQueue {
     /**
      * @notice Claims `amount` of collateral from the Simbiotic Vault at the given epoch.
      * @param epoch Number of epoch to claim at.
-     * 
+     *
      * @custom:requirements
      * - epoch MUST be claimable.
      * - Checks whether there is claimable withdrawals.
-     * 
+     *
      * @custom:effects
      * - Emits EpochClaimed event.
      */
@@ -62,12 +62,12 @@ interface IWithdrawalQueue {
      * @param account Address of account to claim.
      * @param recipient Address of recipient of collateral.
      * @param maxAmount Max amount of collateral this will be claimed.
-     * 
+     *
      * @custom:requirements
      * - `msg.sender` MUST be the Vault or `account`.
      * - Claimable amount MUST be grather than zero.
      * - Checks whether there is claimable withdrawals for the given `account`.
-     * 
+     *
      * @custom:effects
      * - Emits Claimed event.
      */

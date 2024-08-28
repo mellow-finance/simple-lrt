@@ -9,7 +9,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 
 /**
  * @title IIdleVault
- * @notice 
+ * @notice
  */
 interface IIdleVault is IERC4626Vault {
     struct InitParams {
@@ -26,10 +26,10 @@ interface IIdleVault is IERC4626Vault {
     /**
      * @notice Initialize state of the Vault.
      * @param initParams Struct with initialize params.
-     * 
+     *
      * @custom:requirements
      * - MUST not be initialized at the call.
-     * 
+     *
      * @custom:effects
      * - Emits IdleVaultInitialized event.
      */

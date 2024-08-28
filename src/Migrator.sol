@@ -14,8 +14,6 @@ contract Migrator is IMigrator {
     /// @inheritdoc IMigrator
     uint256 public immutable migrationDelay;
     /// @inheritdoc IMigrator
-
-    /// @inheritdoc IMigrator
     uint256 public migrations = 0;
     mapping(uint256 migrationIndex => Parameters) private _migration;
     mapping(uint256 migrationIndex => uint256 timestamp) private timestamps;
@@ -40,19 +38,32 @@ contract Migrator is IMigrator {
     /// @inheritdoc IMigrator
     function stageMigration(
         address defaultBondStrategy,
+        address vaultAdmin,
         address proxyAdmin,
         address proxyAdminOwner,
-        IMellowSymbioticVault.InitParams memory initParams,
-        IVaultConfigurator.InitParams memory symbioticVaultParams
+        address symbioticVault
     ) external returns (uint256 migrationIndex) {
         require(msg.sender == admin, "Migrator: not admin");
         address vault = IDefaultBondStrategy(defaultBondStrategy).vault();
         address token = IMellowLRT(vault).underlyingTokens()[0];
+
         bytes memory bonds = IDefaultBondStrategy(defaultBondStrategy).tokenToData(token);
         IDefaultBondStrategy.Data[] memory data = abi.decode(bonds, (IDefaultBondStrategy.Data[]));
         require(data.length == 1, "Invalid bonds length");
         address bond = data[0].bond;
         require(bond != address(0), "Invalid bond address");
+
+        IMellowSymbioticVault.InitParams memory initParams = IMellowSymbioticVault.InitParams({
+            limit: IMellowLRT(vault).configurator().maximalTotalSupply(),
+            symbioticVault: symbioticVault,
+            withdrawalQueue: address(0),
+            admin: vaultAdmin,
+            depositPause: false,
+            withdrawalPause: false,
+            depositWhitelist: false,
+            name: IERC20Metadata(vault).name(),
+            symbol: IERC20Metadata(vault).symbol()
+        });
         Parameters memory params = Parameters({
             vault: vault,
             token: token,
@@ -60,8 +71,7 @@ contract Migrator is IMigrator {
             defaultBondStrategy: defaultBondStrategy,
             proxyAdmin: proxyAdmin,
             proxyAdminOwner: proxyAdminOwner,
-            initParams: initParams,
-            symbioticVaultParams: symbioticVaultParams
+            initParams: initParams
         });
         _checkParams(params);
         migrationIndex = migrations++;
@@ -94,12 +104,10 @@ contract Migrator is IMigrator {
         delete timestamps[migrationIndex];
     }
 
-    /**
-     * @notice Checks correctness of parameters `params`.
-     * @param params Checking parameters.
-     */
     function _checkParams(Parameters memory params) internal view {
         require(params.initParams.withdrawalQueue == address(0), "non-zero withdrawalQueue");
+        require(params.initParams.symbioticVault != address(0), "zero symbioticVault");
+
         require(
             IDefaultBondStrategy(params.defaultBondStrategy).vault() == params.vault,
             "Invalid strategy contract"
@@ -111,18 +119,8 @@ contract Migrator is IMigrator {
             underlyingTokens.length == 1 && underlyingTokens[0] == params.token,
             "Invalid vault token"
         );
-        if (params.initParams.symbioticVault == address(0)) {
-            require(
-                params.symbioticVaultParams.vaultParams.collateral == params.token,
-                "Invalid symbioticVault collateral"
-            );
-        }
     }
 
-    /**
-     * @notice Checks necessary permissions for migration process.
-     * @param params Checking parameters.
-     */
     function _checkPermissions(Parameters memory params) internal view {
         address this_ = address(this);
         require(
@@ -147,10 +145,6 @@ contract Migrator is IMigrator {
         );
     }
 
-    /**
-     * @notice Migrates staged migration with `migrationIndex`
-     * @param migrationIndex Index of staged migration.
-     */
     function _migrate(Parameters memory params) internal {
         IDefaultBondStrategy strategy = IDefaultBondStrategy(params.defaultBondStrategy);
         strategy.processAll();
@@ -162,12 +156,6 @@ contract Migrator is IMigrator {
             )
         );
         require(success, "Migrator: DefaultCollateral withdraw failed");
-
-        if (params.initParams.symbioticVault == address(0)) {
-            (params.initParams.symbioticVault,,) =
-                IVaultConfigurator(symbioticVaultConfigurator).create(params.symbioticVaultParams);
-        }
-
         params.initParams.withdrawalQueue =
             address(new SymbioticWithdrawalQueue(params.vault, params.initParams.symbioticVault));
 

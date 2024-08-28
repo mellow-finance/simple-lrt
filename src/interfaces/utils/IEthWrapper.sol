@@ -15,7 +15,6 @@ import {IERC4626Vault} from "../vaults/IERC4626Vault.sol";
  * @notice Wraps/convert input token WETH/wstETH/stETH/ETH into wstETH and deposit it into the Vault.
  * @dev IEthWrapper is an intermediate contract to handle wrapped tokens, then it deposits in favor of `msg.sender`.
  */
-
 interface IEthWrapper {
     ///@notice Returns WETH address.
     function WETH() external view returns (address);
