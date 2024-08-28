@@ -57,7 +57,20 @@ interface IDefaultBondModule {
     function withdraw(address bond, uint256 amount) external returns (uint256);
 }
 
+/**
+ * @title IMigrator
+ * @notice Interface for managing migrations between vault systems, including staging, canceling, and processing migrations.
+ */
 interface IMigrator {
+    /**
+     * @notice Struct to store parameters for migration.
+     * @param vault The address of the vault.
+     * @param proxyAdmin The address of the proxy admin.
+     * @param proxyAdminOwner The address of the proxy admin owner.
+     * @param token The address of the token of the vault.
+     * @param bond The address of the bond.
+     * @param defaultBondStrategy The address of the default bond strategy.
+     */
     struct Parameters {
         address vault;
         address proxyAdmin;
@@ -67,11 +80,46 @@ interface IMigrator {
         address defaultBondStrategy;
     }
 
+    /**
+     * @notice Returns the address of the MellowVaultCompat singleton contract.
+     * @return The singleton address.
+     */
     function singleton() external view returns (address);
+
+    /**
+     * @notice Returns the address of the symbiotic vault configurator.
+     * @return The symbiotic vault configurator address.
+     */
     function symbioticVaultConfigurator() external view returns (address);
+
+    /**
+     * @notice Returns the address of the admin.
+     * @return The admin address.
+     */
     function admin() external view returns (address);
+
+    /**
+     * @notice Returns the delay before a migration can be processed.
+     * @return The migration delay in seconds.
+     */
     function migrationDelay() external view returns (uint256);
+
+    /**
+     * @notice Returns the total number of migrations staged by the migrator.
+     * @return The total number of migrations.
+     */
     function migrations() external view returns (uint256);
+
+    /**
+     * @notice Returns details of a migration at a given index.
+     * @param index The index of the migration.
+     * @return vault The vault address.
+     * @return proxyAdmin The proxy admin address.
+     * @return proxyAdminOwner The proxy admin owner address.
+     * @return token The token address.
+     * @return bond The bond address.
+     * @return defaultBondStrategy The default bond strategy address.
+     */
     function migration(uint256 index)
         external
         view
@@ -84,6 +132,15 @@ interface IMigrator {
             address defaultBondStrategy
         );
 
+    /**
+     * @notice Stages a migration with the provided parameters.
+     * @param defaultBondStrategy The default bond strategy address.
+     * @param vaultAdmin The vault admin address.
+     * @param proxyAdmin The proxy admin address.
+     * @param proxyAdminOwner The proxy admin owner address.
+     * @param symbioticVault The symbiotic vault address.
+     * @return migrationIndex The index of the newly staged migration.
+     */
     function stageMigration(
         address defaultBondStrategy,
         address vaultAdmin,
@@ -92,7 +149,15 @@ interface IMigrator {
         address symbioticVault
     ) external returns (uint256 migrationIndex);
 
+    /**
+     * @notice Cancels a migration that was previously staged.
+     * @param migrationIndex The index of the migration to cancel.
+     */
     function cancelMigration(uint256 migrationIndex) external;
 
+    /**
+     * @notice Executes a migration that has been staged.
+     * @param migrationIndex The index of the migration to execute.
+     */
     function migrate(uint256 migrationIndex) external;
 }

@@ -135,10 +135,10 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     /**
-     * @notice Returns amount of collateral that will be withdrawn for the corresponding `shares` at a given epoch (zero if claimed).
-     * @param epoch Number of the Simbiotic epoch.
-     * @param shares Withdrawal shares.
-     * @return assets Amount of assets corresponding to `shares` that will be withdrawn.
+     * @notice Calculates the amount of collateral that will be withdrawn for the given `shares` at the specified epoch.
+     * @param epoch The epoch number in the Symbiotic Vault.
+     * @param shares The amount of withdrawal shares.
+     * @return assets The corresponding amount of collateral that will be withdrawn based on the `shares`.
      */
     function _withdrawalsOf(uint256 epoch, uint256 shares) private view returns (uint256) {
         if (shares == 0) {
@@ -150,18 +150,18 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     /**
-     * @notice Claims collateral from the Simbiotic Vault at `accountData` `claimEpoch` and `claimEpoch`-1.
-     * @dev Updates `epochData` and `accountData` mappings.
-     * @param accountData Contains specific claim data for the account.
-     * @param currentEpoch Current epoch.
+     * @notice Claims collateral from the Symbiotic Vault for the given account at the current and previous epochs.
+     * @dev This function updates the `epochData` and `accountData` mappings accordingly.
+     * @param accountData The storage struct containing specific claim data for the account.
+     * @param currentEpoch The current epoch in the Symbiotic Vault.
      *
      * @custom:requirements
-     * - In case `accountData` `claimEpoch` is zero, nothing is claiming.
-     * - In case `accountData` `claimEpoch` is not zero, it claims for `claimEpoch` and `claimEpoch`-1.
-     * - Checks whether `claimEpoch` and `claimEpoch`-1 are claimable.
+     * - If `claimEpoch` is zero, no claims are made for `epochEpoch` - 1.
+     * - If `claimEpoch` is non-zero, collateral is claimed for both `claimEpoch` and `claimEpoch`-1.
+     * - Ensures that both `claimEpoch` and `claimEpoch`-1 are claimable.
      *
      * @custom:effects
-     * - Emits EpochClaimed event.
+     * - Emits `EpochClaimed` event when claims are successfully made.
      */
     function _handlePendingEpochs(AccountData storage accountData, uint256 currentEpoch) private {
         uint256 epoch = accountData.claimEpoch;
@@ -172,18 +172,17 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     /**
-     * @notice Claims collateral from the Simbiotic Vault at `epoch`.
-     * @dev Updates `epochData` and `accountData` mappings.
-     * @param accountData Contains specific claim data for the account.
-     * @param epoch Number epoch to claim at.
-     * @param currentEpoch Current epoch.
+     * @notice Claims collateral from the Symbiotic Vault for the given `epoch`.
+     * @dev This function updates the `epochData` and `accountData` mappings.
+     * @param accountData The storage struct containing specific claim data for the account.
+     * @param epoch The epoch number from which the claim is made.
+     * @param currentEpoch The current epoch in the Symbiotic Vault.
      *
      * @custom:requirements
-     * - In case `epoch` is zero, nothing is claimed.
-     * - Checks whether `epoch` is claimable.
+     * - If `epoch` is not claimable, no claims are made.
      *
      * @custom:effects
-     * - Emits EpochClaimed event.
+     * - Emits `EpochClaimed` event when claims are successfully made.
      */
     function _handlePendingEpoch(
         AccountData storage accountData,
@@ -210,15 +209,16 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     /**
-     * @notice Claims collateral from Simbiotic Vault at given `epoch`.
-     * @param epoch Number epoch to claim at.
+     * @notice Claims collateral from the Symbiotic Vault for the given `epoch`.
+     * @dev This function ensures that the withdrawals for the specified `epoch` are not claimed from the Symbiotic Vault.
+     * @param epoch The epoch number for which the collateral is being claimed.
      *
      * @custom:requirements
-     * - Checks whether `epoch` is claimed.
-     * - Checks whether there is claimable withdrawals.
+     * - Checks that the collateral for the given `epoch` has not already been claimed.
+     * - Checks whether there are any claimable withdrawals for the given `epoch`.
      *
      * @custom:effects
-     * - Emits EpochClaimed event.
+     * - Emits `EpochClaimed` event when the claim is successful.
      */
     function _pullFromSymbioticForEpoch(uint256 epoch) private {
         EpochData storage epochData = _epochData[epoch];
@@ -239,9 +239,10 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     /**
-     * @notice Returns claimable collateral amount for given `accountData`.
-     * @param accountData Contains specific claim data for the account.
-     * @param epoch Number epoch to claim at.
+     * @notice Returns the claimable collateral amount for a given `accountData` at a specific `epoch`.
+     * @param accountData The storage struct containing specific claim data for the account.
+     * @param epoch The epoch number at which the claim is being checked.
+     * @return The amount of claimable collateral corresponding to the given account's shares at the specified epoch.
      */
     function _claimable(AccountData storage accountData, uint256 epoch)
         private
@@ -260,9 +261,10 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     /**
-     * Returns wheter `epoch` is claimable if `currentEpoch` is current epoch.
-     * @param epoch Number of epoch to check.
-     * @param currentEpoch Nmber of Current epoch.
+     * @notice Determines whether the given `epoch` is claimable based on the current epoch.
+     * @param epoch The epoch number to check.
+     * @param currentEpoch The current epoch in the Symbiotic Vault.
+     * @return True if the epoch is claimable (i.e., it is less than the current epoch), false otherwise.
      */
     function _isClaimableInSymbiotic(uint256 epoch, uint256 currentEpoch)
         private

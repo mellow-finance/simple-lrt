@@ -21,9 +21,21 @@ import {IStakerRewards} from "@symbiotic/rewards/interfaces/stakerRewards/IStake
 
 /**
  * @title IMellowSymbioticVault
- * @notice Interface of the Vault of interaction with underlying Simbiotic Vault.
+ * @notice Interface for the Mellow Symbiotic Vault.
  */
 interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
+    /**
+     * @notice Struct to store initialization parameters for the vault.
+     * @param limit The maximum limit for deposits.
+     * @param symbioticVault The address of the underlying Symbiotic Vault.
+     * @param withdrawalQueue The address of the associated withdrawal queue.
+     * @param admin The address of the vault's admin.
+     * @param depositPause Indicates whether deposits are paused initially.
+     * @param withdrawalPause Indicates whether withdrawals are paused initially.
+     * @param depositWhitelist Indicates whether a deposit whitelist is enabled initially.
+     * @param name The name of the vault token.
+     * @param symbol The symbol of the vault token.
+     */
     struct InitParams {
         uint256 limit;
         address symbioticVault;
@@ -37,84 +49,85 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
     }
 
     /**
-     * @notice Initialize state of the Vault.
-     * @param initParams Struct with initialize params.
+     * @notice Initializes the vault with the provided parameters.
+     * @param initParams The initialization parameters.
      *
      * @custom:requirements
-     * - MUST not be initialized at the call.
+     * - The vault MUST not have been initialized before this call.
      */
     function initialize(InitParams memory initParams) external;
 
     /**
-     * @notice Set farm for the Vault
-     * @param farmId Id of Farm.
-     * @param farmData Struct with Farm data.
+     * @notice Sets a farm for the vault with the given farm ID and data.
+     * @param farmId The ID of the farm.
+     * @param farmData The data for the farm.
      *
      * @custom:requirements
-     * - `FarmData.rewardToken` MUST be Vault or Simbiotic Vault.
-     * - `farmData.curatorFeeD6` MUST be not greather than 10**6.
+     * - `FarmData.rewardToken` MUST be the vault token or Symbiotic Vault token.
+     * - `farmData.curatorFeeD6` MUST not exceed 10^6 (100%).
      */
     function setFarm(uint256 farmId, FarmData memory farmData) external;
 
     /**
-     * @notice Returns amount of `asset` that can be claimed for the `account`.
-     * @param account Receiver address.
-     * @return claimableAssets Amount of `asset` that can be claimed.
+     * @notice Returns the amount of `asset` that can be claimed by a specific account.
+     * @param account The address of the account.
+     * @return claimableAssets The amount of claimable assets.
      */
     function claimableAssetsOf(address account) external view returns (uint256 claimableAssets);
 
     /**
-     * @notice Returns amount of `asset` that are at the withdrawal queue for the `account`.
-     * @param account Receiver address.
-     * @return pendingAssets Amount of `asset` in withdrawal queue and can not be claimed at this time.
+     * @notice Returns the amount of `asset` that is in the withdrawal queue for a specific account.
+     * @param account The address of the account.
+     * @return pendingAssets The amount of pending assets that cannot be claimed yet.
      */
     function pendingAssetsOf(address account) external view returns (uint256 pendingAssets);
 
     /**
-     * @notice Finalize withdrawal process for the account and transfer assets to the recipient.
-     * @param account Withdrawal address.
-     * @param recipient Receiver address.
-     * @param maxAmount Maximum amount of assets to withdraw.
-     * @return shares Actual claimed shares.
+     * @notice Finalizes the withdrawal process for an account and transfers assets to the recipient.
+     * @param account The address of the account initiating the withdrawal.
+     * @param recipient The address of the recipient receiving the assets.
+     * @param maxAmount The maximum amount of assets to withdraw.
+     * @return shares The actual number of shares claimed.
      *
      * @custom:requirements
-     * - `account` MUST be equal to `msg.sender`
+     * - The `account` MUST be equal to `msg.sender`.
      *
      * @custom:effects
-     * - Finalize withdrawal process and transfers not more than `maxAmount` of `asset` to the `recipient`.
+     * - Finalizes the withdrawal process and transfers up to `maxAmount` of `asset` to the `recipient`.
      */
     function claim(address account, address recipient, uint256 maxAmount)
         external
         returns (uint256);
 
     /**
-     * @notice Pushes all avaliable balance of underlying token into Simbiotic.
-     * @return symbioticVaultStaked Actual staked share inte Simbiotic.
+     * @notice Pushes the maximal possible balance of the asset into the Symbiotic Vault.
+     * @return symbioticVaultStaked The actual amount of staked shares in the Symbiotic Vault.
      *
      * @custom:effects
-     * - Transfers whole balance of `asset` of the Vault to the Simbiotic Vault.
-     * - Emits SymbioticPushed event.
+     * - Transfers the maximal possible balance of the asset to the Symbiotic Vault.
+     * - Emits the `SymbioticPushed` event.
      */
     function pushIntoSymbiotic() external returns (uint256 symbioticVaultStaked);
 
     /**
-     * @notice Pushes rewards to the Curator of the Vault.
-     * @param farmId Id of Farm.
-     * @param symbioticRewardsData Specific Simbiotic data for claimRewards() method.
+     * @notice Pushes rewards to the Farm and Curator of the vault for a specified farm ID.
+     * @param farmId The ID of the farm.
+     * @param symbioticRewardsData The data specific to the Symbiotic Vault's `claimRewards()` method.
      *
      * @custom:effects
-     * - Transfers a part of Simbiotic reward token balance of the Vault to the Curator as fees.
-     * - Emits RewardsPushed event.
+     * - Transfers a portion of the Symbiotic Vault's reward token to the Curator as a fee.
+     * - The remaining rewards are pushed to the Farm.
+     * - Emits the `RewardsPushed` event.
      */
     function pushRewards(uint256 farmId, bytes calldata symbioticRewardsData) external;
 
     /**
-     * @notice Returns all balances for the account.
-     * @param account Account address.
-     * @return accountAssets Total amount of assets belongs to the account.
-     * @return accountInstantAssets Amount of assets that can be withdrawn instantly.
-     * @return accountShares Total amount of shares belongs to the account.
-     * @return accountInstantShares Shares that can be withdrawn instantly.
+     * @notice Returns the full balance details for a specific account.
+     * @param account The address of the account.
+     * @return accountAssets The total amount of assets belonging to the account.
+     * @return accountInstantAssets The amount of assets that can be withdrawn instantly.
+     * @return accountShares The total amount of shares belonging to the account.
+     * @return accountInstantShares The amount of shares that can be withdrawn instantly.
      */
     function getBalances(address account)
         external
@@ -126,9 +139,21 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
             uint256 accountInstantShares
         );
 
+    /**
+     * @notice Emitted when rewards are pushed to the Farm and Curator treasury.
+     * @param farmId The ID of the farm.
+     * @param rewardAmount The amount of rewards pushed.
+     * @param curatorFee The fee taken by the curator.
+     * @param timestamp The time at which the rewards were pushed.
+     */
     event RewardsPushed(
         uint256 indexed farmId, uint256 rewardAmount, uint256 curatorFee, uint256 timestamp
     );
 
+    /**
+     * @notice Emitted when assets are pushed from the vault into the Symbiotic Vault.
+     * @param sender The address that initiated the push.
+     * @param vaultAmount The amount of assets pushed to the Symbiotic Vault.
+     */
     event SymbioticPushed(address sender, uint256 vaultAmount);
 }

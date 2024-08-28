@@ -6,6 +6,24 @@ import "./interfaces/vaults/IERC4626Vault.sol";
 import {VaultControl} from "./VaultControl.sol";
 
 abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vault {
+    /**
+     * @notice Initializes the ERC4626 vault with the provided settings, including admin, limits, pause states, and token details.
+     * @param _admin The address of the admin to be granted control over the vault.
+     * @param _limit The initial deposit limit for the vault.
+     * @param _depositPause The initial state of the `depositPause` flag.
+     * @param _withdrawalPause The initial state of the `withdrawalPause` flag.
+     * @param _depositWhitelist The initial state of the `depositWhitelist` flag.
+     * @param _asset The address of the underlying ERC20 asset for the ERC4626 vault.
+     * @param _name The name of the ERC20 token representing shares of the vault.
+     * @param _symbol The symbol of the ERC20 token representing shares of the vault.
+     *
+     * @custom:effects
+     * - Initializes the vault control settings, including admin, limits, and pause states, via `__initializeVaultControl`.
+     * - Initializes the ERC20 token properties with the provided `_name` and `_symbol`.
+     * - Initializes the ERC4626 vault with the provided underlying asset (`_asset`).
+     *
+     * @dev This function is protected by the `onlyInitializing` modifier, ensuring it is only called during the initialization phase of the contract.
+     */
     function __initializeERC4626(
         address _admin,
         uint256 _limit,

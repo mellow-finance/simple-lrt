@@ -3,73 +3,79 @@ pragma solidity 0.8.25;
 
 /**
  * @title IWithdrawalQueue
- * @notice Handle withdrawal process from underlying vault.
+ * @notice Interface to handle the withdrawal process from the underlying vault.
+ * @dev Provides functions to manage withdrawals, claimable assets, and interactions with vault epochs.
  */
 interface IWithdrawalQueue {
     /**
-     * @notice Returns claimable collateral by the Vault at current and the next epochs.
+     * @notice Returns the total amount of claimable collateral by the queue.
+     * @return assets The total claimable collateral amount.
      */
     function pendingAssets() external view returns (uint256);
 
     /**
-     * @notice Returns claimable and pending (at current and the next epochs) collateral amount for the given `account`.
-     * @param account Address of the account.
+     * @notice Returns the total collateral amount (both claimable and pending) for a specific account.
+     * @param account The address of the account.
+     * @return balance The total collateral balance for the account.
      */
     function balanceOf(address account) external view returns (uint256);
 
     /**
-     * @notice Returns pending (at current and the next epochs) collateral amount for the given `account`.
-     * @param account Address of the account.
+     * @notice Returns the pending collateral amount for a specific account.
+     * @param account The address of the account.
+     * @return pendingAssets The total amount of pending collateral for the account.
      */
     function pendingAssetsOf(address account) external view returns (uint256);
 
     /**
-     * @notice Returns claimable collateral amount for the given `account`.
-     * @param account Address of the account.
+     * @notice Returns the claimable collateral amount for a specific account.
+     * @param account The address of the account.
+     * @return claimableAssets The total amount of claimable collateral for the account.
      */
     function claimableAssetsOf(address account) external view returns (uint256);
 
     /**
-     * @notice Claims `amount` of collateral from the Simbiotic Vault at current and previous epochs.
-     * @param account Address of the account.
-     * @param amount Amount of collateral.
+     * @notice Requests the withdrawal of a specified amount of collateral for a given account.
+     * @param account The address of the account requesting the withdrawal.
+     * @param amount The amount of collateral to withdraw.
      *
      * @custom:requirements
-     * - `msg.sender` MUST be the Vault.
-     * - `amount` MUST be grather than zero.
+     * - `msg.sender` MUST be the vault.
+     * - `amount` MUST be greater than zero.
      *
      * @custom:effects
-     * - Emits WithdrawalRequested event.
+     * - Emits a `WithdrawalRequested` event.
      */
     function request(address account, uint256 amount) external;
 
     /**
-     * @notice Claims `amount` of collateral from the Simbiotic Vault at the given epoch.
-     * @param epoch Number of epoch to claim at.
+     * @notice Claims collateral from the External Vault for a specified epoch.
+     * @param epoch The epoch number from which to claim collateral.
      *
      * @custom:requirements
-     * - epoch MUST be claimable.
-     * - Checks whether there is claimable withdrawals.
+     * - The epoch MUST be claimable.
+     * - There MUST be claimable withdrawals for the given epoch.
      *
      * @custom:effects
-     * - Emits EpochClaimed event.
+     * - Emits an `EpochClaimed` event.
      */
     function pull(uint256 epoch) external;
 
     /**
-     * @notice Claims collateral in favor of `recipient`.
-     * @dev Claims and transfers min(claimable amount, maxAmount) to the `recipient`.
-     * @param account Address of account to claim.
-     * @param recipient Address of recipient of collateral.
-     * @param maxAmount Max amount of collateral this will be claimed.
+     * @notice Finalizes the collateral claim process for a specific account and transfers it to the recipient.
+     * @dev Transfers the lesser of the claimable amount or the specified maximum amount to the recipient.
+     * @param account The address of the account to claim collateral from.
+     * @param recipient The address of the recipient receiving the collateral.
+     * @param maxAmount The maximum amount of collateral to be claimed.
+     * @return amount The actual amount of collateral claimed and transferred.
      *
      * @custom:requirements
-     * - `msg.sender` MUST be the Vault or `account`.
-     * - Claimable amount MUST be grather than zero.
-     * - Checks whether there is claimable withdrawals for the given `account`.
+     * - `msg.sender` MUST be the vault or the account itself.
+     * - The claimable amount MUST be greater than zero.
+     * - There MUST be claimable withdrawals for the given account.
      *
      * @custom:effects
-     * - Emits Claimed event.
+     * - Emits a `Claimed` event.
      */
     function claim(address account, address recipient, uint256 maxAmount)
         external

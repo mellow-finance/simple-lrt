@@ -16,10 +16,20 @@ contract Migrator is IMigrator {
     /// @inheritdoc IMigrator
     uint256 public migrations = 0;
 
-    mapping(uint256 migrationIndex => Parameters) public migration;
-    mapping(uint256 migrationIndex => uint256 timestamp) public timestamps;
-    mapping(uint256 migrationIndex => IMellowSymbioticVault.InitParams) public vaultInitParams;
+    // Mapping to store migration parameters by migration index
+    mapping(uint256 => Parameters) public migration;
+    // Mapping to store migration timestamps by migration index
+    mapping(uint256 => uint256) public timestamps;
+    // Mapping to store vault initialization parameters by migration index
+    mapping(uint256 => IMellowSymbioticVault.InitParams) public vaultInitParams;
 
+    /**
+     * @notice Constructor to initialize the Migrator contract with the required parameters.
+     * @param singleton_ The address of the singleton MellowSymbioticVault contract.
+     * @param symbioticVaultConfigurator_ The address of the Symbiotic Vault configurator.
+     * @param admin_ The address of the admin managing the migration process.
+     * @param migrationDelay_ The delay period before a migration can be processed.
+     */
     constructor(
         address singleton_,
         address symbioticVaultConfigurator_,
@@ -41,14 +51,18 @@ contract Migrator is IMigrator {
         address symbioticVault
     ) external returns (uint256 migrationIndex) {
         require(msg.sender == admin, "Migrator: not admin");
+
         address vault = IDefaultBondStrategy(defaultBondStrategy).vault();
         address token = IMellowLRT(vault).underlyingTokens()[0];
 
+        // Retrieve bond data and ensure valid bond address
         bytes memory bonds = IDefaultBondStrategy(defaultBondStrategy).tokenToData(token);
         IDefaultBondStrategy.Data[] memory data = abi.decode(bonds, (IDefaultBondStrategy.Data[]));
         require(data.length == 1, "Invalid bonds length");
         address bond = data[0].bond;
         require(bond != address(0), "Invalid bond address");
+
+        // Store migration parameters
         Parameters memory params = Parameters({
             vault: vault,
             token: token,
@@ -58,9 +72,11 @@ contract Migrator is IMigrator {
             proxyAdminOwner: proxyAdminOwner
         });
         _checkParams(params);
+
         migrationIndex = migrations++;
         migration[migrationIndex] = params;
 
+        // Set vault initialization parameters
         vaultInitParams[migrationIndex] = IMellowSymbioticVault.InitParams({
             limit: IMellowLRT(vault).configurator().maximalTotalSupply(),
             symbioticVault: symbioticVault,
@@ -86,7 +102,7 @@ contract Migrator is IMigrator {
 
     /// @inheritdoc IMigrator
     function migrate(uint256 migrationIndex) external {
-        require(msg.sender == admin, "Migrator: not admin"); // should it be removed?
+        require(msg.sender == admin, "Migrator: not admin");
         require(
             timestamps[migrationIndex] != 0
                 && timestamps[migrationIndex] + migrationDelay <= block.timestamp,
@@ -97,6 +113,15 @@ contract Migrator is IMigrator {
         delete timestamps[migrationIndex];
     }
 
+    /**
+     * @notice Validates the migration parameters to ensure that the strategy, bond, and vault token are consistent.
+     * @param params The migration parameters containing details of the vault, bond, and strategy.
+     *
+     * @dev This function checks:
+     * - That the vault specified in the bond strategy matches the vault in the parameters.
+     * - That the bond's underlying asset matches the expected token.
+     * - That the vault contains exactly one underlying token, which matches the expected token.
+     */
     function _checkParams(Parameters memory params) internal view {
         require(
             IDefaultBondStrategy(params.defaultBondStrategy).vault() == params.vault,
@@ -111,22 +136,35 @@ contract Migrator is IMigrator {
         );
     }
 
+    /**
+     * @notice Verifies that the Migrator contract has the necessary permissions for the migration.
+     * @param params The migration parameters containing addresses for the proxy admin, vault, and strategy.
+     *
+     * @dev This function checks:
+     * - That the Migrator is the owner of the ProxyAdmin contract.
+     * - That the Migrator has the `ADMIN_ROLE` for both the vault and the bond strategy.
+     * - That the Migrator has permission to perform a delegate call on the vault.
+     */
     function _checkPermissions(Parameters memory params) internal view {
         address this_ = address(this);
+
+        // Ensure Migrator owns the ProxyAdmin contract
         require(
             ProxyAdmin(params.proxyAdmin).owner() == this_, "Migrator: ProxyAdmin owner mismatch"
         );
+
+        // Check that Migrator has the admin role for the vault and strategy
         bytes32 ADMIN_ROLE = keccak256("admin");
         require(
             IAccessControlEnumerable(params.vault).hasRole(ADMIN_ROLE, this_),
             "Migrator: Vault admin mismatch"
         );
-
         require(
             IAccessControlEnumerable(params.defaultBondStrategy).hasRole(ADMIN_ROLE, this_),
             "Migrator: Strategy admin mismatch"
         );
 
+        // Ensure the Migrator has delegate call permissions for the vault
         require(
             IMellowLRT(params.vault).configurator().validator().hasPermission(
                 this_, params.vault, IMellowLRT.delegateCall.selector
@@ -135,11 +173,28 @@ contract Migrator is IMigrator {
         );
     }
 
+    /**
+     * @notice Executes the migration process for the specified migration index.
+     * @param migrationIndex The index of the migration to be processed.
+     *
+     * @dev This function:
+     * - Validates the migration parameters and permissions.
+     * - Processes all strategies in the bond strategy.
+     * - Withdraws the full balance from the bond via a delegate call.
+     * - Upgrades the vault to the new implementation and initializes it with the new parameters.
+     * - Transfers ownership of the ProxyAdmin contract to the new owner.
+     */
     function _migrate(uint256 migrationIndex) internal {
         Parameters memory params = migration[migrationIndex];
+
+        // Check migration parameters and permissions
         _checkParams(params);
         _checkPermissions(params);
+
+        // Retrieve initialization parameters for the new vault
         IMellowSymbioticVault.InitParams memory initParams = vaultInitParams[migrationIndex];
+
+        // Process all bond strategies and withdraw collateral from the bond
         IDefaultBondStrategy strategy = IDefaultBondStrategy(params.defaultBondStrategy);
         strategy.processAll();
         address bondModule = strategy.bondModule();
@@ -150,11 +205,15 @@ contract Migrator is IMigrator {
             )
         );
         require(success, "Migrator: DefaultCollateral withdraw failed");
+
+        // Upgrade the vault and initialize it with the new parameters
         ProxyAdmin(params.proxyAdmin).upgradeAndCall(
             ITransparentUpgradeableProxy(params.vault),
             singleton,
             abi.encodeWithSelector(IMellowSymbioticVault.initialize.selector, initParams)
         );
+
+        // Transfer ownership of the ProxyAdmin to the new owner
         ProxyAdmin(params.proxyAdmin).transferOwnership(params.proxyAdminOwner);
     }
 }

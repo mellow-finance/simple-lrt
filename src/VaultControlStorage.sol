@@ -21,20 +21,23 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     }
 
     /**
-     * @notice Initialize the Vault storage.
-     * @param _limit Value of limit.
-     * @param _depositPause Value of `depositPause` state.
-     * @param _withdrawalPause Value of `withdrawalPause` state.
-     * @param _depositWhitelist Value of `depositWhitelist` state.
+     * @notice Initializes the Vault storage with the provided settings for limit, pause states, and whitelist.
+     * @param _limit The initial value for the Vault's deposit limit.
+     * @param _depositPause The initial state for the `depositPause` flag.
+     * @param _withdrawalPause The initial state for the `withdrawalPause` flag.
+     * @param _depositWhitelist The initial state for the `depositWhitelist` flag.
      *
      * @custom:requirements
-     * - MUST not be initialzed before.
+     * - This function MUST not be called more than once; it is intended for one-time initialization.
      *
      * @custom:effects
-     * - Emits LimitSet event.
-     * - Emits DepositPauseSet event.
-     * - Emits WithdrawalPauseSet event.
-     * - Emits DepositWhitelistSet event.
+     * - Sets the provided limit, pause states, and whitelist state in the Vault's storage.
+     * - Emits the `LimitSet` event after the limit is set.
+     * - Emits the `DepositPauseSet` event after the deposit pause state is set.
+     * - Emits the `WithdrawalPauseSet` event after the withdrawal pause state is set.
+     * - Emits the `DepositWhitelistSet` event after the deposit whitelist state is set.
+     *
+     * @dev This function is protected by the `onlyInitializing` modifier to ensure it is only called during the contract's initialization phase.
      */
     function __initializeVaultControlStorage(
         uint256 _limit,
@@ -47,8 +50,8 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
         _setWithdrawalPause(_withdrawalPause);
         _setDepositWhitelist(_depositWhitelist);
     }
-
     /// @inheritdoc IVaultControlStorage
+
     function depositPause() public view returns (bool) {
         return _vaultStorage().depositPause;
     }
@@ -75,10 +78,11 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
 
     /**
      * @notice Sets a new `limit` for the Vault.
-     * @param _limit Address the Simbiotic Vault.
+     * @param _limit The new limit for the Vault.
      *
      * @custom:effects
-     * - Emits LimitSet event.
+     * - Updates the Vault's `limit` in storage.
+     * - Emits the `LimitSet` event with the new limit, current timestamp, and the caller's address.
      */
     function _setLimit(uint256 _limit) internal {
         Storage storage s = _vaultStorage();
@@ -88,10 +92,11 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
 
     /**
      * @notice Sets a new `depositPause` state for the Vault.
-     * @param _paused A new value of `depositPause`.
+     * @param _paused The new value for the `depositPause` state.
      *
      * @custom:effects
-     * - Emits DepositPauseSet event.
+     * - Updates the Vault's `depositPause` state in storage.
+     * - Emits the `DepositPauseSet` event with the new pause state, current timestamp, and the caller's address.
      */
     function _setDepositPause(bool _paused) internal {
         Storage storage s = _vaultStorage();
@@ -101,10 +106,11 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
 
     /**
      * @notice Sets a new `withdrawalPause` state for the Vault.
-     * @param _paused A new value of `withdrawalPause`.
+     * @param _paused The new value for the `withdrawalPause` state.
      *
      * @custom:effects
-     * - Emits WithdrawalPauseSet event.
+     * - Updates the Vault's `withdrawalPause` state in storage.
+     * - Emits the `WithdrawalPauseSet` event with the new pause state, current timestamp, and the caller's address.
      */
     function _setWithdrawalPause(bool _paused) internal {
         Storage storage s = _vaultStorage();
@@ -114,10 +120,11 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
 
     /**
      * @notice Sets a new `depositWhitelist` state for the Vault.
-     * @param _status A new value of `withdrawalPause`.
+     * @param _status The new value for the `depositWhitelist` state.
      *
      * @custom:effects
-     * - Emits DepositWhitelistSet event.
+     * - Updates the Vault's `depositWhitelist` state in storage.
+     * - Emits the `DepositWhitelistSet` event with the new whitelist status, current timestamp, and the caller's address.
      */
     function _setDepositWhitelist(bool _status) internal {
         Storage storage s = _vaultStorage();
@@ -126,12 +133,13 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     }
 
     /**
-     * @notice Sets a new `status` state for the `account` at `isDepositorWhitelisted`.
-     * @param account Address of the account.
-     * @param status A new status for the `account`.
+     * @notice Sets a new whitelist `status` for the given `account`.
+     * @param account The address of the account to update.
+     * @param status The new whitelist status for the account.
      *
      * @custom:effects
-     * - Emits DepositorWhitelistStatusSet event.
+     * - Updates the whitelist status of the `account` in storage.
+     * - Emits the `DepositorWhitelistStatusSet` event with the account, new status, current timestamp, and the caller's address.
      */
     function _setDepositorWhitelistStatus(address account, bool status) internal {
         Storage storage s = _vaultStorage();
@@ -140,7 +148,10 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     }
 
     /**
-     * @notice Returns slot `$` of the Vault storage.
+     * @notice Accesses the storage slot for the Vault's data.
+     * @return $ A reference to the `Storage` struct for the Vault.
+     *
+     * @dev This function uses inline assembly to access a predefined storage slot.
      */
     function _vaultStorage() private view returns (Storage storage $) {
         bytes32 slot = storageSlotRef;
