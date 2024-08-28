@@ -152,6 +152,8 @@ contract Integration is BaseTest {
 
         vm.prank(migratorAdmin);
         migrator.migrate(migrationIndex);
+
+        MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
     }
 }
 
