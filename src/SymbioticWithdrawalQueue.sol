@@ -16,7 +16,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     address public immutable collateral;
 
     /// @notice Mapping contains claim `EpochData` for epochs.
-    mapping(uint256 epoch => EpochData data) public _epochData;
+    mapping(uint256 epoch => EpochData data) private _epochData;
     ///@notice Mapping contains claim `AccountData` for accounts.
     mapping(address account => AccountData data) private _accountData;
 
