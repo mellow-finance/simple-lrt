@@ -3,7 +3,10 @@ pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
 
+//Test for previous version: https://github.com/mellow-finance/mellow-lrt/blob/fixes/audit-sherlock-fixes/tests/mainnet/e2e/SolvencyTest.t.sol
+
 contract SolvencyTest is BaseTest {
+    using SafeERC20 for IERC20;
     /*
         1. functions for random values
         2. transitions: deposit, withdraw, claim, slash, param changes, e.t.c, rewards, push rewards, push into symbiotic
@@ -33,7 +36,17 @@ contract SolvencyTest is BaseTest {
 
     uint256 symbioticLimit = 1000 ether;
 
-    function testSolvency() external {
+    MellowSymbioticVault singleton;
+    MellowSymbioticVaultFactory factory;
+    ISymbioticVault symbioticVault;
+    IMellowSymbioticVault mellowSymbioticVault;
+    IWithdrawalQueue withdrawalQueue;
+
+    address[] public depositors;
+    uint256[] public depositedAmounts;
+    uint256[] public withdrawnAmounts;
+
+    function deploy() public {
         /*
             1. deploy
             2. random transitions + validation
@@ -41,12 +54,10 @@ contract SolvencyTest is BaseTest {
             4. final validation
         */
 
-        seed = 0;
+        singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
+        factory = new MellowSymbioticVaultFactory(address(singleton));
 
-        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
-        MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
-
-        ISymbioticVault symbioticVault = ISymbioticVault(
+        symbioticVault = ISymbioticVault(
             symbioticHelper.createNewSymbioticVault(
                 SymbioticHelper.CreationParams({
                     vaultOwner: vaultOwner,
@@ -59,11 +70,11 @@ contract SolvencyTest is BaseTest {
             )
         );
 
-        (IMellowSymbioticVault mellowSymbioticVault1, IWithdrawalQueue withdrawalQueue1) = factory
+        (mellowSymbioticVault, withdrawalQueue) = factory
             .create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
-                limit: 100 ether,
+                limit: 1e8 ether,
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -72,34 +83,58 @@ contract SolvencyTest is BaseTest {
                 name: "MellowSymbioticVault",
                 symbol: "MSV"
             })
-
-
         );
-
-        vm.startPrank(user);
-
-        vm.stopPrank();
     }
 
     function transition_random_deposit() internal {
-        
+        address user;
+        if (depositors.length == 0 || random_bool()) {
+            user = random_address();
+            depositors.push(user);
+            depositedAmounts.push(0);
+            withdrawnAmounts.push(0);
+        } else {
+            user = depositors[_randInt(0, depositors.length - 1)];
+        }
+        uint256 amount = calc_random_amount_d18();
+        deal(wsteth, user, amount);
+        vm.startPrank(user);
+        IERC20(wsteth).safeIncreaseAllowance(
+            address(mellowSymbioticVault),
+            amount
+        );
+
+        mellowSymbioticVault.deposit(amount, user, address(0));
+        vm.stopPrank();
+
+        depositedAmounts[_indexOf(user)] += amount;
+    }
+    
+    function transition_random_withdrawal() internal {
+        address user;
+        if (depositors.length == 0 || random_bool()) {
+            user = random_address();
+            depositors.push(user);
+            depositedAmounts.push(0);
+            withdrawnAmounts.push(0);
+        } else {
+            user = depositors[_randInt(0, depositors.length - 1)];
+        }
+        uint256 amount = calc_random_amount_d18();
+        deal(wsteth, user, amount);
+        vm.startPrank(user);
+        IERC20(wsteth).safeIncreaseAllowance(
+            address(mellowSymbioticVault),
+            1e8
+        );
+
+        mellowSymbioticVault.deposit(1e7, user, address(0));
+        mellowSymbioticVault.withdraw(amount, user, address(0));
+        vm.stopPrank();
+
+        depositedAmounts[_indexOf(user)] += 1e7 - amount;
     }
 
-    function transition_random_wsteth_price_change() internal {
-        
-    }
-
-    function transition_request_random_withdrawal() internal {
-        
-    }
-
-    function transition_process_random_requested_withdrawals_subset() internal {
-        
-    }
-
-    function transfer_rogue_deposit() internal {
-        
-    }
 
     function finilizeTest() internal {
 
@@ -151,4 +186,21 @@ contract SolvencyTest is BaseTest {
         }
     }
 
+    function testRunSolvency() external {
+        deploy();
+
+        seed = 42;
+
+        transition_random_deposit();
+        transition_random_withdrawal();
+    }
+    
+    function _indexOf(address user) internal view returns (uint256) {
+        for (uint256 i = 0; i < depositors.length; i++) {
+            if (depositors[i] == user) {
+                return i;
+            }
+        }
+        return type(uint256).max;
+    }
 }
