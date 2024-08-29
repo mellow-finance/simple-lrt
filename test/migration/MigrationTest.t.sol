@@ -107,8 +107,6 @@ contract Integration is BaseTest {
         bytes32 ADMIN_ROLE = keccak256("admin");
         IAccessControlEnumerable(mellowLRT).grantRole(ADMIN_ROLE, address(migrator));
         IAccessControlEnumerable(defaultBondStrategy).grantRole(ADMIN_ROLE, address(migrator));
-        IManagedValidator(managedValidator).grantRole(address(migrator), 255);
-
         vm.stopPrank();
 
         vm.prank(proxyAdminOwner);

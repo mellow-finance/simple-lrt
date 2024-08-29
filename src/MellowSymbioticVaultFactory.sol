@@ -28,6 +28,7 @@ contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
         vault.initialize(
             IMellowSymbioticVault.InitParams({
                 limit: initParams.limit,
+                symbioticCollateral: initParams.symbioticCollateral,
                 symbioticVault: initParams.symbioticVault,
                 withdrawalQueue: address(withdrawalQueue),
                 admin: initParams.admin,

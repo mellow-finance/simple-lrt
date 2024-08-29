@@ -16,6 +16,7 @@ import {
 import {ReentrancyGuardUpgradeable} from
     "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
+import {IDefaultCollateral} from "../tokens/IDefaultCollateral.sol";
 import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 import {IStakerRewards} from "@symbiotic/rewards/interfaces/stakerRewards/IStakerRewards.sol";
 
@@ -27,6 +28,7 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
     /**
      * @notice Struct to store initialization parameters for the vault.
      * @param limit The maximum limit for deposits.
+     * @param symbioticCollateral The address of the underlying Symbiotic Collateral.
      * @param symbioticVault The address of the underlying Symbiotic Vault.
      * @param withdrawalQueue The address of the associated withdrawal queue.
      * @param admin The address of the vault's admin.
@@ -38,6 +40,7 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
      */
     struct InitParams {
         uint256 limit;
+        address symbioticCollateral;
         address symbioticVault;
         address withdrawalQueue;
         address admin;

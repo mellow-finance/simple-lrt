@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import {IDefaultCollateral} from "../tokens/IDefaultCollateral.sol";
 import {IWithdrawalQueue} from "../utils/IWithdrawalQueue.sol";
 import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
@@ -39,6 +40,7 @@ interface IMellowSymbioticVaultStorage {
      */
     struct SymbioticStorage {
         ISymbioticVault symbioticVault;
+        IDefaultCollateral symbioticCollateral;
         IWithdrawalQueue withdrawalQueue;
         EnumerableSet.UintSet farmIds;
         mapping(uint256 => FarmData) farms;
@@ -88,6 +90,13 @@ interface IMellowSymbioticVaultStorage {
      * @return data The `FarmData` struct for the specified farm.
      */
     function symbioticFarm(uint256 farmId) external view returns (FarmData memory);
+
+    /**
+     * @notice Emitted when a new symbiotic collateral is set.
+     * @param symbioticCollateral The address of the new symbiotic collateral.
+     * @param timestamp The time at which the symbiotic collateral was set.
+     */
+    event SymbioticCollateralSet(address symbioticCollateral, uint256 timestamp);
 
     /**
      * @notice Emitted when a new symbiotic vault is set.

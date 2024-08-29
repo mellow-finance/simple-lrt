@@ -106,6 +106,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -121,6 +122,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVault.InitParams({
                 withdrawalQueue: address(withdrawalQueue),
                 limit: vaultLimit,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -200,6 +202,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -256,6 +259,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -367,6 +371,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -484,6 +489,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -558,6 +564,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -603,6 +610,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -656,6 +664,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,

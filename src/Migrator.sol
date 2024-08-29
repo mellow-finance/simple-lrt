@@ -91,6 +91,7 @@ contract Migrator is IMigrator {
         // Set vault initialization parameters
         _vaultInitParams[vault] = IMellowSymbioticVault.InitParams({
             limit: IMellowLRT(vault).configurator().maximalTotalSupply(),
+            symbioticCollateral: bond,
             symbioticVault: symbioticVault,
             withdrawalQueue: address(new SymbioticWithdrawalQueue(vault, symbioticVault)),
             admin: vaultAdmin,
@@ -175,18 +176,6 @@ contract Migrator is IMigrator {
             IAccessControlEnumerable(params.vault).hasRole(ADMIN_ROLE, this_),
             "Migrator: Vault admin mismatch"
         );
-        require(
-            IAccessControlEnumerable(params.defaultBondStrategy).hasRole(ADMIN_ROLE, this_),
-            "Migrator: Strategy admin mismatch"
-        );
-
-        // Ensure the Migrator has delegate call permissions for the vault
-        require(
-            IMellowLRT(params.vault).configurator().validator().hasPermission(
-                this_, params.vault, IMellowLRT.delegateCall.selector
-            ),
-            "Migrator: Vault delegateCall permission missing"
-        );
     }
 
     /**
@@ -213,14 +202,6 @@ contract Migrator is IMigrator {
         // Process all bond strategies and withdraw collateral from the bond
         IDefaultBondStrategy strategy = IDefaultBondStrategy(params.defaultBondStrategy);
         strategy.processAll();
-        address bondModule = strategy.bondModule();
-        (bool success,) = IMellowLRT(params.vault).delegateCall(
-            bondModule,
-            abi.encodeWithSelector(
-                IDefaultBondModule.withdraw.selector, params.bond, type(uint256).max
-            )
-        );
-        require(success, "Migrator: DefaultCollateral withdraw failed");
 
         // Upgrade the vault and initialize it with the new parameters
         ProxyAdmin(params.proxyAdmin).upgradeAndCall(
