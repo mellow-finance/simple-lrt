@@ -165,7 +165,7 @@ contract MellowSymbioticVault is
             asset_.forceApprove(address(symbioticVault), 0);
         }
 
-        emit SymbioticPushed(msg.sender, symbioticVaultStaked);
+        emit SymbioticPushed(_msgSender(), symbioticVaultStaked);
     }
 
     /// @inheritdoc IMellowSymbioticVault
