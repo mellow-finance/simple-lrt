@@ -48,7 +48,7 @@ contract Integration is BaseTest {
         );
 
         vm.prank(migratorAdmin);
-        uint256 migrationIndex = migrator.stageMigration(
+        migrator.stageMigration(
             defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
         );
 
@@ -66,9 +66,56 @@ contract Integration is BaseTest {
         ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
 
         vm.prank(migratorAdmin);
-        migrator.migrate(migrationIndex);
+        migrator.migrate(mellowLRT);
 
         MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
+    }
+
+    function testMigrationReassing() external {
+        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+
+        MellowVaultCompat mellowVaultCompat =
+            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
+        Migrator migrator = new Migrator(
+            address(mellowVaultCompat),
+            address(symbioticVaultConfigurator),
+            address(migratorAdmin),
+            migratorDelay
+        );
+
+        IVaultConfigurator.InitParams memory emptyParams;
+        emptyParams.vaultParams.collateral = wsteth;
+        address symbioticVault = symbioticHelper.createNewSymbioticVault(
+            SymbioticHelper.CreationParams({
+                vaultOwner: symbioticVaultOwner,
+                vaultAdmin: symbioticVaultOwner,
+                asset: wsteth,
+                epochDuration: epochDuration,
+                isDepositLimit: false,
+                depositLimit: 0
+            })
+        );
+
+        vm.prank(migratorAdmin);
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+
+        skip(migratorDelay);
+
+        vm.startPrank(vaultAdmin);
+        bytes32 ADMIN_ROLE = keccak256("admin");
+        IAccessControlEnumerable(mellowLRT).grantRole(ADMIN_ROLE, address(migrator));
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(ADMIN_ROLE, address(migrator));
+        IManagedValidator(managedValidator).grantRole(address(migrator), 255);
+
+        vm.stopPrank();
+
+        vm.prank(proxyAdminOwner);
+        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
+
+        vm.prank(migratorAdmin);
+        migrator.cancelMigration(mellowLRT);
     }
 }
 
