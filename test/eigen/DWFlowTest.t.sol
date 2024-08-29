@@ -46,9 +46,10 @@ contract DWFlowTest is EigenBaseTest {
         console2.log("user vault balance1: ", mellowEigenLayerVault.balanceOf(user));
 
         vm.roll(block.number + minWithdrawalDelayBlocks);
-
+        
+        uint256 gas0 = gasleft();
         mellowEigenLayerVault.claim(user, user);
-
+        console2.log("clam gas", gas0 - gasleft());
         vm.expectRevert("Vault: no active withdrawals");
         mellowEigenLayerVault.claim(user, user);
 

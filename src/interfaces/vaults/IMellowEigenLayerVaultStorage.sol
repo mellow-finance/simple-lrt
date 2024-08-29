@@ -15,7 +15,6 @@ interface IMellowEigenLayerVaultStorage {
         IStrategy strategy;
         address operator;
         uint256 claimWithdrawalsMax;
-        uint256 nonce;
         mapping(address account => IDelegationManager.Withdrawal[]) withdrawals;
     }
 
@@ -28,8 +27,6 @@ interface IMellowEigenLayerVaultStorage {
     function eigenLayerStrategyOperator() external view returns (address);
 
     function eigenLayerClaimWithdrawalsMax() external view returns (uint256);
-
-    function eigenLayerNonce() external view returns (uint256);
 
     event EigenLayerNonceIncreased(uint256 nonce, uint256 timestamp);
 

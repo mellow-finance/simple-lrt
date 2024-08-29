@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 contract ERC1271 {
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
     bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
+    mapping(bytes32 => bool) private _signedHashes;
 
     /**
      * @dev Should return whether the signature provided is valid for the provided data
@@ -17,66 +18,23 @@ contract ERC1271 {
         view
         returns (bytes4 magicValue)
     {
-        if (recoverSigner(hash, signature) == address(this)) {
+        if (_signedHashes[hash]) {
+            bytes32 signatureHash = abi.decode(signature, (bytes32));
+            require(
+                signatureHash == keccak256(abi.encode(address(this), block.timestamp, hash)),
+                "ERC1271: wrong signature"
+            );
             return MAGIC_VALUE;
         } else {
             return 0xffffffff;
         }
     }
 
-    /**
-     * @notice Recover the signer of hash, assuming it's an EOA account
-     * @dev Only for EthSign signatures
-     * @param _hash       Hash of message that was signed
-     * @param _signature  Signature encoded as (bytes32 r, bytes32 s, uint8 v)
-     */
-    function recoverSigner(bytes32 _hash, bytes memory _signature)
-        internal
-        pure
-        returns (address signer)
-    {
-        require(
-            _signature.length == 65, "SignatureValidator#recoverSigner: invalid signature length"
-        );
+    function _setHashAsSigned(bytes32 hash) internal {
+        _signedHashes[hash] = true;
+    }
 
-        // Variables are not scoped in Solidity.
-        uint8 v; // = uint8(_signature[64]);
-        bytes32 r; // = _signature.readBytes32(0);
-        bytes32 s; // = _signature.readBytes32(32);
-
-        assembly {
-            v := byte(0, mload(add(_signature, 0x41)))
-            r := mload(add(_signature, 0x20))
-            s := mload(add(_signature, 0x40))
-        }
-
-        // EIP-2 still allows signature malleability for ecrecover(). Remove this possibility and make the signature
-        // unique. Appendix F in the Ethereum Yellow paper (https://ethereum.github.io/yellowpaper/paper.pdf), defines
-        // the valid range for s in (281): 0 < s < secp256k1n ÷ 2 + 1, and for v in (282): v ∈ {27, 28}. Most
-        // signatures from current libraries generate a unique signature with an s-value in the lower half order.
-        //
-        // If your library generates malleable signatures, such as s-values in the upper range, calculate a new s-value
-        // with 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141 - s1 and flip v from 27 to 28 or
-        // vice versa. If your library also generates signatures with 0/1 for v instead 27/28, add 27 to v to accept
-        // these malleable signatures as well.
-        //
-        // Source OpenZeppelin
-        // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/cryptography/ECDSA.sol
-
-        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
-            revert("SignatureValidator#recoverSigner: invalid signature 's' value");
-        }
-
-        if (v != 27 && v != 28) {
-            revert("SignatureValidator#recoverSigner: invalid signature 'v' value");
-        }
-
-        // Recover ECDSA signer
-        signer = ecrecover(_hash, v, r, s);
-
-        // Prevent signer from being 0x0
-        require(signer != address(0x0), "SignatureValidator#recoverSigner: INVALID_SIGNER");
-
-        return signer;
+    function _revokeHash(bytes32 hash) internal {
+        _signedHashes[hash] = false;
     }
 }

@@ -58,10 +58,6 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
         return _eigenLayerStorage().claimWithdrawalsMax;
     }
 
-    function eigenLayerNonce() public view returns (uint256) {
-        return _eigenLayerStorage().nonce;
-    }
-
     function eigenLayerAccountWithdrawals(address account)
         public
         view
@@ -100,12 +96,6 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
         EigenLayerStorage storage s = _eigenLayerStorage();
         s.claimWithdrawalsMax = _claimWithdrawalsMax;
         emit EigenLayerClaimWithdrawalsMaxSet(_claimWithdrawalsMax, block.timestamp);
-    }
-
-    function _increaseEigenLayerNonce() internal {
-        EigenLayerStorage storage s = _eigenLayerStorage();
-        s.nonce += 1;
-        emit EigenLayerNonceIncreased(s.nonce, block.timestamp);
     }
 
     function _getEigenLayerWithdrawalQueue()

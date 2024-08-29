@@ -52,23 +52,32 @@ contract MellowEigenLayerVault is
             initParams.symbol
         );
 
-        address delegationApprover =
-            eigenLayerDelegationManager().delegationApprover(eigenLayerParam.operator);
+        uint256 nonce = eigenLayerDelegationManager().stakerNonce(address(this));
 
-        IDelegationManager(eigenLayerParam.delegationManager).calculateDelegationApprovalDigestHash(
+        bytes32 stakerDigestHash = IDelegationManager(eigenLayerParam.delegationManager)
+            .calculateStakerDelegationDigestHash(
+            address(this), nonce, eigenLayerParam.operator, eigenLayerParam.expiry + block.timestamp
+        );
+
+        _setHashAsSigned(stakerDigestHash);
+        eigenLayerParam.delegationSignature =
+            abi.encode(keccak256(abi.encode(address(this), block.timestamp, stakerDigestHash)));
+
+        ISignatureUtils.SignatureWithExpiry memory stakerSignatureAndExpiry = ISignatureUtils
+            .SignatureWithExpiry(
+            eigenLayerParam.delegationSignature, eigenLayerParam.expiry + block.timestamp
+        );
+
+        ISignatureUtils.SignatureWithExpiry memory approverSignatureAndExpiry =
+            ISignatureUtils.SignatureWithExpiry(abi.encode(0), 0);
+        eigenLayerDelegationManager().delegateToBySignature(
             address(this),
             eigenLayerParam.operator,
-            delegationApprover,
-            eigenLayerParam.salt,
-            eigenLayerParam.expiry
+            stakerSignatureAndExpiry,
+            approverSignatureAndExpiry,
+            eigenLayerParam.salt
         );
-
-        ISignatureUtils.SignatureWithExpiry memory signatureWithExpiry = ISignatureUtils
-            .SignatureWithExpiry(eigenLayerParam.delegationSignature, eigenLayerParam.expiry);
-
-        eigenLayerDelegationManager().delegateTo(
-            eigenLayerParam.operator, signatureWithExpiry, eigenLayerParam.salt
-        );
+        _revokeHash(stakerDigestHash);
     }
 
     // ERC4626 overrides
@@ -108,20 +117,18 @@ contract MellowEigenLayerVault is
         uint256 assets,
         uint256 shares
     ) internal virtual override {
-        require(!withdrawalPause(), "Vault: withdrawal paused");
-        address this_ = address(this);
-
-        uint256 liquid = IERC20(asset()).balanceOf(this_);
+        uint256 liquid = IERC20(asset()).balanceOf(address(this));
         if (liquid >= assets) {
             return super._withdraw(caller, receiver, owner, assets, shares);
         }
 
-        uint256 staked = assets - liquid;
+        uint256 stakedShares = previewWithdraw(assets - liquid);
+        if (stakedShares > 0) {
+            _pushToWithdrawalQueue(receiver, stakedShares);
 
-        _pushToWithdrawalQueue(receiver, staked);
-
-        if (caller != owner) {
-            _spendAllowance(owner, caller, shares);
+            if (caller != owner) {
+                _spendAllowance(owner, caller, stakedShares);
+            }
         }
 
         _burn(owner, shares);
@@ -133,24 +140,33 @@ contract MellowEigenLayerVault is
         emit Withdraw(caller, receiver, owner, assets, shares);
     }
 
-    function _pushToWithdrawalQueue(address account, uint256 stakedAssets) internal {
-        uint256 stakedShares = previewWithdraw(stakedAssets);
+    function _pushToWithdrawalQueue(address account, uint256 stakedShares) internal {
+        IStrategy[] memory strategies = new IStrategy[](1);
+        uint256[] memory shares = new uint256[](1);
+        strategies[0] = eigenLayerStrategy();
+        shares[0] = stakedShares;
 
+        IDelegationManager.QueuedWithdrawalParams[] memory queuedWithdrawalParams =
+            new IDelegationManager.QueuedWithdrawalParams[](1);
+        queuedWithdrawalParams[0] = IDelegationManager.QueuedWithdrawalParams({
+            strategies: strategies,
+            shares: shares,
+            withdrawer: address(this)
+        });
+
+        uint256 nonce = eigenLayerDelegationManager().cumulativeWithdrawalsQueued(address(this));
         bytes32[] memory withdrawalRoots =
-            eigenLayerDelegationManager().queueWithdrawals(_getQueuedWithdrawalParams(stakedShares));
+            eigenLayerDelegationManager().queueWithdrawals(queuedWithdrawalParams);
 
         IDelegationManager.Withdrawal memory withdrawalData = IDelegationManager.Withdrawal({
             staker: address(this),
             delegatedTo: eigenLayerStrategyOperator(),
             withdrawer: address(this),
-            nonce: eigenLayerNonce(),
+            nonce: nonce,
             startBlock: uint32(block.number),
-            strategies: new IStrategy[](1),
-            shares: new uint256[](1)
+            strategies: strategies,
+            shares: shares
         });
-
-        withdrawalData.strategies[0] = eigenLayerStrategy();
-        withdrawalData.shares[0] = stakedShares;
 
         bytes32 withdrawalRoot =
             eigenLayerDelegationManager().calculateWithdrawalRoot(withdrawalData);
@@ -158,51 +174,18 @@ contract MellowEigenLayerVault is
 
         mapping(address account => IDelegationManager.Withdrawal[]) storage withdrawals =
             _getEigenLayerWithdrawalQueue();
+
+        require(
+            withdrawals[account].length < eigenLayerClaimWithdrawalsMax(),
+            "Vault: withdrawal queue size limit is reached"
+        );
         withdrawals[account].push(withdrawalData);
-
-        _increaseEigenLayerNonce();
-    }
-
-    function _getQueuedWithdrawalParams(uint256 shares)
-        internal
-        view
-        returns (IDelegationManager.QueuedWithdrawalParams[] memory queuedWithdrawalParams)
-    {
-        IDelegationManager.QueuedWithdrawalParams memory queuedWithdrawalParam = IDelegationManager
-            .QueuedWithdrawalParams({
-            strategies: new IStrategy[](1),
-            shares: new uint256[](1),
-            withdrawer: address(this)
-        });
-
-        queuedWithdrawalParam.strategies[0] = eigenLayerStrategy();
-        queuedWithdrawalParam.shares[0] = shares;
-
-        queuedWithdrawalParams = new IDelegationManager.QueuedWithdrawalParams[](1);
-        queuedWithdrawalParams[0] = queuedWithdrawalParam;
     }
 
     function claim(address account, address recipient)
         external
         virtual
         nonReentrant
-        returns (uint256 claimedAmount)
-    {
-        uint256 eigenLayerClaimWithdrawalsMax = eigenLayerClaimWithdrawalsMax();
-        return _claim(account, recipient, eigenLayerClaimWithdrawalsMax);
-    }
-
-    function claim(address account, address recipient, uint256 maxWithdrawals)
-        external
-        virtual
-        nonReentrant
-        returns (uint256 claimedAmount)
-    {
-        return _claim(account, recipient, maxWithdrawals);
-    }
-
-    function _claim(address account, address recipient, uint256 maxWithdrawals)
-        internal
         returns (uint256 claimedAmount)
     {
         address sender = msg.sender;
@@ -228,9 +211,6 @@ contract MellowEigenLayerVault is
                 );
                 delete withdrawalData[i];
                 claimed += 1;
-            }
-            if (claimed >= maxWithdrawals) {
-                break;
             }
         }
         require(claimed > 0, "Vault: nothing to claim");
