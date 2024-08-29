@@ -47,6 +47,12 @@ interface IMellowSymbioticVaultStorage {
     }
 
     /**
+     * @notice Returns the address of the associated Symbiotic DefaultCollateral.
+     * @return vault The address of the Symbiotic DefaultCollateral.
+     */
+    function symbioticCollateral() external view returns (IDefaultCollateral);
+
+    /**
      * @notice Returns the address of the associated Symbiotic Vault.
      * @return vault The address of the Symbiotic Vault.
      */

@@ -53,6 +53,7 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
         return _symbioticStorage().symbioticVault;
     }
 
+    /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticCollateral() public view returns (IDefaultCollateral) {
         return _symbioticStorage().symbioticCollateral;
     }

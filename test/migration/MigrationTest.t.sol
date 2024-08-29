@@ -55,11 +55,12 @@ contract Integration is BaseTest {
         skip(migratorDelay);
 
         vm.startPrank(vaultAdmin);
-        bytes32 ADMIN_ROLE = keccak256("admin");
-        IAccessControlEnumerable(mellowLRT).grantRole(ADMIN_ROLE, address(migrator));
-        IAccessControlEnumerable(defaultBondStrategy).grantRole(ADMIN_ROLE, address(migrator));
-        IManagedValidator(managedValidator).grantRole(address(migrator), 255);
-
+        bytes32 OPERATOR = keccak256("operator");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(
+            ADMIN_DELEGATE_ROLE, address(vaultAdmin)
+        );
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
         vm.stopPrank();
 
         vm.prank(proxyAdminOwner);
@@ -104,9 +105,12 @@ contract Integration is BaseTest {
         skip(migratorDelay);
 
         vm.startPrank(vaultAdmin);
-        bytes32 ADMIN_ROLE = keccak256("admin");
-        IAccessControlEnumerable(mellowLRT).grantRole(ADMIN_ROLE, address(migrator));
-        IAccessControlEnumerable(defaultBondStrategy).grantRole(ADMIN_ROLE, address(migrator));
+        bytes32 OPERATOR = keccak256("operator");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(
+            ADMIN_DELEGATE_ROLE, address(vaultAdmin)
+        );
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
         vm.stopPrank();
 
         vm.prank(proxyAdminOwner);
