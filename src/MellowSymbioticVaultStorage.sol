@@ -43,11 +43,6 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
         address _symbioticVault,
         address _withdrawalQueue
     ) internal onlyInitializing {
-        // require(
-        //     IDefaultCollateral(_symbioticCollateral).asset()
-        //         == ISymbioticVault(_symbioticVault).collateral(),
-        //     "MellowSymbioticVaultStorage: invalid symbiotic collateral"
-        // );
         _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
         _setWithdrawalQueue(IWithdrawalQueue(_withdrawalQueue));
