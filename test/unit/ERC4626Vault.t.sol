@@ -63,10 +63,47 @@ contract Unit is BaseTest {
     }
 
     function testMaxMint() external {
-        MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
-        vault.initializeERC4626(admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH");
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+            );
 
-        assertEq(vault.maxMint(address(this)), 1000);
+            assertEq(vault.maxMint(address(this)), 1000);
+        }
+
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, type(uint256).max, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            assertEq(vault.maxMint(address(this)), type(uint256).max);
+        }
+
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, type(uint256).max, false, false, true, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            assertEq(vault.maxMint(address(this)), 0);
+        }
+
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, type(uint256).max, false, false, true, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            vm.startPrank(admin);
+            vault.grantRole(keccak256("SET_DEPOSITOR_WHITELIST_STATUS_ROLE"), admin);
+            vault.setDepositorWhitelistStatus(address(this), true);
+
+            vm.stopPrank();
+
+            assertEq(vault.maxMint(address(this)), type(uint256).max);
+        }
     }
 
     function testMaxDeposit() external {
@@ -95,6 +132,48 @@ contract Unit is BaseTest {
             );
 
             assertEq(vault.maxDeposit(address(this)), 0);
+        }
+
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, type(uint256).max, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            assertEq(vault.maxDeposit(address(this)), type(uint256).max);
+        }
+
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, type(uint256).max, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            assertEq(vault.maxDeposit(address(this)), type(uint256).max);
+        }
+
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, type(uint256).max, false, false, true, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            assertEq(vault.maxDeposit(address(this)), 0);
+        }
+
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, type(uint256).max, false, false, true, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            vm.startPrank(admin);
+            vault.grantRole(keccak256("SET_DEPOSITOR_WHITELIST_STATUS_ROLE"), admin);
+            vault.setDepositorWhitelistStatus(address(this), true);
+
+            vm.stopPrank();
+
+            assertEq(vault.maxDeposit(address(this)), type(uint256).max);
         }
     }
 
@@ -159,6 +238,78 @@ contract Unit is BaseTest {
             vault.mint(amount, user1);
         }
 
+        vm.stopPrank();
+    }
+
+    function testMaxWithdraw() external {
+        vm.startPrank(user1);
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, 1000, false, true, false, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            uint256 amount = 100;
+            deal(wsteth, user1, amount);
+            IERC20(wsteth).approve(address(vault), amount);
+            vault.mint(amount, user1);
+
+            assertEq(vault.balanceOf(user1), amount);
+            assertEq(vault.totalSupply(), amount);
+            assertEq(vault.maxWithdraw(user1), 0);
+        }
+
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            uint256 amount = 100;
+            deal(wsteth, user1, amount);
+            IERC20(wsteth).approve(address(vault), amount);
+            vault.mint(amount, user1);
+
+            assertEq(vault.balanceOf(user1), amount);
+            assertEq(vault.totalSupply(), amount);
+            assertEq(vault.maxWithdraw(user1), amount);
+        }
+        vm.stopPrank();
+    }
+
+    function testMaxRedeem() external {
+        vm.startPrank(user1);
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, 1000, false, true, false, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            uint256 amount = 100;
+            deal(wsteth, user1, amount);
+            IERC20(wsteth).approve(address(vault), amount);
+            vault.mint(amount, user1);
+
+            assertEq(vault.balanceOf(user1), amount);
+            assertEq(vault.totalSupply(), amount);
+            assertEq(vault.maxRedeem(user1), 0);
+        }
+
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            uint256 amount = 100;
+            deal(wsteth, user1, amount);
+            IERC20(wsteth).approve(address(vault), amount);
+            vault.mint(amount, user1);
+
+            assertEq(vault.balanceOf(user1), amount);
+            assertEq(vault.totalSupply(), amount);
+            assertEq(vault.maxRedeem(user1), amount);
+        }
         vm.stopPrank();
     }
 

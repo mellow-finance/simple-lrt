@@ -17,7 +17,7 @@ contract MockSymbioticFarm is IStakerRewards {
         external
     {}
 
-    function claimRewards(address recipient, address token, bytes calldata data) external {
+    function claimRewards(address recipient, address token, bytes calldata /* data */ ) external {
         IERC20(token).transfer(recipient, IERC20(token).balanceOf(address(this)));
     }
 
@@ -31,6 +31,7 @@ contract MockSymbioticVault is ERC20 {
 
     bool public isDepositLimit = false;
     uint256 public depositLimit = 0;
+    bool public depositWhitelist = false;
     uint256 public loss = 0;
 
     function collateral() external view returns (address) {
@@ -194,8 +195,8 @@ contract Unit is BaseTest {
             )
         );
 
-        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue withdrawalQueue) = factory
-            .create(
+        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+        factory.create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
@@ -478,8 +479,8 @@ contract Unit is BaseTest {
             )
         );
 
-        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue withdrawalQueue) = factory
-            .create(
+        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+        factory.create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
@@ -506,9 +507,29 @@ contract Unit is BaseTest {
         vm.prank(symbioticVaultAdmin);
         symbioticVault.setDepositLimit(symbioticLimit + 1 ether);
 
+        vm.startPrank(symbioticVaultAdmin);
+        symbioticVault.setDepositWhitelist(true);
+        vm.stopPrank();
+
+        assertEq(
+            mellowSymbioticVault.pushIntoSymbiotic(), 0 ether, "Incorrect pushIntoSymbiotic result"
+        );
+
+        vm.startPrank(symbioticVaultAdmin);
+        symbioticVault.setDepositorWhitelistStatus(address(mellowSymbioticVault), true);
+        vm.stopPrank();
+
         assertEq(
             mellowSymbioticVault.pushIntoSymbiotic(), 1 ether, "Incorrect pushIntoSymbiotic result"
         );
+
+        assertEq(
+            mellowSymbioticVault.pushIntoSymbiotic(), 0 ether, "Incorrect pushIntoSymbiotic result"
+        );
+
+        vm.startPrank(symbioticVaultAdmin);
+        symbioticVault.setDepositWhitelist(false);
+        vm.stopPrank();
 
         assertEq(
             mellowSymbioticVault.pushIntoSymbiotic(), 0 ether, "Incorrect pushIntoSymbiotic result"
@@ -532,8 +553,8 @@ contract Unit is BaseTest {
             )
         );
 
-        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue withdrawalQueue) = factory
-            .create(
+        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+        factory.create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
@@ -577,8 +598,8 @@ contract Unit is BaseTest {
 
         MockSymbioticVault symbioticVault = new MockSymbioticVault();
 
-        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue withdrawalQueue) = factory
-            .create(
+        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+        factory.create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
@@ -630,8 +651,8 @@ contract Unit is BaseTest {
             )
         );
 
-        (IMellowSymbioticVault mellowSymbioticVault, IWithdrawalQueue withdrawalQueue) = factory
-            .create(
+        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+        factory.create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,

@@ -114,8 +114,7 @@ contract Unit is BaseTest {
         address proxyAdmin = makeAddr("proxyAdmin");
         // invalid singleton impl
         vm.expectRevert();
-        (IMellowSymbioticVault mellowSymbioticVault1, IWithdrawalQueue withdrawalQueue1) = factory
-            .create(
+        factory.create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: proxyAdmin,
                 limit: 100 ether,

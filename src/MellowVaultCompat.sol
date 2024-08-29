@@ -1,43 +1,32 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./interfaces/vaults/IEthVaultCompat.sol";
+import "./interfaces/vaults/IMellowVaultCompat.sol";
 
 import {MellowSymbioticVault} from "./MellowSymbioticVault.sol";
 
-/*
-    This contract is an intermediate step in the migration from mellow-lrt/src/Vault.sol to simple-lrt/src/MellowSymbioticVault.sol.
-    Migration logic:
-
-    1. On every transfer/mint/burn, the _update function is called, which transfers the user's balance from the old storage slot to the new one.
-    2. At the same time, the old _totalSupply decreases. This allows tracking how many balances still need to be migrated.
-    3. Once the old _totalSupply reaches zero, further migration to MellowSymbioticVault can be performed. This will remove unnecessary checks.
-*/
-contract MellowVaultCompat is IEthVaultCompat, MellowSymbioticVault {
-    // ERC20 slots
-    mapping(address account => uint256) private _balances;
-    mapping(address account => mapping(address spender => uint256)) private _allowances;
-
-    uint256 private _totalSupply;
+contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
+    // ERC20 storage slots
+    mapping(address => uint256) private _balances;
+    bytes32 private _gap; // Reserved gap for storage layout alignment
+    uint256 private _totalSupply; // Tracks the total supply of tokens before migration
+    bytes32[16] private _reserved; // Reserved storage space for future upgrades
 
     constructor(bytes32 name_, uint256 version_) MellowSymbioticVault(name_, version_) {}
 
-    // decreases with migrations
-    // when it becomes zero -> we can migrate to MellowSymbioticVault
+    /// @inheritdoc IMellowVaultCompat
     function compatTotalSupply() external view returns (uint256) {
         return _totalSupply;
     }
 
+    /// @inheritdoc IMellowVaultCompat
     function migrateMultiple(address[] calldata users) external {
-        for (uint256 i = 0; i < users.length;) {
+        for (uint256 i = 0; i < users.length; ++i) {
             migrate(users[i]);
-            unchecked {
-                i++;
-            }
         }
     }
 
-    // helps migrate user balance from default ERC20 stores to ERC20Upgradeable stores
+    /// @inheritdoc IMellowVaultCompat
     function migrate(address user) public {
         uint256 balance = _balances[user];
         if (balance == 0) {
@@ -47,16 +36,29 @@ contract MellowVaultCompat is IEthVaultCompat, MellowSymbioticVault {
         unchecked {
             _totalSupply -= balance;
         }
+        emit Transfer(user, address(0), balance);
         _mint(user, balance);
     }
 
-    // ERC20Upgradeable override
+    /**
+     * @inheritdoc ERC20Upgradeable
+     * @notice Updates balances for token transfers, ensuring any pre-existing balances in the old storage are migrated before performing the update.
+     * @param from The address sending the tokens.
+     * @param to The address receiving the tokens.
+     * @param value The amount of tokens being transferred.
+     */
     function _update(address from, address to, uint256 value) internal virtual override {
         migrate(from);
         migrate(to);
         super._update(from, to, value);
     }
 
+    /**
+     * @inheritdoc IERC20
+     * @notice Returns the balance of the given account, combining both pre-migration and post-migration balances.
+     * @param account The address of the account to query.
+     * @return The combined balance of the account.
+     */
     function balanceOf(address account)
         public
         view
@@ -66,6 +68,11 @@ contract MellowVaultCompat is IEthVaultCompat, MellowSymbioticVault {
         return _balances[account] + super.balanceOf(account);
     }
 
+    /**
+     * @inheritdoc IERC20
+     * @notice Returns the total supply of tokens, combining both pre-migration and post-migration supplies.
+     * @return The combined total supply of tokens.
+     */
     function totalSupply() public view override(IERC20, ERC20Upgradeable) returns (uint256) {
         return _totalSupply + super.totalSupply();
     }
