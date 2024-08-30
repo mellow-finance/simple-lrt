@@ -104,13 +104,17 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
 
     /**
      * @notice Pushes the maximal possible balance of the asset into the Symbiotic Vault.
-     * @return symbioticVaultStaked The actual amount of staked shares in the Symbiotic Vault.
+     * @return collateralWithdrawal The amount of collateral withdrawn.
+     * @return collateralDeposit The amount of collateral deposited.
+     * @return vaultDeposit The amount of assets pushed to the Symbiotic Vault.
      *
      * @custom:effects
      * - Transfers the maximal possible balance of the asset to the Symbiotic Vault.
      * - Emits the `SymbioticPushed` event.
      */
-    function pushIntoSymbiotic() external returns (uint256 symbioticVaultStaked);
+    function pushIntoSymbiotic()
+        external
+        returns (uint256 collateralWithdrawal, uint256 collateralDeposit, uint256 vaultDeposit);
 
     /**
      * @notice Pushes rewards to the Farm and Curator of the vault for a specified farm ID.
@@ -157,6 +161,10 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
      * @notice Emitted when assets are pushed from the vault into the Symbiotic Vault.
      * @param sender The address that initiated the push.
      * @param vaultAmount The amount of assets pushed to the Symbiotic Vault.
+     * @param collateralDeposit The amount of collateral deposited.
+     * @param collateralWithdrawal The amount of collateral withdrawn.
      */
-    event SymbioticPushed(address sender, uint256 vaultAmount);
+    event SymbioticPushed(
+        address sender, uint256 collateralWithdrawal, uint256 collateralDeposit, uint256 vaultAmount
+    );
 }

@@ -93,22 +93,22 @@ contract MellowSymbioticVault is
     ) internal virtual override {
         address this_ = address(this);
 
-        uint256 liquid = IERC20(asset()).balanceOf(this_);
-        if (liquid >= assets) {
+        uint256 liquidAsset = IERC20(asset()).balanceOf(this_);
+        if (liquidAsset >= assets) {
             return super._withdraw(caller, receiver, owner, assets, shares);
         }
 
-        uint256 collateralAmount = symbioticCollateral().balanceOf(this_).min(assets - liquid);
-        if (collateralAmount != 0) {
-            symbioticCollateral().withdraw(this_, collateralAmount);
-            liquid += collateralAmount;
+        uint256 liquidCollateral = symbioticCollateral().balanceOf(this_).min(assets - liquidAsset);
+        if (liquidCollateral != 0) {
+            symbioticCollateral().withdraw(this_, liquidCollateral);
+            liquidAsset += liquidCollateral;
 
-            if (liquid >= assets) {
+            if (liquidAsset >= assets) {
                 return super._withdraw(caller, receiver, owner, assets, shares);
             }
         }
 
-        uint256 staked = assets - liquid;
+        uint256 staked = assets - liquidAsset;
         (, uint256 requestedShares) = symbioticVault().withdraw(address(withdrawalQueue()), staked);
         withdrawalQueue().request(receiver, requestedShares);
 
@@ -117,8 +117,8 @@ contract MellowSymbioticVault is
         }
 
         _burn(owner, shares);
-        if (liquid != 0) {
-            IERC20(asset()).safeTransfer(receiver, liquid);
+        if (liquidAsset != 0) {
+            IERC20(asset()).safeTransfer(receiver, liquidAsset);
         }
 
         // emitting event with transfered + new pending assets
@@ -146,17 +146,21 @@ contract MellowSymbioticVault is
         return withdrawalQueue().claim(account, recipient, maxAmount);
     }
 
-    /// @inheritdoc IMellowSymbioticVault
-    function pushIntoSymbiotic() public virtual returns (uint256 symbioticVaultStaked) {
-        IERC20 asset_ = IERC20(asset());
-        IDefaultCollateral collateral = symbioticCollateral();
+    function _calculatePushAmounts(
+        IERC20 asset_,
+        IDefaultCollateral collateral,
+        ISymbioticVault symbioticVault
+    )
+        internal
+        view
+        returns (uint256 collateralWithdrawal, uint256 collateralDeposit, uint256 vaultDeposit)
+    {
         address this_ = address(this);
         uint256 assetAmount = asset_.balanceOf(this_);
         uint256 collateralAmount = collateral.balanceOf(this_);
-        ISymbioticVault symbioticVault = symbioticVault();
 
+        uint256 symbioticVaultLeftover = 0;
         if (!symbioticVault.depositWhitelist() || symbioticVault.isDepositorWhitelisted(this_)) {
-            uint256 symbioticVaultLeftover = 0;
             if (symbioticVault.isDepositLimit()) {
                 uint256 symbioticVaultTotalStake = symbioticVault.totalStake();
                 uint256 symbioticVaultLimit = symbioticVault.depositLimit();
@@ -166,23 +170,16 @@ contract MellowSymbioticVault is
             } else {
                 symbioticVaultLeftover = type(uint256).max;
             }
+        }
 
-            if (symbioticVaultLeftover != 0) {
-                if (assetAmount < symbioticVaultLeftover && collateralAmount != 0) {
-                    uint256 amount = collateralAmount.min(symbioticVaultLeftover - assetAmount);
-                    collateral.withdraw(this_, amount);
-                    collateralAmount -= amount;
-                    assetAmount += amount;
-                }
-                if (assetAmount != 0) {
-                    uint256 amount = assetAmount.min(symbioticVaultLeftover);
-                    asset_.safeIncreaseAllowance(address(symbioticVault), amount);
-                    (symbioticVaultStaked,) = symbioticVault.deposit(this_, amount);
-                    if (amount != symbioticVaultStaked) {
-                        asset_.forceApprove(address(symbioticVault), 0);
-                    }
-                    assetAmount = asset_.balanceOf(this_);
-                }
+        if (symbioticVaultLeftover != 0) {
+            if (assetAmount < symbioticVaultLeftover && collateralAmount != 0) {
+                collateralWithdrawal = collateralAmount.min(symbioticVaultLeftover - assetAmount);
+                assetAmount += collateralWithdrawal;
+            }
+            if (assetAmount != 0) {
+                vaultDeposit = assetAmount.min(symbioticVaultLeftover);
+                assetAmount -= vaultDeposit;
             }
         }
 
@@ -191,14 +188,39 @@ contract MellowSymbioticVault is
             uint256 collateralStake = collateral.totalSupply();
 
             if (collateralLimit > collateralStake) {
-                uint256 symbioticCollateralLeftover = collateralLimit - collateralStake - 1;
-                uint256 amount = assetAmount.min(symbioticCollateralLeftover);
-                if (amount != 0) {
-                    asset_.safeIncreaseAllowance(address(collateral), amount);
-                    collateral.deposit(this_, amount);
-                }
+                collateralDeposit = assetAmount.min(collateralLimit - collateralStake);
             }
         }
+    }
+
+    /// @inheritdoc IMellowSymbioticVault
+    function pushIntoSymbiotic()
+        public
+        returns (uint256 collateralWithdrawal, uint256 collateralDeposit, uint256 vaultDeposit)
+    {
+        IERC20 asset_ = IERC20(asset());
+        IDefaultCollateral collateral = symbioticCollateral();
+        ISymbioticVault symbioticVault = symbioticVault();
+        address this_ = address(this);
+
+        (collateralWithdrawal, collateralDeposit, vaultDeposit) =
+            _calculatePushAmounts(asset_, collateral, symbioticVault);
+
+        if (collateralWithdrawal != 0) {
+            collateral.withdraw(this_, collateralWithdrawal);
+        }
+
+        if (collateralDeposit != 0) {
+            asset_.safeIncreaseAllowance(address(collateral), collateralDeposit);
+            collateral.deposit(this_, collateralDeposit);
+        }
+
+        if (vaultDeposit != 0) {
+            asset_.safeIncreaseAllowance(address(symbioticVault), vaultDeposit);
+            symbioticVault.deposit(this_, vaultDeposit);
+        }
+
+        emit SymbioticPushed(_msgSender(), collateralWithdrawal, collateralDeposit, vaultDeposit);
     }
 
     /// @inheritdoc IMellowSymbioticVault
