@@ -47,19 +47,43 @@ contract Integration is BaseTest {
             })
         );
 
-        vm.prank(migratorAdmin);
+        vm.startPrank(makeAddr("randomUser"));
+        vm.expectRevert();
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+        vm.stopPrank();
+
+        vm.startPrank(migratorAdmin);
         migrator.stageMigration(
             defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
         );
 
+        vm.expectRevert();
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+        vm.stopPrank();
+
         skip(migratorDelay);
 
         vm.startPrank(vaultAdmin);
-        bytes32 ADMIN_ROLE = keccak256("admin");
-        IAccessControlEnumerable(mellowLRT).grantRole(ADMIN_ROLE, address(migrator));
-        IAccessControlEnumerable(defaultBondStrategy).grantRole(ADMIN_ROLE, address(migrator));
-        IManagedValidator(managedValidator).grantRole(address(migrator), 255);
+        bytes32 OPERATOR = keccak256("operator");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(
+            ADMIN_DELEGATE_ROLE, address(vaultAdmin)
+        );
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
+        vm.stopPrank();
 
+        vm.startPrank(makeAddr("randomUser"));
+        vm.expectRevert();
+        migrator.migrate(mellowLRT);
+        vm.stopPrank();
+
+        vm.startPrank(migratorAdmin);
+        vm.expectRevert();
+        migrator.migrate(mellowLRT);
         vm.stopPrank();
 
         vm.prank(proxyAdminOwner);
@@ -69,6 +93,396 @@ contract Integration is BaseTest {
         migrator.migrate(mellowLRT);
 
         MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
+
+        address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        vm.prank(deployer);
+        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+    }
+
+    function testMigrationOnchainFails() external {
+        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+
+        MellowVaultCompat mellowVaultCompat =
+            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
+        Migrator migrator = new Migrator(
+            address(mellowVaultCompat),
+            address(symbioticVaultConfigurator),
+            address(migratorAdmin),
+            migratorDelay
+        );
+
+        IVaultConfigurator.InitParams memory emptyParams;
+        emptyParams.vaultParams.collateral = wsteth;
+        address symbioticVault = symbioticHelper.createNewSymbioticVault(
+            SymbioticHelper.CreationParams({
+                vaultOwner: symbioticVaultOwner,
+                vaultAdmin: symbioticVaultOwner,
+                asset: wsteth,
+                epochDuration: epochDuration,
+                isDepositLimit: false,
+                depositLimit: 0
+            })
+        );
+
+        vm.startPrank(makeAddr("randomUser"));
+        vm.expectRevert();
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+        vm.stopPrank();
+
+        vm.startPrank(migratorAdmin);
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+
+        vm.expectRevert();
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+        vm.stopPrank();
+
+        skip(migratorDelay);
+
+        vm.prank(proxyAdminOwner);
+        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
+
+        vm.startPrank(migratorAdmin);
+        vm.expectRevert();
+        migrator.migrate(mellowLRT);
+
+        vm.stopPrank();
+    }
+
+    function testMigrationAndWithdraw() external {
+        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+
+        MellowVaultCompat mellowVaultCompat =
+            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
+        Migrator migrator = new Migrator(
+            address(mellowVaultCompat),
+            address(symbioticVaultConfigurator),
+            address(migratorAdmin),
+            migratorDelay
+        );
+
+        IVaultConfigurator.InitParams memory emptyParams;
+        emptyParams.vaultParams.collateral = wsteth;
+        address symbioticVault = symbioticHelper.createNewSymbioticVault(
+            SymbioticHelper.CreationParams({
+                vaultOwner: symbioticVaultOwner,
+                vaultAdmin: symbioticVaultOwner,
+                asset: wsteth,
+                epochDuration: epochDuration,
+                isDepositLimit: false,
+                depositLimit: 0
+            })
+        );
+
+        vm.prank(migratorAdmin);
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+
+        skip(migratorDelay);
+
+        vm.startPrank(vaultAdmin);
+        bytes32 OPERATOR = keccak256("operator");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(
+            ADMIN_DELEGATE_ROLE, address(vaultAdmin)
+        );
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
+        vm.stopPrank();
+
+        vm.prank(proxyAdminOwner);
+        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
+
+        vm.prank(migratorAdmin);
+        migrator.migrate(mellowLRT);
+
+        address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        vm.prank(deployer);
+        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+
+        MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
+
+        vm.prank(deployer);
+        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+    }
+
+    function testMigrationZeroDepositLimit() external {
+        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+
+        MellowVaultCompat mellowVaultCompat =
+            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
+        Migrator migrator = new Migrator(
+            address(mellowVaultCompat),
+            address(symbioticVaultConfigurator),
+            address(migratorAdmin),
+            migratorDelay
+        );
+
+        IVaultConfigurator.InitParams memory emptyParams;
+        emptyParams.vaultParams.collateral = wsteth;
+        address symbioticVault = symbioticHelper.createNewSymbioticVault(
+            SymbioticHelper.CreationParams({
+                vaultOwner: symbioticVaultOwner,
+                vaultAdmin: symbioticVaultOwner,
+                asset: wsteth,
+                epochDuration: epochDuration,
+                isDepositLimit: true,
+                depositLimit: 0
+            })
+        );
+
+        vm.prank(migratorAdmin);
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+
+        skip(migratorDelay);
+
+        vm.startPrank(vaultAdmin);
+        bytes32 OPERATOR = keccak256("operator");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(
+            ADMIN_DELEGATE_ROLE, address(vaultAdmin)
+        );
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
+        vm.stopPrank();
+
+        vm.prank(proxyAdminOwner);
+        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
+
+        vm.prank(migratorAdmin);
+        migrator.migrate(mellowLRT);
+
+        address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        vm.prank(deployer);
+        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+
+        MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
+
+        vm.prank(deployer);
+        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+    }
+
+    function testMigrationBacklist() external {
+        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+
+        MellowVaultCompat mellowVaultCompat =
+            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
+        Migrator migrator = new Migrator(
+            address(mellowVaultCompat),
+            address(symbioticVaultConfigurator),
+            address(migratorAdmin),
+            migratorDelay
+        );
+
+        IVaultConfigurator.InitParams memory emptyParams;
+        emptyParams.vaultParams.collateral = wsteth;
+        address symbioticVault = symbioticHelper.createNewSymbioticVault(
+            SymbioticHelper.CreationParams({
+                vaultOwner: symbioticVaultOwner,
+                vaultAdmin: symbioticVaultOwner,
+                asset: wsteth,
+                epochDuration: epochDuration,
+                isDepositLimit: true,
+                depositLimit: 0
+            })
+        );
+
+        vm.prank(symbioticVaultOwner);
+        ISymbioticVault(symbioticVault).setDepositWhitelist(true);
+
+        vm.prank(migratorAdmin);
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+
+        skip(migratorDelay);
+
+        vm.startPrank(vaultAdmin);
+        bytes32 OPERATOR = keccak256("operator");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(
+            ADMIN_DELEGATE_ROLE, address(vaultAdmin)
+        );
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
+        vm.stopPrank();
+
+        vm.prank(proxyAdminOwner);
+        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
+
+        vm.prank(migratorAdmin);
+        migrator.migrate(mellowLRT);
+
+        address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        vm.prank(deployer);
+        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+
+        MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
+
+        vm.prank(deployer);
+        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+    }
+
+    function testMigrationWhitelisted() external {
+        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+
+        MellowVaultCompat mellowVaultCompat =
+            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
+        Migrator migrator = new Migrator(
+            address(mellowVaultCompat),
+            address(symbioticVaultConfigurator),
+            address(migratorAdmin),
+            migratorDelay
+        );
+
+        IVaultConfigurator.InitParams memory emptyParams;
+        emptyParams.vaultParams.collateral = wsteth;
+        address symbioticVault = symbioticHelper.createNewSymbioticVault(
+            SymbioticHelper.CreationParams({
+                vaultOwner: symbioticVaultOwner,
+                vaultAdmin: symbioticVaultOwner,
+                asset: wsteth,
+                epochDuration: epochDuration,
+                isDepositLimit: true,
+                depositLimit: 0
+            })
+        );
+
+        vm.prank(symbioticVaultOwner);
+        ISymbioticVault(symbioticVault).setDepositWhitelist(true);
+        vm.prank(symbioticVaultOwner);
+        ISymbioticVault(symbioticVault).setDepositorWhitelistStatus(address(mellowLRT), true);
+
+        vm.prank(migratorAdmin);
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+
+        skip(migratorDelay);
+
+        vm.startPrank(vaultAdmin);
+        bytes32 OPERATOR = keccak256("operator");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(
+            ADMIN_DELEGATE_ROLE, address(vaultAdmin)
+        );
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
+        vm.stopPrank();
+
+        vm.prank(proxyAdminOwner);
+        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
+
+        vm.prank(migratorAdmin);
+        migrator.migrate(mellowLRT);
+
+        address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        vm.startPrank(deployer);
+        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+
+        MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
+
+        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+
+        deal(wsteth, deployer, 1 ether);
+        IERC20(wsteth).approve(address(mellowLRT), 1 ether);
+        MellowVaultCompat(mellowLRT).deposit(1 ether, deployer);
+
+        vm.stopPrank();
+    }
+
+    function testFullMigration(
+        bool symbioticVaultLimit,
+        bool symbioticWhitelist,
+        bool isWhitelisted,
+        bool collateralLimit,
+        bool withPush,
+        bool withDeposit
+    ) external {
+        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+
+        MellowVaultCompat mellowVaultCompat =
+            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
+        Migrator migrator = new Migrator(
+            address(mellowVaultCompat),
+            address(symbioticVaultConfigurator),
+            address(migratorAdmin),
+            migratorDelay
+        );
+
+        IVaultConfigurator.InitParams memory emptyParams;
+        emptyParams.vaultParams.collateral = wsteth;
+        address symbioticVault = symbioticHelper.createNewSymbioticVault(
+            SymbioticHelper.CreationParams({
+                vaultOwner: symbioticVaultOwner,
+                vaultAdmin: symbioticVaultOwner,
+                asset: wsteth,
+                epochDuration: epochDuration,
+                isDepositLimit: symbioticVaultLimit,
+                depositLimit: 0
+            })
+        );
+
+        if (!collateralLimit) {
+            IDefaultCollateral c = IDefaultCollateral(wstethSymbioticCollateral);
+            vm.prank(c.limitIncreaser());
+            c.increaseLimit(1e6 ether);
+        }
+
+        if (symbioticWhitelist) {
+            vm.prank(symbioticVaultOwner);
+            ISymbioticVault(symbioticVault).setDepositWhitelist(symbioticWhitelist);
+            if (isWhitelisted) {
+                vm.prank(symbioticVaultOwner);
+                ISymbioticVault(symbioticVault).setDepositorWhitelistStatus(
+                    address(mellowLRT), isWhitelisted
+                );
+            }
+        }
+
+        vm.prank(migratorAdmin);
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+
+        skip(migratorDelay);
+
+        vm.startPrank(vaultAdmin);
+        bytes32 OPERATOR = keccak256("operator");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(
+            ADMIN_DELEGATE_ROLE, address(vaultAdmin)
+        );
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
+        vm.stopPrank();
+
+        vm.prank(proxyAdminOwner);
+        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
+
+        vm.prank(migratorAdmin);
+        migrator.migrate(mellowLRT);
+
+        address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        vm.startPrank(deployer);
+        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+
+        if (withPush) {
+            MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
+        }
+
+        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+
+        if (withDeposit) {
+            deal(wsteth, deployer, 1 ether);
+            IERC20(wsteth).approve(address(mellowLRT), 1 ether);
+            MellowVaultCompat(mellowLRT).deposit(1 ether, deployer);
+        }
+
+        vm.stopPrank();
     }
 
     function testMigrationReassing() external {
@@ -104,18 +518,85 @@ contract Integration is BaseTest {
         skip(migratorDelay);
 
         vm.startPrank(vaultAdmin);
-        bytes32 ADMIN_ROLE = keccak256("admin");
-        IAccessControlEnumerable(mellowLRT).grantRole(ADMIN_ROLE, address(migrator));
-        IAccessControlEnumerable(defaultBondStrategy).grantRole(ADMIN_ROLE, address(migrator));
-        IManagedValidator(managedValidator).grantRole(address(migrator), 255);
-
+        bytes32 OPERATOR = keccak256("operator");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(
+            ADMIN_DELEGATE_ROLE, address(vaultAdmin)
+        );
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
         vm.stopPrank();
 
         vm.prank(proxyAdminOwner);
         ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
 
-        vm.prank(migratorAdmin);
+        vm.startPrank(migratorAdmin);
         migrator.cancelMigration(mellowLRT);
+
+        vm.expectRevert();
+        migrator.cancelMigration(mellowLRT);
+
+        vm.stopPrank();
+    }
+
+    function testMigrationExt() external {
+        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+
+        MellowVaultCompat mellowVaultCompat =
+            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
+        Migrator migrator = new Migrator(
+            address(mellowVaultCompat),
+            address(symbioticVaultConfigurator),
+            address(migratorAdmin),
+            migratorDelay
+        );
+
+        IVaultConfigurator.InitParams memory emptyParams;
+        emptyParams.vaultParams.collateral = wsteth;
+        address symbioticVault = symbioticHelper.createNewSymbioticVault(
+            SymbioticHelper.CreationParams({
+                vaultOwner: symbioticVaultOwner,
+                vaultAdmin: symbioticVaultOwner,
+                asset: wsteth,
+                epochDuration: epochDuration,
+                isDepositLimit: false,
+                depositLimit: 0
+            })
+        );
+
+        vm.prank(migratorAdmin);
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+
+        skip(migratorDelay);
+
+        vm.startPrank(vaultAdmin);
+        bytes32 OPERATOR = keccak256("operator");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(
+            ADMIN_DELEGATE_ROLE, address(vaultAdmin)
+        );
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
+        vm.stopPrank();
+
+        vm.prank(proxyAdminOwner);
+        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
+
+        vm.startPrank(makeAddr("randomUser"));
+        vm.expectRevert();
+        migrator.cancelMigration(mellowLRT);
+        vm.stopPrank();
+
+        assertNotEq(migrator.migration(mellowLRT).bond, address(0));
+        assertNotEq(migrator.vaultInitParams(mellowLRT).symbioticCollateral, address(0));
+        assertEq(
+            migrator.vaultInitParams(mellowLRT).symbioticCollateral,
+            migrator.migration(mellowLRT).bond
+        );
+    }
+
+    function testConstructorZeroParams() external {
+        Migrator migrator = new Migrator(address(0), address(0), address(0), 0);
     }
 }
 
