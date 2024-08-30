@@ -25,6 +25,7 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
 
     /**
      * @notice Initializes the storage of the Mellow Symbiotic Vault.
+     * @param _symbioticCollateral The address of the underlying Symbiotic DefaultCollateral.
      * @param _symbioticVault The address of the underlying Symbiotic Vault.
      * @param _withdrawalQueue The address of the associated Withdrawal Queue.
      *
@@ -32,14 +33,17 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
      * - This function MUST be called only once, during the initialization phase (i.e., it MUST not have been initialized before).
      *
      * @custom:effects
-     * - Sets the Symbiotic Vault address and the Withdrawal Queue address in storage.
+     * - Sets the Symbiotic Vault address, Symbiotic Collateral address and the Withdrawal Queue address in storage.
+     * - Emits the `SymbioticCollateralSet` event, signaling that the Symbiotic Collateral has been successfully set.
      * - Emits the `SymbioticVaultSet` event, signaling that the Symbiotic Vault has been successfully set.
      * - Emits the `WithdrawalQueueSet` event, signaling that the Withdrawal Queue has been successfully set.
      */
     function __initializeMellowSymbioticVaultStorage(
+        address _symbioticCollateral,
         address _symbioticVault,
         address _withdrawalQueue
     ) internal onlyInitializing {
+        _setSymbioticCollateral(IDefaultCollateral(_symbioticCollateral));
         _setSymbioticVault(ISymbioticVault(_symbioticVault));
         _setWithdrawalQueue(IWithdrawalQueue(_withdrawalQueue));
     }
@@ -47,6 +51,11 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
     /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticVault() public view returns (ISymbioticVault) {
         return _symbioticStorage().symbioticVault;
+    }
+
+    /// @inheritdoc IMellowSymbioticVaultStorage
+    function symbioticCollateral() public view returns (IDefaultCollateral) {
+        return _symbioticStorage().symbioticCollateral;
     }
 
     /// @inheritdoc IMellowSymbioticVaultStorage
@@ -77,6 +86,20 @@ abstract contract MellowSymbioticVaultStorage is IMellowSymbioticVaultStorage, I
     /// @inheritdoc IMellowSymbioticVaultStorage
     function symbioticFarm(uint256 farmId) public view returns (FarmData memory) {
         return _symbioticStorage().farms[farmId];
+    }
+
+    /**
+     * @notice Sets a new Symbiotic Collateral address in the vault's storage.
+     * @param _symbioticCollateral The address of the new Symbiotic DefaultCollateral to be set.
+     *
+     * @custom:effects
+     * - Updates the Symbiotic Collateral address in the storage.
+     * - Emits the `SymbioticCollateralSet` event with the new Symbiotic DefaultCollateral address and the current timestamp.
+     */
+    function _setSymbioticCollateral(IDefaultCollateral _symbioticCollateral) internal {
+        SymbioticStorage storage s = _symbioticStorage();
+        s.symbioticCollateral = _symbioticCollateral;
+        emit SymbioticCollateralSet(address(_symbioticCollateral), block.timestamp);
     }
 
     /**

@@ -91,6 +91,7 @@ contract Migrator is IMigrator {
         // Set vault initialization parameters
         _vaultInitParams[vault] = IMellowSymbioticVault.InitParams({
             limit: IMellowLRT(vault).configurator().maximalTotalSupply(),
+            symbioticCollateral: bond,
             symbioticVault: symbioticVault,
             withdrawalQueue: address(new SymbioticWithdrawalQueue(vault, symbioticVault)),
             admin: vaultAdmin,
@@ -158,8 +159,7 @@ contract Migrator is IMigrator {
      *
      * @dev This function checks:
      * - That the Migrator is the owner of the ProxyAdmin contract.
-     * - That the Migrator has the `ADMIN_ROLE` for both the vault and the bond strategy.
-     * - That the Migrator has permission to perform a delegate call on the vault.
+     * - That the Migrator has the `OPERATOR` for the default bond strategy.
      */
     function _checkPermissions(Parameters memory params) internal view {
         address this_ = address(this);
@@ -169,23 +169,11 @@ contract Migrator is IMigrator {
             ProxyAdmin(params.proxyAdmin).owner() == this_, "Migrator: ProxyAdmin owner mismatch"
         );
 
-        // Check that Migrator has the admin role for the vault and strategy
-        bytes32 ADMIN_ROLE = keccak256("admin");
+        // Check that Migrator has the operator role for the strategy
+        bytes32 OPERATOR = keccak256("operator");
         require(
-            IAccessControlEnumerable(params.vault).hasRole(ADMIN_ROLE, this_),
-            "Migrator: Vault admin mismatch"
-        );
-        require(
-            IAccessControlEnumerable(params.defaultBondStrategy).hasRole(ADMIN_ROLE, this_),
-            "Migrator: Strategy admin mismatch"
-        );
-
-        // Ensure the Migrator has delegate call permissions for the vault
-        require(
-            IMellowLRT(params.vault).configurator().validator().hasPermission(
-                this_, params.vault, IMellowLRT.delegateCall.selector
-            ),
-            "Migrator: Vault delegateCall permission missing"
+            IAccessControlEnumerable(params.defaultBondStrategy).hasRole(OPERATOR, this_),
+            "Migrator: Strategy operator mismatch"
         );
     }
 
@@ -196,7 +184,6 @@ contract Migrator is IMigrator {
      * @dev This function:
      * - Validates the migration parameters and permissions.
      * - Processes all strategies in the bond strategy.
-     * - Withdraws the full balance from the bond via a delegate call.
      * - Upgrades the vault to the new implementation and initializes it with the new parameters.
      * - Transfers ownership of the ProxyAdmin contract to the new owner.
      */
@@ -210,17 +197,8 @@ contract Migrator is IMigrator {
         // Retrieve initialization parameters for the new vault
         IMellowSymbioticVault.InitParams memory initParams = _vaultInitParams[vault];
 
-        // Process all bond strategies and withdraw collateral from the bond
-        IDefaultBondStrategy strategy = IDefaultBondStrategy(params.defaultBondStrategy);
-        strategy.processAll();
-        address bondModule = strategy.bondModule();
-        (bool success,) = IMellowLRT(params.vault).delegateCall(
-            bondModule,
-            abi.encodeWithSelector(
-                IDefaultBondModule.withdraw.selector, params.bond, type(uint256).max
-            )
-        );
-        require(success, "Migrator: DefaultCollateral withdraw failed");
+        // Process all pending withdrawals
+        IDefaultBondStrategy(params.defaultBondStrategy).processAll();
 
         // Upgrade the vault and initialize it with the new parameters
         ProxyAdmin(params.proxyAdmin).upgradeAndCall(
