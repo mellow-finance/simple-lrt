@@ -8,7 +8,7 @@ import {MellowSymbioticVault} from "./MellowSymbioticVault.sol";
 contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
     // ERC20 storage slots
     mapping(address => uint256) private _balances;
-    bytes32 private _gap; // Reserved gap for storage layout alignment
+    mapping(address => mapping(address => uint256)) private _allowances;
     uint256 private _totalSupply; // Tracks the total supply of tokens before migration
     bytes32[16] private _reserved; // Reserved storage space for future upgrades
 
@@ -40,6 +40,15 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
         _mint(user, balance);
     }
 
+    function migrateApproval(address from, address to) public {
+        uint256 allowance_ = _allowances[from][to];
+        if (allowance_ == 0) {
+            return;
+        }
+        delete _allowances[from][to];
+        _approve(from, to, allowance_, false);
+    }
+
     /**
      * @inheritdoc ERC20Upgradeable
      * @notice Updates balances for token transfers, ensuring any pre-existing balances in the old storage are migrated before performing the update.
@@ -51,6 +60,25 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
         migrate(from);
         migrate(to);
         super._update(from, to, value);
+    }
+
+    function _approve(address owner, address spender, uint256 value, bool emitEvent)
+        internal
+        virtual
+        override(ERC20Upgradeable)
+    {
+        migrateApproval(owner, spender);
+        super._approve(owner, spender, value, emitEvent);
+    }
+
+    function allowance(address owner, address spender)
+        public
+        view
+        virtual
+        override(ERC20Upgradeable, IERC20)
+        returns (uint256)
+    {
+        return _allowances[owner][spender] + super.allowance(owner, spender);
     }
 
     /**
