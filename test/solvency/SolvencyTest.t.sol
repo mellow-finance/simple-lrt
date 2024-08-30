@@ -121,18 +121,18 @@ contract SolvencyTest is BaseTest {
             user = depositors[_randInt(0, depositors.length - 1)];
         }
         uint256 amount = calc_random_amount_d18();
-        deal(wsteth, user, amount);
+        deal(wsteth, user, 1e8 ether);
         vm.startPrank(user);
         IERC20(wsteth).safeIncreaseAllowance(
             address(mellowSymbioticVault),
-            1e8
+            1e8 ether
         );
 
-        mellowSymbioticVault.deposit(1e7, user, address(0));
-        mellowSymbioticVault.withdraw(amount, user, address(0));
+        mellowSymbioticVault.deposit(1e7 ether, user, address(0));
+        mellowSymbioticVault.withdraw(amount, user, user);
         vm.stopPrank();
 
-        depositedAmounts[_indexOf(user)] += 1e7 - amount;
+        depositedAmounts[_indexOf(user)] += (1e7 ether) - amount;
     }
 
 
