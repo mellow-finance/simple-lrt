@@ -98,10 +98,11 @@ contract MellowSymbioticVault is
             return super._withdraw(caller, receiver, owner, assets, shares);
         }
 
-        uint256 liquidCollateral = symbioticCollateral().balanceOf(this_).min(assets - liquidAsset);
+        uint256 liquidCollateral = symbioticCollateral().balanceOf(this_);
         if (liquidCollateral != 0) {
-            symbioticCollateral().withdraw(this_, liquidCollateral);
-            liquidAsset += liquidCollateral;
+            uint256 amount = liquidCollateral.min(assets - liquidAsset);
+            symbioticCollateral().withdraw(this_, amount);
+            liquidAsset += amount;
 
             if (liquidAsset >= assets) {
                 return super._withdraw(caller, receiver, owner, assets, shares);
@@ -109,8 +110,9 @@ contract MellowSymbioticVault is
         }
 
         uint256 staked = assets - liquidAsset;
-        (, uint256 requestedShares) = symbioticVault().withdraw(address(withdrawalQueue()), staked);
-        withdrawalQueue().request(receiver, requestedShares);
+        IWithdrawalQueue withdrawalQueue_ = withdrawalQueue();
+        (, uint256 requestedShares) = symbioticVault().withdraw(address(withdrawalQueue_), staked);
+        withdrawalQueue_.request(receiver, requestedShares);
 
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
@@ -146,6 +148,48 @@ contract MellowSymbioticVault is
         return withdrawalQueue().claim(account, recipient, maxAmount);
     }
 
+    /**
+     * @notice Calculates the remaining deposit capacity in the Symbiotic Vault.
+     * @param vault The Symbiotic Vault to check.
+     * @return The remaining deposit capacity in the vault. Returns 0 if the vault has a deposit whitelist and the current contract is not whitelisted.
+     *
+     * @dev If the vault has no deposit limit, the maximum possible value is returned.
+     *      If the deposit limit is greater than the current total stake, the difference is returned.
+     *      Otherwise, returns 0.
+     */
+    function _calculateSymbioticVaultLeftover(ISymbioticVault vault)
+        internal
+        view
+        returns (uint256)
+    {
+        if (vault.depositWhitelist() && !vault.isDepositorWhitelisted(address(this))) {
+            return 0;
+        }
+        if (!vault.isDepositLimit()) {
+            return type(uint256).max;
+        }
+        uint256 totalStake = vault.totalStake();
+        uint256 limit = vault.depositLimit();
+        if (limit > totalStake) {
+            return limit - totalStake;
+        }
+        return 0;
+    }
+
+    /**
+     * @notice Calculates the amounts to be withdrawn from collateral, deposited into collateral, and deposited into the Symbiotic Vault.
+     * @param asset_ The ERC20 asset being managed.
+     * @param collateral The collateral contract associated with the vault.
+     * @param symbioticVault The Symbiotic Vault where assets may be deposited.
+     * @return collateralWithdrawal The amount to be withdrawn from the collateral.
+     * @return collateralDeposit The amount to be deposited into the collateral.
+     * @return vaultDeposit The amount to be deposited into the Symbiotic Vault.
+     *
+     * @dev This function considers the balance of assets and collateral, the remaining deposit capacity in the Symbiotic Vault, and the collateral's limits.
+     *      If the Symbiotic Vault has remaining capacity, assets are prioritized for deposit there.
+     *      Remaining assets are then considered for collateral deposit based on the collateral's limit.
+     * @custom:effects At most one of the `collateralWithdrawal` and `collateralDeposit` parameters will be non-zero.
+     */
     function _calculatePushAmounts(
         IERC20 asset_,
         IDefaultCollateral collateral,
@@ -159,19 +203,7 @@ contract MellowSymbioticVault is
         uint256 assetAmount = asset_.balanceOf(this_);
         uint256 collateralAmount = collateral.balanceOf(this_);
 
-        uint256 symbioticVaultLeftover = 0;
-        if (!symbioticVault.depositWhitelist() || symbioticVault.isDepositorWhitelisted(this_)) {
-            if (symbioticVault.isDepositLimit()) {
-                uint256 symbioticVaultTotalStake = symbioticVault.totalStake();
-                uint256 symbioticVaultLimit = symbioticVault.depositLimit();
-                if (symbioticVaultTotalStake < symbioticVaultLimit) {
-                    symbioticVaultLeftover = symbioticVaultLimit - symbioticVaultTotalStake;
-                }
-            } else {
-                symbioticVaultLeftover = type(uint256).max;
-            }
-        }
-
+        uint256 symbioticVaultLeftover = _calculateSymbioticVaultLeftover(symbioticVault);
         if (symbioticVaultLeftover != 0) {
             if (assetAmount < symbioticVaultLeftover && collateralAmount != 0) {
                 collateralWithdrawal = collateralAmount.min(symbioticVaultLeftover - assetAmount);

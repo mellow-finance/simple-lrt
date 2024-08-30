@@ -47,10 +47,23 @@ contract Integration is BaseTest {
             })
         );
 
-        vm.prank(migratorAdmin);
+        vm.startPrank(makeAddr("randomUser"));
+        vm.expectRevert();
         migrator.stageMigration(
             defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
         );
+        vm.stopPrank();
+
+        vm.startPrank(migratorAdmin);
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+
+        vm.expectRevert();
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+        vm.stopPrank();
 
         skip(migratorDelay);
 
@@ -61,6 +74,16 @@ contract Integration is BaseTest {
             ADMIN_DELEGATE_ROLE, address(vaultAdmin)
         );
         IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
+        vm.stopPrank();
+
+        vm.startPrank(makeAddr("randomUser"));
+        vm.expectRevert();
+        migrator.migrate(mellowLRT);
+        vm.stopPrank();
+
+        vm.startPrank(migratorAdmin);
+        vm.expectRevert();
+        migrator.migrate(mellowLRT);
         vm.stopPrank();
 
         vm.prank(proxyAdminOwner);
@@ -74,6 +97,61 @@ contract Integration is BaseTest {
         address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
         vm.prank(deployer);
         MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+    }
+
+    function testMigrationOnchainFails() external {
+        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+
+        MellowVaultCompat mellowVaultCompat =
+            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
+        Migrator migrator = new Migrator(
+            address(mellowVaultCompat),
+            address(symbioticVaultConfigurator),
+            address(migratorAdmin),
+            migratorDelay
+        );
+
+        IVaultConfigurator.InitParams memory emptyParams;
+        emptyParams.vaultParams.collateral = wsteth;
+        address symbioticVault = symbioticHelper.createNewSymbioticVault(
+            SymbioticHelper.CreationParams({
+                vaultOwner: symbioticVaultOwner,
+                vaultAdmin: symbioticVaultOwner,
+                asset: wsteth,
+                epochDuration: epochDuration,
+                isDepositLimit: false,
+                depositLimit: 0
+            })
+        );
+
+        vm.startPrank(makeAddr("randomUser"));
+        vm.expectRevert();
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+        vm.stopPrank();
+
+        vm.startPrank(migratorAdmin);
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+
+        vm.expectRevert();
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+        vm.stopPrank();
+
+        skip(migratorDelay);
+
+        vm.prank(proxyAdminOwner);
+        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
+
+        vm.startPrank(migratorAdmin);
+        vm.expectRevert();
+        migrator.migrate(mellowLRT);
+
+        vm.stopPrank();
     }
 
     function testMigrationAndWithdraw() external {
@@ -451,8 +529,74 @@ contract Integration is BaseTest {
         vm.prank(proxyAdminOwner);
         ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
 
-        vm.prank(migratorAdmin);
+        vm.startPrank(migratorAdmin);
         migrator.cancelMigration(mellowLRT);
+
+        vm.expectRevert();
+        migrator.cancelMigration(mellowLRT);
+
+        vm.stopPrank();
+    }
+
+    function testMigrationExt() external {
+        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+
+        MellowVaultCompat mellowVaultCompat =
+            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
+        Migrator migrator = new Migrator(
+            address(mellowVaultCompat),
+            address(symbioticVaultConfigurator),
+            address(migratorAdmin),
+            migratorDelay
+        );
+
+        IVaultConfigurator.InitParams memory emptyParams;
+        emptyParams.vaultParams.collateral = wsteth;
+        address symbioticVault = symbioticHelper.createNewSymbioticVault(
+            SymbioticHelper.CreationParams({
+                vaultOwner: symbioticVaultOwner,
+                vaultAdmin: symbioticVaultOwner,
+                asset: wsteth,
+                epochDuration: epochDuration,
+                isDepositLimit: false,
+                depositLimit: 0
+            })
+        );
+
+        vm.prank(migratorAdmin);
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+
+        skip(migratorDelay);
+
+        vm.startPrank(vaultAdmin);
+        bytes32 OPERATOR = keccak256("operator");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(
+            ADMIN_DELEGATE_ROLE, address(vaultAdmin)
+        );
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
+        vm.stopPrank();
+
+        vm.prank(proxyAdminOwner);
+        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
+
+        vm.startPrank(makeAddr("randomUser"));
+        vm.expectRevert();
+        migrator.cancelMigration(mellowLRT);
+        vm.stopPrank();
+
+        assertNotEq(migrator.migration(mellowLRT).bond, address(0));
+        assertNotEq(migrator.vaultInitParams(mellowLRT).symbioticCollateral, address(0));
+        assertEq(
+            migrator.vaultInitParams(mellowLRT).symbioticCollateral,
+            migrator.migration(mellowLRT).bond
+        );
+    }
+
+    function testConstructorZeroParams() external {
+        Migrator migrator = new Migrator(address(0), address(0), address(0), 0);
     }
 }
 

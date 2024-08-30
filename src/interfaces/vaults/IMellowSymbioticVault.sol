@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
+import {IDefaultCollateral} from "../tokens/IDefaultCollateral.sol";
+import {IWithdrawalQueue} from "../utils/IWithdrawalQueue.sol";
 import {IERC4626Vault} from "./IERC4626Vault.sol";
 import {IMellowSymbioticVaultStorage} from "./IMellowSymbioticVaultStorage.sol";
-
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {AccessManagerUpgradeable} from
     "@openzeppelin/contracts-upgradeable/access/manager/AccessManagerUpgradeable.sol";
@@ -15,8 +14,9 @@ import {
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import {ReentrancyGuardUpgradeable} from
     "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {IDefaultCollateral} from "../tokens/IDefaultCollateral.sol";
 import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 import {IStakerRewards} from "@symbiotic/rewards/interfaces/stakerRewards/IStakerRewards.sol";
 
@@ -103,13 +103,18 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
         returns (uint256);
 
     /**
-     * @notice Pushes the maximal possible balance of the asset into the Symbiotic Vault.
-     * @return collateralWithdrawal The amount of collateral withdrawn.
-     * @return collateralDeposit The amount of collateral deposited.
-     * @return vaultDeposit The amount of assets pushed to the Symbiotic Vault.
+     * @notice Deposits available assets into the Symbiotic Vault and collateral according to their capacities.
+     * @return collateralWithdrawal The amount of collateral withdrawn to match the Symbiotic Vault deposit requirements.
+     * @return collateralDeposit The amount of assets deposited into the collateral.
+     * @return vaultDeposit The amount of assets deposited into the Symbiotic Vault.
      *
+     * @dev This function first calculates the appropriate amounts to withdraw and deposit using `_calculatePushAmounts`.
+     *      It then performs the necessary withdrawals and deposits, adjusting allowances as needed.
+     *      Finally, it emits a `SymbioticPushed` event with the results.
      * @custom:effects
-     * - Transfers the maximal possible balance of the asset to the Symbiotic Vault.
+     * - Deposits assets into the Symbiotic Vault and collateral according to their capacities.
+     * - Prioritizes Symbiotic Vault deposits over collateral deposits.
+     * - If required withdraws collateral to match the Symbiotic Vault deposit requirements.
      * - Emits the `SymbioticPushed` event.
      */
     function pushIntoSymbiotic()

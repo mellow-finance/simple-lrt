@@ -173,7 +173,7 @@ contract Migrator is IMigrator {
         bytes32 OPERATOR = keccak256("operator");
         require(
             IAccessControlEnumerable(params.defaultBondStrategy).hasRole(OPERATOR, this_),
-            "Migrator: Strategy admin mismatch"
+            "Migrator: Strategy operator mismatch"
         );
     }
 
