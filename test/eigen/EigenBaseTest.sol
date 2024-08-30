@@ -25,7 +25,7 @@ contract EigenBaseTest is Test {
             strategyManager: IStrategyManager(strategyManagerAddress),
             strategy: IStrategy(strategyAddress),
             operator: operatorAddress,
-            claimWithdrawalsMax: 1,
+            claimWithdrawalsMax: 10,
             delegationSignature: abi.encode("signature"),
             salt: bytes32(uint256(0x666)),
             expiry: 365 days
@@ -44,6 +44,8 @@ contract EigenBaseTest is Test {
 
         mellowEigenLayerVault = new MellowEigenLayerVault(bytes32(uint256(1)), 1);
         mellowEigenLayerVault.initialize(initParams);
+
+        vm.deal(user, 10000 ether);
     }
 
     function test() public {}
