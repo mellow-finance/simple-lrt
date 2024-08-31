@@ -40,6 +40,7 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
         _mint(user, balance);
     }
 
+    /// @inheritdoc IMellowVaultCompat
     function migrateApproval(address from, address to) public {
         uint256 allowance_ = _allowances[from][to];
         if (allowance_ == 0) {
@@ -62,15 +63,30 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
         super._update(from, to, value);
     }
 
-    function _approve(address owner, address spender, uint256 value, bool emitEvent)
+    /**
+     * @inheritdoc ERC20Upgradeable
+     * @notice Updates the allowance for the spender, ensuring any pre-existing allowances in the old storage are migrated before performing the update.
+     * @param owner The address allowing the spender to spend tokens.
+     * @param spender The address allowed to spend tokens.
+     * @param value The amount of tokens the spender is allowed to spend.
+     * @param emitEvent A flag to signal if the approval event should be emitted.
+     */
+    function _approve(address from, address to, uint256 value, bool emitEvent)
         internal
         virtual
         override(ERC20Upgradeable)
     {
-        migrateApproval(owner, spender);
-        super._approve(owner, spender, value, emitEvent);
+        migrateApproval(from, to);
+        super._approve(from, to, value, emitEvent);
     }
 
+    /**
+     * @inheritdoc IERC20
+     * @notice Returns the allowance for the given owner and spender, combining both pre-migration and post-migration allowances.
+     * @param owner The address allowing the spender to spend tokens.
+     * @param spender The address allowed to spend tokens.
+     * @return The combined allowance for the owner and spender.
+     */
     function allowance(address owner, address spender)
         public
         view
