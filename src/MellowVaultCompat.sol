@@ -71,13 +71,13 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
      * @param value The amount of tokens the spender is allowed to spend.
      * @param emitEvent A flag to signal if the approval event should be emitted.
      */
-    function _approve(address from, address to, uint256 value, bool emitEvent)
+    function _approve(address owner, address spender, uint256 value, bool emitEvent)
         internal
         virtual
         override(ERC20Upgradeable)
     {
-        migrateApproval(from, to);
-        super._approve(from, to, value, emitEvent);
+        migrateApproval(owner, spender);
+        super._approve(owner, spender, value, emitEvent);
     }
 
     /**
