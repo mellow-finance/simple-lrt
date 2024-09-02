@@ -4,6 +4,8 @@ pragma solidity 0.8.25;
 import "../BaseTest.sol";
 
 contract Integration is BaseTest {
+    using SafeERC20 for IERC20;
+
     address symbioticVaultConfigurator;
     address migratorAdmin = makeAddr("migratorAdmin");
     uint256 migratorDelay = 1 days;
@@ -597,6 +599,69 @@ contract Integration is BaseTest {
 
     function testConstructorZeroParams() external {
         Migrator migrator = new Migrator(address(0), address(0), address(0), 0);
+    }
+
+    function testApprovals() external {
+        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+
+        MellowVaultCompat mellowVaultCompat =
+            new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
+        Migrator migrator = new Migrator(
+            address(mellowVaultCompat),
+            address(symbioticVaultConfigurator),
+            address(migratorAdmin),
+            migratorDelay
+        );
+
+        IVaultConfigurator.InitParams memory emptyParams;
+        emptyParams.vaultParams.collateral = wsteth;
+        address symbioticVault = symbioticHelper.createNewSymbioticVault(
+            SymbioticHelper.CreationParams({
+                vaultOwner: symbioticVaultOwner,
+                vaultAdmin: symbioticVaultOwner,
+                asset: wsteth,
+                epochDuration: epochDuration,
+                isDepositLimit: false,
+                depositLimit: 0
+            })
+        );
+
+        address from = makeAddr("from");
+        address to = makeAddr("to");
+        uint256 amount = 1 ether + 123 wei;
+        vm.prank(from);
+        IERC20(mellowLRT).forceApprove(to, amount);
+
+        vm.prank(migratorAdmin);
+        migrator.stageMigration(
+            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
+        );
+
+        skip(migratorDelay);
+
+        vm.startPrank(vaultAdmin);
+        bytes32 OPERATOR = keccak256("operator");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(
+            ADMIN_DELEGATE_ROLE, address(vaultAdmin)
+        );
+        IAccessControlEnumerable(defaultBondStrategy).grantRole(OPERATOR, address(migrator));
+        vm.stopPrank();
+
+        vm.prank(proxyAdminOwner);
+        ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
+
+        vm.prank(migratorAdmin);
+        migrator.migrate(mellowLRT);
+
+        address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        vm.prank(deployer);
+        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+
+        assertEq(MellowVaultCompat(mellowLRT).allowance(from, to), amount);
+        MellowVaultCompat(mellowLRT).migrateApproval(from, to);
+
+        assertEq(MellowVaultCompat(mellowLRT).allowance(from, to), amount);
     }
 }
 

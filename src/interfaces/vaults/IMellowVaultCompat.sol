@@ -44,4 +44,14 @@ interface IMellowVaultCompat is IMellowSymbioticVault {
      * - Transfers the user's balance from the old vault storage to the new storage.
      */
     function migrate(address user) external;
+
+    /**
+     * @notice Migrates the approval of a spender from the old ERC20 storage to the new ERC20Upgradeable storage.
+     * @param from The address of the user who is granting the approval.
+     * @param to The address of the spender who is being approved.
+     *
+     * @custom:effects
+     * - Transfers the user's approval from the old vault storage to the new storage.
+     */
+    function migrateApproval(address from, address to) external;
 }
