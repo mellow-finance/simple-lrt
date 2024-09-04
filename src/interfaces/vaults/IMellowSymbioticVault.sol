@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
+import {IDefaultCollateral} from "../tokens/IDefaultCollateral.sol";
+import {IWithdrawalQueue} from "../utils/IWithdrawalQueue.sol";
 import {IERC4626Vault} from "./IERC4626Vault.sol";
 import {IMellowSymbioticVaultStorage} from "./IMellowSymbioticVaultStorage.sol";
-
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {AccessManagerUpgradeable} from
     "@openzeppelin/contracts-upgradeable/access/manager/AccessManagerUpgradeable.sol";
@@ -15,6 +14,8 @@ import {
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import {ReentrancyGuardUpgradeable} from
     "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 import {IStakerRewards} from "@symbiotic/rewards/interfaces/stakerRewards/IStakerRewards.sol";
@@ -27,6 +28,7 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
     /**
      * @notice Struct to store initialization parameters for the vault.
      * @param limit The maximum limit for deposits.
+     * @param symbioticCollateral The address of the underlying Symbiotic Collateral.
      * @param symbioticVault The address of the underlying Symbiotic Vault.
      * @param withdrawalQueue The address of the associated withdrawal queue.
      * @param admin The address of the vault's admin.
@@ -38,6 +40,7 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
      */
     struct InitParams {
         uint256 limit;
+        address symbioticCollateral;
         address symbioticVault;
         address withdrawalQueue;
         address admin;
@@ -100,14 +103,23 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
         returns (uint256);
 
     /**
-     * @notice Pushes the maximal possible balance of the asset into the Symbiotic Vault.
-     * @return symbioticVaultStaked The actual amount of staked shares in the Symbiotic Vault.
+     * @notice Deposits available assets into the Symbiotic Vault and collateral according to their capacities.
+     * @return collateralWithdrawal The amount of collateral withdrawn to match the Symbiotic Vault deposit requirements.
+     * @return collateralDeposit The amount of assets deposited into the collateral.
+     * @return vaultDeposit The amount of assets deposited into the Symbiotic Vault.
      *
+     * @dev This function first calculates the appropriate amounts to withdraw and deposit using `_calculatePushAmounts`.
+     *      It then performs the necessary withdrawals and deposits, adjusting allowances as needed.
+     *      Finally, it emits a `SymbioticPushed` event with the results.
      * @custom:effects
-     * - Transfers the maximal possible balance of the asset to the Symbiotic Vault.
+     * - Deposits assets into the Symbiotic Vault and collateral according to their capacities.
+     * - Prioritizes Symbiotic Vault deposits over collateral deposits.
+     * - If required withdraws collateral to match the Symbiotic Vault deposit requirements.
      * - Emits the `SymbioticPushed` event.
      */
-    function pushIntoSymbiotic() external returns (uint256 symbioticVaultStaked);
+    function pushIntoSymbiotic()
+        external
+        returns (uint256 collateralWithdrawal, uint256 collateralDeposit, uint256 vaultDeposit);
 
     /**
      * @notice Pushes rewards to the Farm and Curator of the vault for a specified farm ID.
@@ -154,6 +166,10 @@ interface IMellowSymbioticVault is IMellowSymbioticVaultStorage, IERC4626Vault {
      * @notice Emitted when assets are pushed from the vault into the Symbiotic Vault.
      * @param sender The address that initiated the push.
      * @param vaultAmount The amount of assets pushed to the Symbiotic Vault.
+     * @param collateralDeposit The amount of collateral deposited.
+     * @param collateralWithdrawal The amount of collateral withdrawn.
      */
-    event SymbioticPushed(address sender, uint256 vaultAmount);
+    event SymbioticPushed(
+        address sender, uint256 collateralWithdrawal, uint256 collateralDeposit, uint256 vaultAmount
+    );
 }

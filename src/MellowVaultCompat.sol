@@ -8,7 +8,7 @@ import {MellowSymbioticVault} from "./MellowSymbioticVault.sol";
 contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
     // ERC20 storage slots
     mapping(address => uint256) private _balances;
-    bytes32 private _gap; // Reserved gap for storage layout alignment
+    mapping(address => mapping(address => uint256)) private _allowances;
     uint256 private _totalSupply; // Tracks the total supply of tokens before migration
     bytes32[16] private _reserved; // Reserved storage space for future upgrades
 
@@ -40,6 +40,16 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
         _mint(user, balance);
     }
 
+    /// @inheritdoc IMellowVaultCompat
+    function migrateApproval(address from, address to) public {
+        uint256 allowance_ = _allowances[from][to];
+        if (allowance_ == 0) {
+            return;
+        }
+        delete _allowances[from][to];
+        _approve(from, to, allowance_, false);
+    }
+
     /**
      * @inheritdoc ERC20Upgradeable
      * @notice Updates balances for token transfers, ensuring any pre-existing balances in the old storage are migrated before performing the update.
@@ -51,6 +61,40 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
         migrate(from);
         migrate(to);
         super._update(from, to, value);
+    }
+
+    /**
+     * @inheritdoc ERC20Upgradeable
+     * @notice Updates the allowance for the spender, ensuring any pre-existing allowances in the old storage are migrated before performing the update.
+     * @param owner The address allowing the spender to spend tokens.
+     * @param spender The address allowed to spend tokens.
+     * @param value The amount of tokens the spender is allowed to spend.
+     * @param emitEvent A flag to signal if the approval event should be emitted.
+     */
+    function _approve(address owner, address spender, uint256 value, bool emitEvent)
+        internal
+        virtual
+        override(ERC20Upgradeable)
+    {
+        migrateApproval(owner, spender);
+        super._approve(owner, spender, value, emitEvent);
+    }
+
+    /**
+     * @inheritdoc IERC20
+     * @notice Returns the allowance for the given owner and spender, combining both pre-migration and post-migration allowances.
+     * @param owner The address allowing the spender to spend tokens.
+     * @param spender The address allowed to spend tokens.
+     * @return The combined allowance for the owner and spender.
+     */
+    function allowance(address owner, address spender)
+        public
+        view
+        virtual
+        override(ERC20Upgradeable, IERC20)
+        returns (uint256)
+    {
+        return _allowances[owner][spender] + super.allowance(owner, spender);
     }
 
     /**

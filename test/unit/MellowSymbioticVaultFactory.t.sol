@@ -40,6 +40,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 100 ether,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -65,6 +66,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 100 ether,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -118,6 +120,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: proxyAdmin,
                 limit: 100 ether,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,

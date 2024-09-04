@@ -47,9 +47,6 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
         override(ERC4626Upgradeable, IERC4626)
         returns (uint256)
     {
-        if (depositPause()) {
-            return 0;
-        }
         uint256 assets = maxDeposit(account);
         if (assets == type(uint256).max) {
             return type(uint256).max;
@@ -115,5 +112,49 @@ abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vaul
     {
         shares = deposit(assets, receiver);
         emit ReferralDeposit(assets, receiver, referral);
+    }
+
+    /// @inheritdoc IERC4626
+    function deposit(uint256 assets, address receiver)
+        public
+        virtual
+        override(ERC4626Upgradeable, IERC4626)
+        nonReentrant
+        returns (uint256)
+    {
+        return super.deposit(assets, receiver);
+    }
+
+    /// @inheritdoc IERC4626
+    function mint(uint256 shares, address receiver)
+        public
+        virtual
+        override(ERC4626Upgradeable, IERC4626)
+        nonReentrant
+        returns (uint256)
+    {
+        return super.mint(shares, receiver);
+    }
+
+    /// @inheritdoc IERC4626
+    function withdraw(uint256 assets, address receiver, address owner)
+        public
+        virtual
+        override(ERC4626Upgradeable, IERC4626)
+        nonReentrant
+        returns (uint256)
+    {
+        return super.withdraw(assets, receiver, owner);
+    }
+
+    /// @inheritdoc IERC4626
+    function redeem(uint256 shares, address receiver, address owner)
+        public
+        virtual
+        override(ERC4626Upgradeable, IERC4626)
+        nonReentrant
+        returns (uint256)
+    {
+        return super.redeem(shares, receiver, owner);
     }
 }

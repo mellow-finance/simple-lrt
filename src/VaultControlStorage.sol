@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import "./interfaces/vaults/IVaultControlStorage.sol";
 
-abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
+abstract contract VaultControlStorage is IVaultControlStorage, Initializable, ContextUpgradeable {
     bytes32 private immutable storageSlotRef;
 
     constructor(bytes32 name_, uint256 version_) {
@@ -87,7 +87,7 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     function _setLimit(uint256 _limit) internal {
         Storage storage s = _vaultStorage();
         s.limit = _limit;
-        emit LimitSet(_limit, block.timestamp, msg.sender);
+        emit LimitSet(_limit, block.timestamp, _msgSender());
     }
 
     /**
@@ -101,7 +101,7 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     function _setDepositPause(bool _paused) internal {
         Storage storage s = _vaultStorage();
         s.depositPause = _paused;
-        emit DepositPauseSet(_paused, block.timestamp, msg.sender);
+        emit DepositPauseSet(_paused, block.timestamp, _msgSender());
     }
 
     /**
@@ -115,7 +115,7 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     function _setWithdrawalPause(bool _paused) internal {
         Storage storage s = _vaultStorage();
         s.withdrawalPause = _paused;
-        emit WithdrawalPauseSet(_paused, block.timestamp, msg.sender);
+        emit WithdrawalPauseSet(_paused, block.timestamp, _msgSender());
     }
 
     /**
@@ -129,7 +129,7 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     function _setDepositWhitelist(bool _status) internal {
         Storage storage s = _vaultStorage();
         s.depositWhitelist = _status;
-        emit DepositWhitelistSet(_status, block.timestamp, msg.sender);
+        emit DepositWhitelistSet(_status, block.timestamp, _msgSender());
     }
 
     /**
@@ -144,7 +144,7 @@ abstract contract VaultControlStorage is IVaultControlStorage, Initializable {
     function _setDepositorWhitelistStatus(address account, bool status) internal {
         Storage storage s = _vaultStorage();
         s.isDepositorWhitelisted[account] = status;
-        emit DepositorWhitelistStatusSet(account, status, block.timestamp, msg.sender);
+        emit DepositorWhitelistStatusSet(account, status, block.timestamp, _msgSender());
     }
 
     /**

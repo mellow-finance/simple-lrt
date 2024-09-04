@@ -7,10 +7,13 @@ contract MockMellowSymbioticVaultStorage is MellowSymbioticVaultStorage {
     constructor(bytes32 name, uint256 version) MellowSymbioticVaultStorage(name, version) {}
 
     function initializeMellowSymbioticVaultStorage(
+        address _symbioticCollateral,
         address _symbioticVault,
         address _withdrawalQueue
     ) external initializer {
-        __initializeMellowSymbioticVaultStorage(_symbioticVault, _withdrawalQueue);
+        __initializeMellowSymbioticVaultStorage(
+            _symbioticCollateral, _symbioticVault, _withdrawalQueue
+        );
     }
 
     function setFarm(uint256 farmId, FarmData memory farmData) external {
@@ -60,12 +63,15 @@ contract Unit is BaseTest {
         address mockWithdrawalQueue = makeAddr("mockWithdrawalQueue");
 
         vm.recordLogs();
-        c.initializeMellowSymbioticVaultStorage(address(symbioticVault), mockWithdrawalQueue);
+        c.initializeMellowSymbioticVaultStorage(
+            address(wstethSymbioticCollateral), address(symbioticVault), mockWithdrawalQueue
+        );
         Vm.Log[] memory events = vm.getRecordedLogs();
 
-        assertEq(events.length, 3);
+        assertEq(events.length, 4);
 
-        bytes32[3] memory expectedEvents = [
+        bytes32[4] memory expectedEvents = [
+            keccak256("SymbioticCollateralSet(address,uint256)"),
             keccak256("SymbioticVaultSet(address,uint256)"),
             keccak256("WithdrawalQueueSet(address,uint256)"),
             keccak256("Initialized(uint64)")
@@ -78,6 +84,7 @@ contract Unit is BaseTest {
 
         assertEq(address(c.withdrawalQueue()), mockWithdrawalQueue);
         assertEq(address(c.symbioticVault()), address(symbioticVault));
+        assertEq(address(c.symbioticCollateral()), address(wstethSymbioticCollateral));
         assertEq(c.symbioticFarmIds().length, 0);
         assertEq(c.symbioticFarmCount(), 0);
 
@@ -91,7 +98,9 @@ contract Unit is BaseTest {
 
         address mockSymbioticVault = makeAddr("mockSymbioticVault");
         address mockWithdrawalQueue = makeAddr("mockWithdrawalQueue");
-        c.initializeMellowSymbioticVaultStorage(mockSymbioticVault, mockWithdrawalQueue);
+        c.initializeMellowSymbioticVaultStorage(
+            address(wstethSymbioticCollateral), mockSymbioticVault, mockWithdrawalQueue
+        );
 
         address rewardToken1 = makeAddr("rewardToken1");
         address symbioticFarm1 = makeAddr("symbioticFarm1");

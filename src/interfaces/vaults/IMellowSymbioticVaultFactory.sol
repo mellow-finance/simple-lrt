@@ -17,6 +17,7 @@ interface IMellowSymbioticVaultFactory {
      * @notice Struct to store initialization parameters for creating a new vault.
      * @param proxyAdmin The address of the proxy admin.
      * @param limit The maximum asset limit for deposits.
+     * @param symbioticCollateral The address of the Symbiotic Collateral contract.
      * @param symbioticVault The address of the underlying Symbiotic Vault.
      * @param admin The address of the admin who manages the vault.
      * @param depositPause Flag to indicate whether deposits are initially paused.
@@ -28,6 +29,7 @@ interface IMellowSymbioticVaultFactory {
     struct InitParams {
         address proxyAdmin;
         uint256 limit;
+        address symbioticCollateral;
         address symbioticVault;
         address admin;
         bool depositPause;
