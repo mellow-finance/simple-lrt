@@ -3,8 +3,6 @@ pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
 
-//Test for previous version: https://github.com/mellow-finance/mellow-lrt/blob/fixes/audit-sherlock-fixes/tests/mainnet/e2e/SolvencyTest.t.sol
-
 contract SolvencyTest is BaseTest {
     using SafeERC20 for IERC20;
     /*
@@ -13,6 +11,13 @@ contract SolvencyTest is BaseTest {
         3. validation funciton. totalAssets <= limit, ...
         4. finalization
         5. final_validation 
+    */
+
+    /*
+        1. deploy
+        2. random transitions + validation
+        3. finalization
+        4. final validation
     */
     address admin = makeAddr("admin");
     address user = makeAddr("user");
@@ -47,12 +52,7 @@ contract SolvencyTest is BaseTest {
     uint256[] public withdrawnAmounts;
 
     function deploy() public {
-        /*
-            1. deploy
-            2. random transitions + validation
-            3. finalization
-            4. final validation
-        */
+        
 
         singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
         factory = new MellowSymbioticVaultFactory(address(singleton));
@@ -74,7 +74,7 @@ contract SolvencyTest is BaseTest {
             .create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
-                limit: 1e8 ether,
+                limit: 1e16 ether,
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -112,32 +112,53 @@ contract SolvencyTest is BaseTest {
     
     function transition_random_withdrawal() internal {
         address user;
-        if (depositors.length == 0 || random_bool()) {
-            user = random_address();
-            depositors.push(user);
-            depositedAmounts.push(0);
-            withdrawnAmounts.push(0);
-        } else {
-            user = depositors[_randInt(0, depositors.length - 1)];
-        }
+        user = depositors[_randInt(0, depositors.length - 1)];
         uint256 amount = calc_random_amount_d18();
-        deal(wsteth, user, 1e8 ether);
         vm.startPrank(user);
         IERC20(wsteth).safeIncreaseAllowance(
             address(mellowSymbioticVault),
-            1e8 ether
+            amount
         );
-
-        mellowSymbioticVault.deposit(1e7 ether, user, address(0));
-        mellowSymbioticVault.withdraw(amount, user, user);
-        vm.stopPrank();
-
-        depositedAmounts[_indexOf(user)] += (1e7 ether) - amount;
+    
+        if (amount > depositedAmounts[_indexOf(user)]) {
+            vm.expectRevert();
+            mellowSymbioticVault.withdraw(amount, user, user);
+        }  else {
+            mellowSymbioticVault.withdraw(amount, user, user);
+            vm.stopPrank();
+            depositedAmounts[_indexOf(user)] += amount;
+        }
     }
 
+    function transition_random_claim() internal {
+        address user;
+        user = depositors[_randInt(0, depositors.length - 1)];
+        vm.startPrank(user);
+        mellowSymbioticVault.claim(user, user, type(uint256).max);
+
+        vm.stopPrank();
+    }
+
+    function transition_random_limit_change() internal {
+        address user;
+        user = depositors[_randInt(0, depositors.length - 1)];
+
+    }
+
+    function transition_push_into_symbiotic() internal {
+        address user;
+        user = depositors[_randInt(0, depositors.length - 1)];
+        vm.startPrank(user);
+        mellowSymbioticVault.pushIntoSymbiotic();
+        vm.stopPrank();
+    }
 
     function finilizeTest() internal {
+        transition_push_into_symbiotic();
+    }
 
+    function finalValidation() internal {
+        // TODO
     }
 
     function _random() internal returns (uint256) {
@@ -190,9 +211,19 @@ contract SolvencyTest is BaseTest {
         deploy();
 
         seed = 42;
+        uint256 iters = 10;
 
         transition_random_deposit();
-        transition_random_withdrawal();
+
+        for (uint256 i = 0; i < iters; i++) {
+            transition_random_deposit();
+            transition_random_withdrawal();
+            transition_random_claim();
+            transition_push_into_symbiotic();
+        }
+
+        finilizeTest();
+        finalValidation();
     }
     
     function _indexOf(address user) internal view returns (uint256) {
