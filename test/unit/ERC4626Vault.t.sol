@@ -3,33 +3,7 @@ pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
 
-contract MockERC4626Vault is ERC4626Vault {
-    constructor(bytes32 name_, uint256 version_) VaultControlStorage(name_, version_) {}
-
-    function initializeERC4626(
-        address _admin,
-        uint256 _limit,
-        bool _depositPause,
-        bool _withdrawalPause,
-        bool _depositWhitelist,
-        address _asset,
-        string memory _name,
-        string memory _symbol
-    ) external initializer {
-        __initializeERC4626(
-            _admin,
-            _limit,
-            _depositPause,
-            _withdrawalPause,
-            _depositWhitelist,
-            _asset,
-            _name,
-            _symbol
-        );
-    }
-
-    function test() external pure {}
-}
+import "../mocks/MockERC4626Vault.sol";
 
 contract Unit is BaseTest {
     address admin = makeAddr("admin");
@@ -60,6 +34,10 @@ contract Unit is BaseTest {
 
         // DEFAULT_ADMIN_ROLE
         assertTrue(vault.hasRole(bytes32(0), admin));
+
+        // second initalization should fail
+        vm.expectRevert();
+        vault.initializeERC4626(admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH");
     }
 
     function testMaxMint() external {
@@ -189,6 +167,44 @@ contract Unit is BaseTest {
             deal(wsteth, user1, amount);
             IERC20(wsteth).approve(address(vault), amount);
             vault.deposit(amount, user1);
+
+            assertEq(vault.balanceOf(user1), amount);
+            assertEq(vault.totalSupply(), amount);
+        }
+        {
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, 1000, true, true, true, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            uint256 amount = 100;
+            deal(wsteth, user1, amount);
+            IERC20(wsteth).approve(address(vault), amount);
+            vm.expectRevert();
+            vault.deposit(amount, user1);
+        }
+        vm.stopPrank();
+    }
+
+    function testDepositReferral() external {
+        vm.startPrank(user1);
+        {
+            address referral = makeAddr("referral");
+            MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
+            vault.initializeERC4626(
+                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+            );
+
+            uint256 amount = 100;
+            deal(wsteth, user1, amount);
+            IERC20(wsteth).approve(address(vault), amount);
+            vm.recordLogs();
+            vault.deposit(amount, user1, referral);
+
+            Vm.Log[] memory logs = vm.getRecordedLogs();
+            assertEq(logs.length, 5);
+            assertEq(logs[4].emitter, address(vault));
+            assertEq(logs[4].topics[0], keccak256("ReferralDeposit(uint256,address,address)"));
 
             assertEq(vault.balanceOf(user1), amount);
             assertEq(vault.totalSupply(), amount);

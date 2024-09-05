@@ -47,7 +47,7 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
             return;
         }
         delete _allowances[from][to];
-        _approve(from, to, allowance_, false);
+        super._approve(from, to, allowance_, false);
     }
 
     /**
