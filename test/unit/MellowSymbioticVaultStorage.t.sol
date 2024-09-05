@@ -3,25 +3,7 @@ pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
 
-contract MockMellowSymbioticVaultStorage is MellowSymbioticVaultStorage {
-    constructor(bytes32 name, uint256 version) MellowSymbioticVaultStorage(name, version) {}
-
-    function initializeMellowSymbioticVaultStorage(
-        address _symbioticCollateral,
-        address _symbioticVault,
-        address _withdrawalQueue
-    ) external initializer {
-        __initializeMellowSymbioticVaultStorage(
-            _symbioticCollateral, _symbioticVault, _withdrawalQueue
-        );
-    }
-
-    function setFarm(uint256 farmId, FarmData memory farmData) external {
-        _setFarm(farmId, farmData);
-    }
-
-    function test() external pure {}
-}
+import "../mocks/MockMellowSymbioticVaultStorage.sol";
 
 contract Unit is BaseTest {
     address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;

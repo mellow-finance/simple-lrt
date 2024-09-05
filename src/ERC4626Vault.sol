@@ -6,6 +6,8 @@ import "./interfaces/vaults/IERC4626Vault.sol";
 import {VaultControl} from "./VaultControl.sol";
 
 abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vault {
+    bytes32[16] private _reserved; // Reserved storage space for backward compatibility.
+
     /**
      * @notice Initializes the ERC4626 vault with the provided settings, including admin, limits, pause states, and token details.
      * @param _admin The address of the admin to be granted control over the vault.

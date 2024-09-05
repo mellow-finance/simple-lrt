@@ -24,9 +24,11 @@ contract Integration is BaseTest {
     address proxyAdmin = 0xd67241F8FA670D1eaEd14b7A17B82819087AE86d;
     address proxyAdminOwner = 0x3995c5a3A74f3B3049fD5DA7C7D7BaB0b581A6e1;
 
-    function testMigrationOnchain() external {
-        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
+    function setUp() external {
+        symbioticVaultConfigurator = symbioticHelper.getSymbioticDeployment().vaultConfigurator;
+    }
 
+    function testMigrationOnchain() external {
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
         Migrator migrator = new Migrator(
@@ -102,8 +104,6 @@ contract Integration is BaseTest {
     }
 
     function testMigrationOnchainFails() external {
-        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
-
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
         Migrator migrator = new Migrator(
@@ -157,8 +157,6 @@ contract Integration is BaseTest {
     }
 
     function testMigrationAndWithdraw() external {
-        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
-
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
         Migrator migrator = new Migrator(
@@ -214,8 +212,6 @@ contract Integration is BaseTest {
     }
 
     function testMigrationZeroDepositLimit() external {
-        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
-
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
         Migrator migrator = new Migrator(
@@ -271,8 +267,6 @@ contract Integration is BaseTest {
     }
 
     function testMigrationBacklist() external {
-        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
-
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
         Migrator migrator = new Migrator(
@@ -331,8 +325,6 @@ contract Integration is BaseTest {
     }
 
     function testMigrationWhitelisted() external {
-        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
-
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
         Migrator migrator = new Migrator(
@@ -405,8 +397,6 @@ contract Integration is BaseTest {
         bool withPush,
         bool withDeposit
     ) external {
-        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
-
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
         Migrator migrator = new Migrator(
@@ -488,8 +478,6 @@ contract Integration is BaseTest {
     }
 
     function testMigrationReassing() external {
-        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
-
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
         Migrator migrator = new Migrator(
@@ -541,8 +529,6 @@ contract Integration is BaseTest {
     }
 
     function testMigrationExt() external {
-        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
-
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
         Migrator migrator = new Migrator(
@@ -602,8 +588,6 @@ contract Integration is BaseTest {
     }
 
     function testApprovals() external {
-        symbioticVaultConfigurator = symbioticHelper.symbioticContracts().VAULT_CONFIGURATOR();
-
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
         Migrator migrator = new Migrator(

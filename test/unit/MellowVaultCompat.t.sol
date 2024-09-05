@@ -3,25 +3,14 @@ pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
 
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-contract MockVault is ERC20 {
-    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
-
-    function mint(address to, uint256 amount) external {
-        _mint(to, amount);
-    }
-
-    function test() external pure {}
-}
+import "../mocks/MockMellowVaultCompat.sol";
 
 contract Unit is BaseTest {
     address proxyAdmin = makeAddr("proxyAdmin");
     address admin = makeAddr("proxyAdmin");
 
     function testMellowVaultCompat() external {
-        MockVault initialSingleton = new MockVault("MockVault", "MV");
+        MockMellowVaultCompat initialSingleton = new MockMellowVaultCompat("MockVault", "MV");
         MellowVaultCompat newSigleton = new MellowVaultCompat(keccak256("MockVault-new"), 1);
 
         TransparentUpgradeableProxy proxy =
@@ -34,10 +23,10 @@ contract Unit is BaseTest {
         for (uint256 i = 0; i < n; i++) {
             users[i] = address(bytes20(keccak256(abi.encodePacked(i * 12341241))));
             balances[i] = 1 ether + i;
-            MockVault(address(proxy)).mint(users[i], balances[i]);
+            MockMellowVaultCompat(address(proxy)).mint(users[i], balances[i]);
         }
 
-        uint256 totalSupplyBefore = MockVault(address(proxy)).totalSupply();
+        uint256 totalSupplyBefore = MockMellowVaultCompat(address(proxy)).totalSupply();
 
         ProxyAdmin prAdmin =
             ProxyAdmin(address(uint160(uint256(vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT)))));
@@ -80,7 +69,7 @@ contract Unit is BaseTest {
     }
 
     function testMellowVaultCompatSingleMigrate() external {
-        MockVault initialSingleton = new MockVault("MockVault", "MV");
+        MockMellowVaultCompat initialSingleton = new MockMellowVaultCompat("MockVault", "MV");
         MellowVaultCompat newSigleton = new MellowVaultCompat(keccak256("MockVault-new"), 1);
 
         TransparentUpgradeableProxy proxy =
@@ -93,10 +82,10 @@ contract Unit is BaseTest {
         for (uint256 i = 0; i < n; i++) {
             users[i] = address(bytes20(keccak256(abi.encodePacked(i * 12341241))));
             balances[i] = 1 ether + i;
-            MockVault(address(proxy)).mint(users[i], balances[i]);
+            MockMellowVaultCompat(address(proxy)).mint(users[i], balances[i]);
         }
 
-        uint256 totalSupplyBefore = MockVault(address(proxy)).totalSupply();
+        uint256 totalSupplyBefore = MockMellowVaultCompat(address(proxy)).totalSupply();
 
         ProxyAdmin prAdmin =
             ProxyAdmin(address(uint160(uint256(vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT)))));
@@ -141,7 +130,7 @@ contract Unit is BaseTest {
     }
 
     function testMellowVaultCompatTransfer() external {
-        MockVault initialSingleton = new MockVault("MockVault", "MV");
+        MockMellowVaultCompat initialSingleton = new MockMellowVaultCompat("MockVault", "MV");
         MellowVaultCompat newSigleton = new MellowVaultCompat(keccak256("MockVault-new"), 1);
 
         TransparentUpgradeableProxy proxy =
@@ -154,10 +143,10 @@ contract Unit is BaseTest {
         for (uint256 i = 0; i < n; i++) {
             users[i] = address(bytes20(keccak256(abi.encodePacked(i * 12341241))));
             balances[i] = 1 ether + i;
-            MockVault(address(proxy)).mint(users[i], balances[i]);
+            MockMellowVaultCompat(address(proxy)).mint(users[i], balances[i]);
         }
 
-        uint256 totalSupplyBefore = MockVault(address(proxy)).totalSupply();
+        uint256 totalSupplyBefore = MockMellowVaultCompat(address(proxy)).totalSupply();
 
         ProxyAdmin prAdmin =
             ProxyAdmin(address(uint160(uint256(vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT)))));
