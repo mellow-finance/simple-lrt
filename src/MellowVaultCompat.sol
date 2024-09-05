@@ -55,12 +55,12 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
 
     /// @inheritdoc IMellowVaultCompat
     function migrateApproval(address from, address to) public {
-        ERC20Storage storage $ = _getERC20CompatStorage();
-        uint256 allowance_ = $._allowances[from][to];
+        ERC20Storage storage compatStorage = _getERC20CompatStorage();
+        uint256 allowance_ = compatStorage._allowances[from][to];
         if (allowance_ == 0) {
             return;
         }
-        delete $._allowances[from][to];
+        delete compatStorage._allowances[from][to];
         super._approve(from, to, allowance_, false);
     }
 
