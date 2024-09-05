@@ -37,6 +37,7 @@ contract SolvencyTest is BaseTest {
     uint64 vaultVersion = 1;
     address vaultOwner = makeAddr("vaultOwner");
     address vaultAdmin = makeAddr("vaultAdmin");
+    address proxyAdmin = makeAddr("proxyAdmin");
     uint48 epochDuration = 3600;
 
     uint256 symbioticLimit = 1000 ether;
@@ -73,8 +74,9 @@ contract SolvencyTest is BaseTest {
         (mellowSymbioticVault, withdrawalQueue) = factory
             .create(
             IMellowSymbioticVaultFactory.InitParams({
-                proxyAdmin: makeAddr("proxyAdmin"),
+                proxyAdmin: proxyAdmin,
                 limit: 1e16 ether,
+                symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
