@@ -127,9 +127,9 @@ contract SolvencyTest is BaseTest {
             mellowSymbioticVault.withdraw(amount, user, user);
         }  else {
             mellowSymbioticVault.withdraw(amount, user, user);
-            vm.stopPrank();
-            depositedAmounts[_indexOf(user)] += amount;
+            depositedAmounts[_indexOf(user)] -= amount;
         }
+        vm.stopPrank();
     }
 
     function transition_random_claim() internal {
@@ -213,10 +213,9 @@ contract SolvencyTest is BaseTest {
         deploy();
 
         seed = 42;
-        uint256 iters = 10;
+        uint256 iters = 1000;
 
-        transition_random_deposit();
-
+        transition_random_deposit(); // For transitions to work, we must have at least one deposit
         for (uint256 i = 0; i < iters; i++) {
             transition_random_deposit();
             transition_random_withdrawal();
