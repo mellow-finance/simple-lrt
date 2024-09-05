@@ -6,8 +6,6 @@ import "./interfaces/vaults/IMellowVaultCompat.sol";
 import {MellowSymbioticVault} from "./MellowSymbioticVault.sol";
 
 contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
-    using EnumerableSet for EnumerableSet.AddressSet;
-
     bytes32 private constant ERC20CompatStorageSlot = 0;
     bytes32 private constant ERC20UpgradeableStorageSlot =
         0x52c63247e1f47db19d5ce0460030c497f067ca4cebf71ba98eeadabe20bace00;
