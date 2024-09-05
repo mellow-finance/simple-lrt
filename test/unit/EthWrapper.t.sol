@@ -9,11 +9,20 @@ contract Unit is BaseTest {
     address weth = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
 
     function testConstructor() external {
-        EthWrapper ethWrapper = new EthWrapper(weth, wsteth, steth);
+        {
+            EthWrapper ethWrapper = new EthWrapper(weth, wsteth, steth);
+            assertEq(ethWrapper.WETH(), weth);
+            assertEq(ethWrapper.wstETH(), wsteth);
+            assertEq(ethWrapper.stETH(), steth);
+        }
 
-        assertEq(ethWrapper.WETH(), weth);
-        assertEq(ethWrapper.wstETH(), wsteth);
-        assertEq(ethWrapper.stETH(), steth);
+        // zero params
+        {
+            EthWrapper ethWrapper = new EthWrapper(address(0), address(0), address(0));
+            assertEq(ethWrapper.WETH(), address(0));
+            assertEq(ethWrapper.wstETH(), address(0));
+            assertEq(ethWrapper.stETH(), address(0));
+        }
     }
 
     function testEthDeposit() external {
