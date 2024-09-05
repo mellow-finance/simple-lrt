@@ -6,17 +6,29 @@ import "./interfaces/vaults/IMellowVaultCompat.sol";
 import {MellowSymbioticVault} from "./MellowSymbioticVault.sol";
 
 contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
-    // ERC20 storage slots
-    mapping(address => uint256) private _balances;
-    mapping(address => mapping(address => uint256)) private _allowances;
-    uint256 private _totalSupply; // Tracks the total supply of tokens before migration
-    bytes32[16] private _reserved; // Reserved storage space for future upgrades
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    bytes32 private constant ERC20CompatStorageSlot = 0;
+    bytes32 private constant ERC20UpgradeableStorageSlot =
+        0x52c63247e1f47db19d5ce0460030c497f067ca4cebf71ba98eeadabe20bace00;
+
+    function _getERC20CompatStorage() private pure returns (ERC20Storage storage $) {
+        assembly {
+            $.slot := ERC20CompatStorageSlot
+        }
+    }
+
+    function _getERC20UpgradeableStorage() private pure returns (ERC20Storage storage $) {
+        assembly {
+            $.slot := ERC20UpgradeableStorageSlot
+        }
+    }
 
     constructor(bytes32 name_, uint256 version_) MellowSymbioticVault(name_, version_) {}
 
     /// @inheritdoc IMellowVaultCompat
     function compatTotalSupply() external view returns (uint256) {
-        return _totalSupply;
+        return _getERC20CompatStorage()._totalSupply;
     }
 
     /// @inheritdoc IMellowVaultCompat
@@ -28,25 +40,28 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
 
     /// @inheritdoc IMellowVaultCompat
     function migrate(address user) public {
-        uint256 balance = _balances[user];
+        ERC20Storage storage compatStorage = _getERC20CompatStorage();
+        uint256 balance = compatStorage._balances[user];
         if (balance == 0) {
             return;
         }
-        delete _balances[user];
+        ERC20Storage storage upgradeableStorage = _getERC20UpgradeableStorage();
+        delete compatStorage._balances[user];
+        upgradeableStorage._balances[user] += balance;
         unchecked {
-            _totalSupply -= balance;
+            compatStorage._totalSupply -= balance;
+            upgradeableStorage._totalSupply += balance;
         }
-        emit Transfer(user, address(0), balance);
-        _mint(user, balance);
     }
 
     /// @inheritdoc IMellowVaultCompat
     function migrateApproval(address from, address to) public {
-        uint256 allowance_ = _allowances[from][to];
+        ERC20Storage storage $ = _getERC20CompatStorage();
+        uint256 allowance_ = $._allowances[from][to];
         if (allowance_ == 0) {
             return;
         }
-        delete _allowances[from][to];
+        delete $._allowances[from][to];
         super._approve(from, to, allowance_, false);
     }
 
@@ -94,7 +109,8 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
         override(ERC20Upgradeable, IERC20)
         returns (uint256)
     {
-        return _allowances[owner][spender] + super.allowance(owner, spender);
+        return
+            _getERC20CompatStorage()._allowances[owner][spender] + super.allowance(owner, spender);
     }
 
     /**
@@ -109,7 +125,7 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
         override(IERC20, ERC20Upgradeable)
         returns (uint256)
     {
-        return _balances[account] + super.balanceOf(account);
+        return _getERC20CompatStorage()._balances[account] + super.balanceOf(account);
     }
 
     /**
@@ -118,6 +134,6 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
      * @return The combined total supply of tokens.
      */
     function totalSupply() public view override(IERC20, ERC20Upgradeable) returns (uint256) {
-        return _totalSupply + super.totalSupply();
+        return _getERC20CompatStorage()._totalSupply + super.totalSupply();
     }
 }
