@@ -47,10 +47,10 @@ contract SolvencyTest is BaseTest {
     MellowSymbioticVault singleton;
     MellowSymbioticVaultFactory factory;
     ISymbioticVault symbioticVault;
-    IMellowSymbioticVault mellowSymbioticVault;
+    MellowSymbioticVault mellowSymbioticVault;
     IWithdrawalQueue withdrawalQueue;
 
-    uint256 limit = 1e16 ether;
+    uint256 limit = 1e7 ether;
     address[] public depositors;
     uint256[] public depositedAmounts;
     uint256[] public withdrawnAmounts;
@@ -71,8 +71,8 @@ contract SolvencyTest is BaseTest {
                 })
             )
         );
-
-        (mellowSymbioticVault, withdrawalQueue) = factory
+        IMellowSymbioticVault iMellowSymbioticVault;
+        (iMellowSymbioticVault, withdrawalQueue) = factory
             .create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: proxyAdmin,
@@ -87,6 +87,7 @@ contract SolvencyTest is BaseTest {
                 symbol: "MSV"
             })
         );
+        mellowSymbioticVault = MellowSymbioticVault(address(iMellowSymbioticVault));
     }
 
     function add_random_user() internal {
@@ -154,8 +155,9 @@ contract SolvencyTest is BaseTest {
         user = depositors[_randInt(0, depositors.length - 1)];
         uint256 newLimit = limit + calc_random_amount_d18();
         vm.startPrank(admin);
-        singleton.grantRole(SET_LIMIT_ROLE, admin);
-        singleton.setLimit(newLimit);
+        mellowSymbioticVault.grantRole(SET_LIMIT_ROLE, admin);
+        mellowSymbioticVault.setLimit(newLimit);
+        limit = newLimit;
         vm.stopPrank();
     }
 
