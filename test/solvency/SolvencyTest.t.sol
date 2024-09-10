@@ -7,42 +7,25 @@ import "../../src/VaultControl.sol";
 
 contract SolvencyTest is BaseTest {
     using SafeERC20 for IERC20;
-    /*
-        1. functions for random values
-        2. transitions: deposit, withdraw, claim, slash, param changes, e.t.c, rewards, push rewards, push into symbiotic
-        3. validation funciton. totalAssets <= limit, ...
-        4. finalization
-        5. final_validation 
-    */
 
-    /*
-        1. deploy
-        2. random transitions + validation
-        3. finalization
-        4. final validation
-    */
+    uint256 ITER = 1000;
     bytes32 private constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
 
     address admin = makeAddr("admin");
-    address user = makeAddr("user");
 
-    uint256 private seed;
+    uint256 private seed = 42; 
 
     uint256 public constant MAX_ERROR = 10 wei;
     uint256 public constant Q96 = 2 ** 96;
     uint256 public constant D18 = 1e18;
 
     address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
-    address steth = 0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
-    address weth = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
-
-    uint64 vaultVersion = 1;
     address vaultOwner = makeAddr("vaultOwner");
     address vaultAdmin = makeAddr("vaultAdmin");
     address proxyAdmin = makeAddr("proxyAdmin");
     uint48 epochDuration = 3600;
 
-    uint256 symbioticLimit = 1000 ether;
+    uint256 symbioticLimit = 1e16 ether;
 
     MellowSymbioticVault singleton;
     MellowSymbioticVaultFactory factory;
@@ -54,6 +37,19 @@ contract SolvencyTest is BaseTest {
     address[] public depositors;
     uint256[] public depositedAmounts;
     uint256[] public withdrawnAmounts;
+
+    function testRunSolvency() external {
+        deploy();
+
+        addRandomUser();
+
+        for (uint256 i = 0; i < ITER; i++) {
+            randomTransition();
+        }
+
+        finilizeTest();
+        finalValidation();
+    }
 
     function deploy() public {
         singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
@@ -76,7 +72,7 @@ contract SolvencyTest is BaseTest {
             .create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: proxyAdmin,
-                limit: 1e16 ether,
+                limit: limit,
                 symbioticCollateral: address(wstethSymbioticCollateral),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
@@ -90,20 +86,18 @@ contract SolvencyTest is BaseTest {
         mellowSymbioticVault = MellowSymbioticVault(address(iMellowSymbioticVault));
     }
 
-    function add_random_user() internal {
-        address user;
-        user = random_address();
+    function addRandomUser() internal {
+        address user = random_address();
         depositors.push(user);
         depositedAmounts.push(0);
         withdrawnAmounts.push(0);
     }
 
-    function transition_random_deposit() internal {
-        if (depositors.length == 0 || random_bool()) {
-            add_random_user();
-        } else {
-            user = depositors[_randInt(0, depositors.length - 1)];
+    function transitionRandomDeposit() internal {
+        if (random_bool()) {
+            addRandomUser();
         }
+        address user = depositors[_randInt(0, depositors.length - 1)];
         uint256 amount = calc_random_amount_d18();
         deal(wsteth, user, amount);
         vm.startPrank(user);
@@ -114,6 +108,7 @@ contract SolvencyTest is BaseTest {
 
         if (depositedAmounts[_indexOf(user)] + amount > limit) {
             vm.expectRevert();
+            mellowSymbioticVault.deposit(amount, user, address(0));
         } else {
             mellowSymbioticVault.deposit(amount, user, address(0));
             depositedAmounts[_indexOf(user)] += amount;
@@ -121,9 +116,8 @@ contract SolvencyTest is BaseTest {
         vm.stopPrank();
     }
     
-    function transition_random_withdrawal() internal {
-        address user;
-        user = depositors[_randInt(0, depositors.length - 1)];
+    function transitionRandomWithdrawal() internal {
+        address user = depositors[_randInt(0, depositors.length - 1)];
         uint256 amount = calc_random_amount_d18();
         vm.startPrank(user);
         IERC20(wsteth).safeIncreaseAllowance(
@@ -141,18 +135,16 @@ contract SolvencyTest is BaseTest {
         vm.stopPrank();
     }
 
-    function transition_random_claim() internal {
-        address user;
-        user = depositors[_randInt(0, depositors.length - 1)];
+    function transitionRandomClaim() internal {
+        address user = depositors[_randInt(0, depositors.length - 1)];
         vm.startPrank(user);
         mellowSymbioticVault.claim(user, user, type(uint256).max);
 
         vm.stopPrank();
     }
 
-    function transition_random_limit_increase() internal {
-        address user;
-        user = depositors[_randInt(0, depositors.length - 1)];
+    function transitionRandomLimitIncrease() internal {
+        address user = depositors[_randInt(0, depositors.length - 1)];
         uint256 newLimit = limit + calc_random_amount_d18();
         vm.startPrank(admin);
         mellowSymbioticVault.grantRole(SET_LIMIT_ROLE, admin);
@@ -161,20 +153,49 @@ contract SolvencyTest is BaseTest {
         vm.stopPrank();
     }
 
-    function transition_push_into_symbiotic() internal {
-        address user;
-        user = depositors[_randInt(0, depositors.length - 1)];
+    function transitionPushIntoSymbiotic() internal {
+        address user = depositors[_randInt(0, depositors.length - 1)];
         vm.startPrank(user);
         mellowSymbioticVault.pushIntoSymbiotic();
         vm.stopPrank();
     }
 
+    function randomTransition() internal {
+        uint256 nTransitions = 5;
+        uint256 transitionIdx = _randInt(0, nTransitions - 1);
+        if (transitionIdx == 0) {
+            transitionRandomDeposit();
+        }
+        if (transitionIdx == 1) {
+            transitionRandomWithdrawal();
+        }
+        if (transitionIdx == 2) {
+            transitionRandomLimitIncrease();
+        }
+        if (transitionIdx == 3) {
+            transitionRandomClaim();
+        }
+        if (transitionIdx == 4) {
+            transitionPushIntoSymbiotic();
+        }
+    }
+
     function finilizeTest() internal {
-        transition_push_into_symbiotic();
+        transitionPushIntoSymbiotic();
+        for (uint256 i = 0; i < depositors.length; i++) {
+            address user;
+            user = depositors[i];
+            vm.startPrank(user);
+            mellowSymbioticVault.claim(user, user, type(uint256).max);
+
+            vm.stopPrank();
+        }
     }
 
     function finalValidation() internal {
-        // TODO
+        for (uint256 i = 0; i < depositors.length; i++) {
+            assert(depositedAmounts[i] <= limit);
+        }
     }
 
     function _random() internal returns (uint256) {
@@ -223,26 +244,6 @@ contract SolvencyTest is BaseTest {
         }
     }
 
-    function testRunSolvency() external {
-        deploy();
-
-        seed = 42;
-        uint256 iters = 100;
-
-        add_random_user();
-
-        for (uint256 i = 0; i < iters; i++) {
-            transition_random_deposit();
-            transition_random_withdrawal();
-            transition_random_limit_increase();
-            transition_random_claim();
-            transition_push_into_symbiotic();
-        }
-
-        finilizeTest();
-        finalValidation();
-    }
-    
     function _indexOf(address user) internal view returns (uint256) {
         for (uint256 i = 0; i < depositors.length; i++) {
             if (depositors[i] == user) {
