@@ -86,18 +86,21 @@ contract SolvencyTest is BaseTest {
         mellowSymbioticVault = MellowSymbioticVault(address(iMellowSymbioticVault));
     }
 
-    function addRandomUser() internal {
+    function addRandomUser() internal returns (address)  {
         address user = random_address();
         depositors.push(user);
         depositedAmounts.push(0);
         withdrawnAmounts.push(0);
+        return user;
     }
 
     function transitionRandomDeposit() internal {
+        address user;
         if (random_bool()) {
-            addRandomUser();
+            user = addRandomUser();
+        } else {
+            user = depositors[_randInt(0, depositors.length - 1)];
         }
-        address user = depositors[_randInt(0, depositors.length - 1)];
         uint256 amount = calc_random_amount_d18();
         deal(wsteth, user, amount);
         vm.startPrank(user);
