@@ -8,8 +8,6 @@ contract Migrator is IMigrator {
     /// @inheritdoc IMigrator
     address public immutable singleton;
     /// @inheritdoc IMigrator
-    address public immutable symbioticVaultConfigurator;
-    /// @inheritdoc IMigrator
     address public immutable admin;
     /// @inheritdoc IMigrator
     uint256 public immutable migrationDelay;
@@ -25,18 +23,11 @@ contract Migrator is IMigrator {
     /**
      * @notice Constructor to initialize the Migrator contract with the required parameters.
      * @param singleton_ The address of the singleton MellowSymbioticVault contract.
-     * @param symbioticVaultConfigurator_ The address of the Symbiotic Vault configurator.
      * @param admin_ The address of the admin managing the migration process.
      * @param migrationDelay_ The delay period before a migration can be processed.
      */
-    constructor(
-        address singleton_,
-        address symbioticVaultConfigurator_,
-        address admin_,
-        uint256 migrationDelay_
-    ) {
+    constructor(address singleton_, address admin_, uint256 migrationDelay_) {
         singleton = singleton_;
-        symbioticVaultConfigurator = symbioticVaultConfigurator_;
         admin = admin_;
         migrationDelay = migrationDelay_;
     }

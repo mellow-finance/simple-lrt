@@ -16,7 +16,6 @@ contract MellowSymbioticVault is
 
     uint256 private constant D6 = 1e6;
     bytes32 private constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
-    bytes32 private constant REMOVE_FARM_ROLE = keccak256("REMOVE_FARM_ROLE");
 
     constructor(bytes32 contractName_, uint256 contractVersion_)
         MellowSymbioticVaultStorage(contractName_, contractVersion_)
