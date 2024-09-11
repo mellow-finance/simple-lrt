@@ -38,6 +38,76 @@ contract Unit is BaseTest {
         fillCollateral();
     }
 
+    function _defaultDeploy()
+        private
+        returns (MellowSymbioticVault mellowSymbioticVault, ISymbioticVault symbioticVault)
+    {
+        mellowSymbioticVault = new MellowSymbioticVault("MellowSymbioticVault", 1);
+        symbioticVault = ISymbioticVault(
+            symbioticHelper.createNewSymbioticVault(
+                SymbioticHelper.CreationParams({
+                    vaultOwner: symbioticVaultOwner,
+                    vaultAdmin: symbioticVaultAdmin,
+                    epochDuration: epochDuration,
+                    asset: wsteth,
+                    isDepositLimit: false,
+                    depositLimit: 0
+                })
+            )
+        );
+
+        IMellowSymbioticVault.InitParams memory initParams = IMellowSymbioticVault.InitParams({
+            withdrawalQueue: address(
+                new SymbioticWithdrawalQueue(address(mellowSymbioticVault), address(symbioticVault))
+            ),
+            limit: vaultLimit,
+            symbioticCollateral: wstethSymbioticCollateral,
+            symbioticVault: address(symbioticVault),
+            admin: makeAddr("vaultAdmin"),
+            depositPause: false,
+            withdrawalPause: false,
+            depositWhitelist: false,
+            name: "MellowSymbioticVault",
+            symbol: "MSV"
+        });
+        mellowSymbioticVault.initialize(initParams);
+    }
+
+    function _extDeploy()
+        private
+        returns (MockMellowSymbioticVaultExt mellowSymbioticVault, ISymbioticVault symbioticVault)
+    {
+        mellowSymbioticVault = new MockMellowSymbioticVaultExt();
+        symbioticVault = ISymbioticVault(
+            symbioticHelper.createNewSymbioticVault(
+                SymbioticHelper.CreationParams({
+                    vaultOwner: symbioticVaultOwner,
+                    vaultAdmin: symbioticVaultAdmin,
+                    epochDuration: epochDuration,
+                    asset: wsteth,
+                    isDepositLimit: true,
+                    depositLimit: 0
+                })
+            )
+        );
+
+        IMellowSymbioticVault.InitParams memory initParams = IMellowSymbioticVault.InitParams({
+            withdrawalQueue: address(
+                new SymbioticWithdrawalQueue(address(mellowSymbioticVault), address(symbioticVault))
+            ),
+            limit: vaultLimit,
+            symbioticCollateral: wstethSymbioticCollateral,
+            symbioticVault: address(symbioticVault),
+            admin: makeAddr("vaultAdmin"),
+            depositPause: false,
+            withdrawalPause: false,
+            depositWhitelist: false,
+            name: "MellowSymbioticVault",
+            symbol: "MSV"
+        });
+        mellowSymbioticVault.initialize(initParams);
+    }
+
     function testInitialize() external {
         MellowSymbioticVault c = new MellowSymbioticVault("MellowSymbioticVault", 1);
 
@@ -106,35 +176,7 @@ contract Unit is BaseTest {
     }
 
     function testSetFarm() external {
-        MellowSymbioticVault c = new MellowSymbioticVault("MellowSymbioticVault", 1);
-
-        ISymbioticVault symbioticVault = ISymbioticVault(
-            symbioticHelper.createNewSymbioticVault(
-                SymbioticHelper.CreationParams({
-                    vaultOwner: symbioticVaultOwner,
-                    vaultAdmin: symbioticVaultAdmin,
-                    epochDuration: epochDuration,
-                    asset: wsteth,
-                    isDepositLimit: true,
-                    depositLimit: symbioticLimit
-                })
-            )
-        );
-
-        IMellowSymbioticVault.InitParams memory initParams = IMellowSymbioticVault.InitParams({
-            withdrawalQueue: makeAddr("withdrawalQueue"),
-            limit: vaultLimit,
-            symbioticCollateral: makeAddr("symbioticCollateral"),
-            symbioticVault: address(symbioticVault),
-            admin: makeAddr("vaultAdmin"),
-            depositPause: false,
-            withdrawalPause: false,
-            depositWhitelist: false,
-            name: "MellowSymbioticVault",
-            symbol: "MSV"
-        });
-        c.initialize(initParams);
-
+        (MellowSymbioticVault c, ISymbioticVault symbioticVault) = _defaultDeploy();
         address manager = makeAddr("manager");
 
         IMellowSymbioticVaultStorage.FarmData memory farmParams = IMellowSymbioticVaultStorage
@@ -235,76 +277,6 @@ contract Unit is BaseTest {
         vm.stopPrank();
     }
 
-    function _defaultDeploy()
-        private
-        returns (MellowSymbioticVault mellowSymbioticVault, ISymbioticVault symbioticVault)
-    {
-        mellowSymbioticVault = new MellowSymbioticVault("MellowSymbioticVault", 1);
-        symbioticVault = ISymbioticVault(
-            symbioticHelper.createNewSymbioticVault(
-                SymbioticHelper.CreationParams({
-                    vaultOwner: symbioticVaultOwner,
-                    vaultAdmin: symbioticVaultAdmin,
-                    epochDuration: epochDuration,
-                    asset: wsteth,
-                    isDepositLimit: false,
-                    depositLimit: 0
-                })
-            )
-        );
-
-        IMellowSymbioticVault.InitParams memory initParams = IMellowSymbioticVault.InitParams({
-            withdrawalQueue: address(
-                new SymbioticWithdrawalQueue(address(mellowSymbioticVault), address(symbioticVault))
-            ),
-            limit: vaultLimit,
-            symbioticCollateral: wstethSymbioticCollateral,
-            symbioticVault: address(symbioticVault),
-            admin: makeAddr("vaultAdmin"),
-            depositPause: false,
-            withdrawalPause: false,
-            depositWhitelist: false,
-            name: "MellowSymbioticVault",
-            symbol: "MSV"
-        });
-        mellowSymbioticVault.initialize(initParams);
-    }
-
-    function _extDeploy()
-        private
-        returns (MockMellowSymbioticVaultExt mellowSymbioticVault, ISymbioticVault symbioticVault)
-    {
-        mellowSymbioticVault = new MockMellowSymbioticVaultExt();
-        symbioticVault = ISymbioticVault(
-            symbioticHelper.createNewSymbioticVault(
-                SymbioticHelper.CreationParams({
-                    vaultOwner: symbioticVaultOwner,
-                    vaultAdmin: symbioticVaultAdmin,
-                    epochDuration: epochDuration,
-                    asset: wsteth,
-                    isDepositLimit: true,
-                    depositLimit: 0
-                })
-            )
-        );
-
-        IMellowSymbioticVault.InitParams memory initParams = IMellowSymbioticVault.InitParams({
-            withdrawalQueue: address(
-                new SymbioticWithdrawalQueue(address(mellowSymbioticVault), address(symbioticVault))
-            ),
-            limit: vaultLimit,
-            symbioticCollateral: wstethSymbioticCollateral,
-            symbioticVault: address(symbioticVault),
-            admin: makeAddr("vaultAdmin"),
-            depositPause: false,
-            withdrawalPause: false,
-            depositWhitelist: false,
-            name: "MellowSymbioticVault",
-            symbol: "MSV"
-        });
-        mellowSymbioticVault.initialize(initParams);
-    }
-
     function testTotalAssets() external {
         (MellowSymbioticVault c, ISymbioticVault symbioticVault) = _defaultDeploy();
 
@@ -389,33 +361,215 @@ contract Unit is BaseTest {
     }
 
     function testWithdraw() external {
-        (MellowSymbioticVault c, ISymbioticVault symbioticVault) = _defaultDeploy();
+        // simple case
+        {
+            (MellowSymbioticVault c, ISymbioticVault symbioticVault) = _defaultDeploy();
 
-        address depositor = makeAddr("depositor");
+            address depositor = makeAddr("depositor");
 
-        vm.startPrank(depositor);
-        deal(wsteth, depositor, 1 ether);
-        IERC20(wsteth).approve(address(c), type(uint256).max);
-        c.mint(1 ether, depositor);
+            vm.startPrank(depositor);
+            deal(wsteth, depositor, 1 ether);
+            IERC20(wsteth).approve(address(c), type(uint256).max);
+            c.mint(1 ether, depositor);
 
-        vm.recordLogs();
-        c.withdraw(1 ether, depositor, depositor);
+            vm.recordLogs();
+            c.withdraw(1 ether, depositor, depositor);
 
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        assertEq(logs.length, 4);
+            Vm.Log[] memory logs = vm.getRecordedLogs();
+            assertEq(logs.length, 4);
 
-        assertEq(logs[1].emitter, address(c.withdrawalQueue()));
-        assertEq(logs[1].topics[0], keccak256("WithdrawalRequested(address,uint256,uint256)"));
+            assertEq(logs[1].emitter, address(c.withdrawalQueue()));
+            assertEq(logs[1].topics[0], keccak256("WithdrawalRequested(address,uint256,uint256)"));
 
-        assertEq(logs[3].emitter, address(c));
-        assertEq(logs[3].topics[0], keccak256("Withdraw(address,address,address,uint256,uint256)"));
+            assertEq(logs[3].emitter, address(c));
+            assertEq(
+                logs[3].topics[0], keccak256("Withdraw(address,address,address,uint256,uint256)")
+            );
 
-        assertEq(c.totalAssets(), 0);
+            assertEq(c.totalAssets(), 0);
 
-        assertEq(IERC20(wsteth).balanceOf(depositor), 0 ether);
-        assertEq(c.pendingAssetsOf(depositor), 1 ether);
+            assertEq(IERC20(wsteth).balanceOf(depositor), 0 ether);
+            assertEq(c.pendingAssetsOf(depositor), 1 ether);
 
-        vm.stopPrank();
+            vm.stopPrank();
+        }
+        // case 1
+        {
+            MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
+            MellowSymbioticVaultFactory factory =
+                new MellowSymbioticVaultFactory(address(singleton));
+
+            ISymbioticVault symbioticVault = ISymbioticVault(
+                symbioticHelper.createNewSymbioticVault(
+                    SymbioticHelper.CreationParams({
+                        vaultOwner: symbioticVaultOwner,
+                        vaultAdmin: symbioticVaultAdmin,
+                        epochDuration: epochDuration,
+                        asset: wsteth,
+                        isDepositLimit: true,
+                        depositLimit: symbioticLimit
+                    })
+                )
+            );
+
+            (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+            factory.create(
+                IMellowSymbioticVaultFactory.InitParams({
+                    proxyAdmin: vaultProxyAdmin,
+                    limit: vaultLimit,
+                    symbioticCollateral: address(wstethSymbioticCollateral),
+                    symbioticVault: address(symbioticVault),
+                    admin: vaultAdmin,
+                    depositPause: false,
+                    withdrawalPause: false,
+                    depositWhitelist: false,
+                    name: "MellowSymbioticVault",
+                    symbol: "MSV"
+                })
+            );
+
+            address user = makeAddr("user");
+            {
+                vm.startPrank(user);
+                uint256 amount = 200 ether;
+                deal(wsteth, user, amount);
+                IERC20(wsteth).approve(address(mellowSymbioticVault), amount);
+                mellowSymbioticVault.deposit(amount, user);
+                vm.stopPrank();
+            }
+
+            IDefaultCollateral c = IDefaultCollateral(wstethSymbioticCollateral);
+            vm.prank(c.limitIncreaser());
+            c.increaseLimit(50 ether);
+
+            mellowSymbioticVault.pushIntoSymbiotic();
+
+            {
+                vm.startPrank(user);
+                mellowSymbioticVault.withdraw(150 ether, user, user);
+                vm.stopPrank();
+            }
+        }
+        // case 2
+        {
+            MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
+            MellowSymbioticVaultFactory factory =
+                new MellowSymbioticVaultFactory(address(singleton));
+
+            ISymbioticVault symbioticVault = ISymbioticVault(
+                symbioticHelper.createNewSymbioticVault(
+                    SymbioticHelper.CreationParams({
+                        vaultOwner: symbioticVaultOwner,
+                        vaultAdmin: symbioticVaultAdmin,
+                        epochDuration: epochDuration,
+                        asset: wsteth,
+                        isDepositLimit: true,
+                        depositLimit: 0
+                    })
+                )
+            );
+
+            (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+            factory.create(
+                IMellowSymbioticVaultFactory.InitParams({
+                    proxyAdmin: vaultProxyAdmin,
+                    limit: vaultLimit,
+                    symbioticCollateral: address(wstethSymbioticCollateral),
+                    symbioticVault: address(symbioticVault),
+                    admin: vaultAdmin,
+                    depositPause: false,
+                    withdrawalPause: false,
+                    depositWhitelist: false,
+                    name: "MellowSymbioticVault",
+                    symbol: "MSV"
+                })
+            );
+
+            vm.startPrank(symbioticVaultAdmin);
+            symbioticVault.setDepositWhitelist(true);
+            symbioticVault.setDepositorWhitelistStatus(address(mellowSymbioticVault), true);
+            vm.stopPrank();
+
+            address user = makeAddr("user");
+            {
+                vm.startPrank(user);
+                uint256 amount = 200 ether;
+                deal(wsteth, user, amount);
+                IERC20(wsteth).approve(address(mellowSymbioticVault), amount);
+                mellowSymbioticVault.deposit(amount, user);
+                vm.stopPrank();
+            }
+
+            IDefaultCollateral c = IDefaultCollateral(wstethSymbioticCollateral);
+            vm.prank(c.limitIncreaser());
+            c.increaseLimit(50 ether);
+
+            mellowSymbioticVault.pushIntoSymbiotic();
+
+            {
+                vm.startPrank(user);
+                mellowSymbioticVault.withdraw(150 ether, user, user);
+                vm.stopPrank();
+            }
+        }
+
+        // case 3
+        {
+            MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
+            MellowSymbioticVaultFactory factory =
+                new MellowSymbioticVaultFactory(address(singleton));
+
+            ISymbioticVault symbioticVault = ISymbioticVault(
+                symbioticHelper.createNewSymbioticVault(
+                    SymbioticHelper.CreationParams({
+                        vaultOwner: symbioticVaultOwner,
+                        vaultAdmin: symbioticVaultAdmin,
+                        epochDuration: epochDuration,
+                        asset: wsteth,
+                        isDepositLimit: false,
+                        depositLimit: 0
+                    })
+                )
+            );
+
+            (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
+            factory.create(
+                IMellowSymbioticVaultFactory.InitParams({
+                    proxyAdmin: vaultProxyAdmin,
+                    limit: vaultLimit,
+                    symbioticCollateral: address(wstethSymbioticCollateral),
+                    symbioticVault: address(symbioticVault),
+                    admin: vaultAdmin,
+                    depositPause: false,
+                    withdrawalPause: false,
+                    depositWhitelist: false,
+                    name: "MellowSymbioticVault",
+                    symbol: "MSV"
+                })
+            );
+
+            address user = makeAddr("user");
+            {
+                vm.startPrank(user);
+                uint256 amount = 10 ether;
+                deal(wsteth, user, amount);
+                IERC20(wsteth).approve(address(mellowSymbioticVault), amount);
+                mellowSymbioticVault.deposit(amount, user);
+                vm.stopPrank();
+            }
+
+            IDefaultCollateral c = IDefaultCollateral(wstethSymbioticCollateral);
+            vm.prank(c.limitIncreaser());
+            c.increaseLimit(50 ether);
+
+            mellowSymbioticVault.pushIntoSymbiotic();
+
+            {
+                vm.startPrank(user);
+                mellowSymbioticVault.withdraw(10 ether, user, user);
+                vm.stopPrank();
+            }
+        }
     }
 
     function testRedeem() external {
@@ -832,8 +986,6 @@ contract Unit is BaseTest {
         vm.stopPrank();
     }
 
-    function testCalculateSymbioticVaultLeftover() external {}
-
     function testPushIntoSymbiotic() external {}
 
     function testPushIntoSymbioticNothingToPush() external {
@@ -1057,179 +1209,6 @@ contract Unit is BaseTest {
 
         vm.expectRevert();
         mellowSymbioticVault.pushRewards(0, new bytes(0));
-    }
-
-    function testWithdraw0() external {
-        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
-        MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
-
-        ISymbioticVault symbioticVault = ISymbioticVault(
-            symbioticHelper.createNewSymbioticVault(
-                SymbioticHelper.CreationParams({
-                    vaultOwner: symbioticVaultOwner,
-                    vaultAdmin: symbioticVaultAdmin,
-                    epochDuration: epochDuration,
-                    asset: wsteth,
-                    isDepositLimit: true,
-                    depositLimit: symbioticLimit
-                })
-            )
-        );
-
-        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
-        factory.create(
-            IMellowSymbioticVaultFactory.InitParams({
-                proxyAdmin: vaultProxyAdmin,
-                limit: vaultLimit,
-                symbioticCollateral: address(wstethSymbioticCollateral),
-                symbioticVault: address(symbioticVault),
-                admin: vaultAdmin,
-                depositPause: false,
-                withdrawalPause: false,
-                depositWhitelist: false,
-                name: "MellowSymbioticVault",
-                symbol: "MSV"
-            })
-        );
-
-        address user = makeAddr("user");
-        {
-            vm.startPrank(user);
-            uint256 amount = 200 ether;
-            deal(wsteth, user, amount);
-            IERC20(wsteth).approve(address(mellowSymbioticVault), amount);
-            mellowSymbioticVault.deposit(amount, user);
-            vm.stopPrank();
-        }
-
-        IDefaultCollateral c = IDefaultCollateral(wstethSymbioticCollateral);
-        vm.prank(c.limitIncreaser());
-        c.increaseLimit(50 ether);
-
-        mellowSymbioticVault.pushIntoSymbiotic();
-
-        {
-            vm.startPrank(user);
-            mellowSymbioticVault.withdraw(150 ether, user, user);
-            vm.stopPrank();
-        }
-    }
-
-    function testWithdraw1() external {
-        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
-        MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
-
-        ISymbioticVault symbioticVault = ISymbioticVault(
-            symbioticHelper.createNewSymbioticVault(
-                SymbioticHelper.CreationParams({
-                    vaultOwner: symbioticVaultOwner,
-                    vaultAdmin: symbioticVaultAdmin,
-                    epochDuration: epochDuration,
-                    asset: wsteth,
-                    isDepositLimit: true,
-                    depositLimit: 0
-                })
-            )
-        );
-
-        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
-        factory.create(
-            IMellowSymbioticVaultFactory.InitParams({
-                proxyAdmin: vaultProxyAdmin,
-                limit: vaultLimit,
-                symbioticCollateral: address(wstethSymbioticCollateral),
-                symbioticVault: address(symbioticVault),
-                admin: vaultAdmin,
-                depositPause: false,
-                withdrawalPause: false,
-                depositWhitelist: false,
-                name: "MellowSymbioticVault",
-                symbol: "MSV"
-            })
-        );
-
-        vm.startPrank(symbioticVaultAdmin);
-        symbioticVault.setDepositWhitelist(true);
-        symbioticVault.setDepositorWhitelistStatus(address(mellowSymbioticVault), true);
-        vm.stopPrank();
-
-        address user = makeAddr("user");
-        {
-            vm.startPrank(user);
-            uint256 amount = 200 ether;
-            deal(wsteth, user, amount);
-            IERC20(wsteth).approve(address(mellowSymbioticVault), amount);
-            mellowSymbioticVault.deposit(amount, user);
-            vm.stopPrank();
-        }
-
-        IDefaultCollateral c = IDefaultCollateral(wstethSymbioticCollateral);
-        vm.prank(c.limitIncreaser());
-        c.increaseLimit(50 ether);
-
-        mellowSymbioticVault.pushIntoSymbiotic();
-
-        {
-            vm.startPrank(user);
-            mellowSymbioticVault.withdraw(150 ether, user, user);
-            vm.stopPrank();
-        }
-    }
-
-    function testWithdraw2() external {
-        MellowSymbioticVault singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
-        MellowSymbioticVaultFactory factory = new MellowSymbioticVaultFactory(address(singleton));
-
-        ISymbioticVault symbioticVault = ISymbioticVault(
-            symbioticHelper.createNewSymbioticVault(
-                SymbioticHelper.CreationParams({
-                    vaultOwner: symbioticVaultOwner,
-                    vaultAdmin: symbioticVaultAdmin,
-                    epochDuration: epochDuration,
-                    asset: wsteth,
-                    isDepositLimit: false,
-                    depositLimit: 0
-                })
-            )
-        );
-
-        (IMellowSymbioticVault mellowSymbioticVault, /*IWithdrawalQueue withdrawalQueue*/ ) =
-        factory.create(
-            IMellowSymbioticVaultFactory.InitParams({
-                proxyAdmin: vaultProxyAdmin,
-                limit: vaultLimit,
-                symbioticCollateral: address(wstethSymbioticCollateral),
-                symbioticVault: address(symbioticVault),
-                admin: vaultAdmin,
-                depositPause: false,
-                withdrawalPause: false,
-                depositWhitelist: false,
-                name: "MellowSymbioticVault",
-                symbol: "MSV"
-            })
-        );
-
-        address user = makeAddr("user");
-        {
-            vm.startPrank(user);
-            uint256 amount = 10 ether;
-            deal(wsteth, user, amount);
-            IERC20(wsteth).approve(address(mellowSymbioticVault), amount);
-            mellowSymbioticVault.deposit(amount, user);
-            vm.stopPrank();
-        }
-
-        IDefaultCollateral c = IDefaultCollateral(wstethSymbioticCollateral);
-        vm.prank(c.limitIncreaser());
-        c.increaseLimit(50 ether);
-
-        mellowSymbioticVault.pushIntoSymbiotic();
-
-        {
-            vm.startPrank(user);
-            mellowSymbioticVault.withdraw(10 ether, user, user);
-            vm.stopPrank();
-        }
     }
 
     function testDepositExt000() external {

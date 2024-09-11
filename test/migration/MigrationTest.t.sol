@@ -31,12 +31,8 @@ contract Integration is BaseTest {
     function testMigrationOnchain() external {
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
-        Migrator migrator = new Migrator(
-            address(mellowVaultCompat),
-            address(symbioticVaultConfigurator),
-            address(migratorAdmin),
-            migratorDelay
-        );
+        Migrator migrator =
+            new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
         emptyParams.vaultParams.collateral = wsteth;
@@ -106,12 +102,8 @@ contract Integration is BaseTest {
     function testMigrationOnchainFails() external {
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
-        Migrator migrator = new Migrator(
-            address(mellowVaultCompat),
-            address(symbioticVaultConfigurator),
-            address(migratorAdmin),
-            migratorDelay
-        );
+        Migrator migrator =
+            new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
         emptyParams.vaultParams.collateral = wsteth;
@@ -159,12 +151,8 @@ contract Integration is BaseTest {
     function testMigrationAndWithdraw() external {
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
-        Migrator migrator = new Migrator(
-            address(mellowVaultCompat),
-            address(symbioticVaultConfigurator),
-            address(migratorAdmin),
-            migratorDelay
-        );
+        Migrator migrator =
+            new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
         emptyParams.vaultParams.collateral = wsteth;
@@ -214,12 +202,8 @@ contract Integration is BaseTest {
     function testMigrationZeroDepositLimit() external {
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
-        Migrator migrator = new Migrator(
-            address(mellowVaultCompat),
-            address(symbioticVaultConfigurator),
-            address(migratorAdmin),
-            migratorDelay
-        );
+        Migrator migrator =
+            new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
         emptyParams.vaultParams.collateral = wsteth;
@@ -269,12 +253,8 @@ contract Integration is BaseTest {
     function testMigrationBacklist() external {
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
-        Migrator migrator = new Migrator(
-            address(mellowVaultCompat),
-            address(symbioticVaultConfigurator),
-            address(migratorAdmin),
-            migratorDelay
-        );
+        Migrator migrator =
+            new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
         emptyParams.vaultParams.collateral = wsteth;
@@ -327,12 +307,8 @@ contract Integration is BaseTest {
     function testMigrationWhitelisted() external {
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
-        Migrator migrator = new Migrator(
-            address(mellowVaultCompat),
-            address(symbioticVaultConfigurator),
-            address(migratorAdmin),
-            migratorDelay
-        );
+        Migrator migrator =
+            new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
         emptyParams.vaultParams.collateral = wsteth;
@@ -399,12 +375,8 @@ contract Integration is BaseTest {
     ) external {
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
-        Migrator migrator = new Migrator(
-            address(mellowVaultCompat),
-            address(symbioticVaultConfigurator),
-            address(migratorAdmin),
-            migratorDelay
-        );
+        Migrator migrator =
+            new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
         emptyParams.vaultParams.collateral = wsteth;
@@ -480,12 +452,8 @@ contract Integration is BaseTest {
     function testMigrationReassing() external {
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
-        Migrator migrator = new Migrator(
-            address(mellowVaultCompat),
-            address(symbioticVaultConfigurator),
-            address(migratorAdmin),
-            migratorDelay
-        );
+        Migrator migrator =
+            new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
         emptyParams.vaultParams.collateral = wsteth;
@@ -531,12 +499,8 @@ contract Integration is BaseTest {
     function testMigrationExt() external {
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
-        Migrator migrator = new Migrator(
-            address(mellowVaultCompat),
-            address(symbioticVaultConfigurator),
-            address(migratorAdmin),
-            migratorDelay
-        );
+        Migrator migrator =
+            new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
         emptyParams.vaultParams.collateral = wsteth;
@@ -584,18 +548,14 @@ contract Integration is BaseTest {
     }
 
     function testConstructorZeroParams() external {
-        Migrator migrator = new Migrator(address(0), address(0), address(0), 0);
+        Migrator migrator = new Migrator(address(0), address(0), 0);
     }
 
     function testApprovals() external {
         MellowVaultCompat mellowVaultCompat =
             new MellowVaultCompat(keccak256("MellowVaultCompat"), 1);
-        Migrator migrator = new Migrator(
-            address(mellowVaultCompat),
-            address(symbioticVaultConfigurator),
-            address(migratorAdmin),
-            migratorDelay
-        );
+        Migrator migrator =
+            new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
         emptyParams.vaultParams.collateral = wsteth;
