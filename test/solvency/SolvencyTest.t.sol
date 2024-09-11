@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 import "../BaseTest.sol";
 import "../../src/interfaces/vaults/IVaultControl.sol";
 import "../../src/VaultControl.sol";
+import "../../scripts/mainnet/FactoryDeploy.sol";
 
 contract SolvencyTest is BaseTest {
     using SafeERC20 for IERC20;
@@ -23,17 +24,14 @@ contract SolvencyTest is BaseTest {
     address vaultOwner = makeAddr("vaultOwner");
     address vaultAdmin = makeAddr("vaultAdmin");
     address proxyAdmin = makeAddr("proxyAdmin");
+    address mellowVaultAdmin = makeAddr("mellowVaultAdmin");
     uint48 epochDuration = 3600;
 
     uint256 symbioticLimit = 1e16 ether;
-
-    MellowSymbioticVault singleton;
-    MellowSymbioticVaultFactory factory;
     ISymbioticVault symbioticVault;
     MellowSymbioticVault mellowSymbioticVault;
-    IWithdrawalQueue withdrawalQueue;
 
-    uint256 limit = 1e7 ether;
+    uint256 limit = 1e8 ether;
     address[] public depositors;
     uint256[] public depositedAmounts;
     uint256[] public withdrawnAmounts;
@@ -52,9 +50,6 @@ contract SolvencyTest is BaseTest {
     }
 
     function deploy() public {
-        singleton = new MellowSymbioticVault("MellowSymbioticVault", 1);
-        factory = new MellowSymbioticVaultFactory(address(singleton));
-
         symbioticVault = ISymbioticVault(
             symbioticHelper.createNewSymbioticVault(
                 SymbioticHelper.CreationParams({
@@ -67,22 +62,39 @@ contract SolvencyTest is BaseTest {
                 })
             )
         );
-        IMellowSymbioticVault iMellowSymbioticVault;
-        (iMellowSymbioticVault, withdrawalQueue) = factory
-            .create(
-            IMellowSymbioticVaultFactory.InitParams({
-                proxyAdmin: proxyAdmin,
-                limit: limit,
-                symbioticCollateral: address(wstethSymbioticCollateral),
-                symbioticVault: address(symbioticVault),
-                admin: admin,
-                depositPause: false,
-                withdrawalPause: false,
-                depositWhitelist: false,
-                name: "MellowSymbioticVault",
-                symbol: "MSV"
-            })
-        );
+
+        IMellowSymbioticVaultFactory.InitParams memory initParams = IMellowSymbioticVaultFactory.InitParams({
+            proxyAdmin: proxyAdmin,
+            limit: limit,
+            symbioticCollateral: address(wstethSymbioticCollateral),
+            symbioticVault: address(symbioticVault),
+            admin: admin,
+            depositPause: false,
+            withdrawalPause: false,
+            depositWhitelist: false,
+            name: "MellowSymbioticVault",
+            symbol: "MSV"
+        });
+
+
+        FactoryDeploy.FactoryDeployParams memory factoryDeployParams = FactoryDeploy.FactoryDeployParams({
+            factory: address(0),
+            singletonName: "MellowSymbioticVault",
+            singletonVersion: 1,
+            setFarmRoleHoler: mellowVaultAdmin,
+            setLimitRoleHolder: mellowVaultAdmin,
+            pauseWithdrawalsRoleHolder: mellowVaultAdmin,
+            unpauseWithdrawalsRoleHolder: mellowVaultAdmin,
+            pauseDepositsRoleHolder: mellowVaultAdmin,
+            unpauseDepositsRoleHolder: mellowVaultAdmin,
+            setDepositWhitelistRoleHolder: mellowVaultAdmin,
+            setDepositorWhitelistStatusRoleHolder: mellowVaultAdmin,
+            initParams: initParams
+        });
+
+        (IMellowSymbioticVault iMellowSymbioticVault, 
+         FactoryDeploy.FactoryDeployParams memory __
+        ) = FactoryDeploy.deploy(factoryDeployParams);
         mellowSymbioticVault = MellowSymbioticVault(address(iMellowSymbioticVault));
     }
 
