@@ -87,12 +87,6 @@ interface IMigrator {
     function singleton() external view returns (address);
 
     /**
-     * @notice Returns the address of the symbiotic vault configurator.
-     * @return The address of the symbiotic vault configurator.
-     */
-    function symbioticVaultConfigurator() external view returns (address);
-
-    /**
      * @notice Returns the address of the migrator's admin.
      * @return The address of the admin.
      */
