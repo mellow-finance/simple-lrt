@@ -36,6 +36,8 @@ contract SolvencyTest is BaseTest {
     uint256[] public depositedAmounts;
     uint256[] public withdrawnAmounts;
 
+    uint256 nTransitions = 5;
+
     function testRunSolvency() external {
         deploy();
 
@@ -43,6 +45,19 @@ contract SolvencyTest is BaseTest {
 
         for (uint256 i = 0; i < ITER; i++) {
             randomTransition();
+        }
+
+        finilizeTest();
+        finalValidation();
+    }
+
+    function testRandomTransitionSubset() external {
+        deploy();
+
+        addRandomUser();
+        uint256 transitionSubset = _randInt(1, 2 ** nTransitions - 1);
+        for (uint256 i = 0; i < ITER; i++) {
+            randomTransition(transitionSubset);
         }
 
         finilizeTest();
@@ -176,8 +191,16 @@ contract SolvencyTest is BaseTest {
     }
 
     function randomTransition() internal {
-        uint256 nTransitions = 5;
+        randomTransition(2 ** nTransitions - 1);
+    }
+
+    function randomTransition(uint256 transitoinSubset) internal {
+        require((transitoinSubset & (2 ** nTransitions - 1)) > 0);
+
         uint256 transitionIdx = _randInt(0, nTransitions - 1);
+        while (((transitoinSubset >> transitionIdx) & 1) != 1) {
+            transitionIdx =  _randInt(0, nTransitions - 1);
+        }
         if (transitionIdx == 0) {
             transitionRandomDeposit();
         }
