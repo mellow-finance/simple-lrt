@@ -27,11 +27,11 @@ contract SolvencyTest is BaseTest {
     address mellowVaultAdmin = makeAddr("mellowVaultAdmin");
     uint48 epochDuration = 3600;
 
-    uint256 symbioticLimit = 1e16 ether;
+    uint256 symbioticLimit;
     ISymbioticVault symbioticVault;
     MellowSymbioticVault mellowSymbioticVault;
 
-    uint256 limit = 1e8 ether;
+    uint256 limit;
     address[] public depositors;
     uint256[] public depositedAmounts;
     uint256[] public withdrawnAmounts;
@@ -39,7 +39,7 @@ contract SolvencyTest is BaseTest {
     uint256 nTransitions = 5;
 
     function testRunSolvency() external {
-        deploy();
+        deploy(1e8 ether, 1e16 ether);
 
         addRandomUser();
 
@@ -52,7 +52,7 @@ contract SolvencyTest is BaseTest {
     }
 
     function testRandomTransitionSubset() external {
-        deploy();
+        deploy(1e8 ether, 1e16 ether);
 
         addRandomUser();
         uint256 transitionSubset = _randInt(1, 2 ** nTransitions - 1);
@@ -64,7 +64,32 @@ contract SolvencyTest is BaseTest {
         finalValidation();
     }
 
-    function deploy() public {
+    function fuzzyTestTransitonBitmask(uint256 iter, uint256 _limit, uint256 _symbioticLimit, uint256 transitionSubset) external {
+        deploy(_limit, _symbioticLimit);
+
+        addRandomUser();
+        for (uint256 i = 0; i < iter; i++) {
+            randomTransition(transitionSubset);
+        }
+
+        finilizeTest();
+        finalValidation();
+    }
+
+    function fuzzyTestTrasitionList(uint256[] memory transitions, uint256 _limit, uint256 _symbioticLimit) external {
+        deploy(_limit, _symbioticLimit);
+
+        addRandomUser();
+        for (uint256 i = 0; i < transitions.length; i++) {
+            transitionByIndex(transitions[i]);
+        }
+
+        finilizeTest();
+        finalValidation();
+    }
+
+    function deploy(uint256 _limit, uint256 _symbioticLimit) public {
+        symbioticLimit = _symbioticLimit;
         symbioticVault = ISymbioticVault(
             symbioticHelper.createNewSymbioticVault(
                 SymbioticHelper.CreationParams({
@@ -78,6 +103,7 @@ contract SolvencyTest is BaseTest {
             )
         );
 
+        limit = _limit;
         IMellowSymbioticVaultFactory.InitParams memory initParams = IMellowSymbioticVaultFactory.InitParams({
             proxyAdmin: proxyAdmin,
             limit: limit,
@@ -201,6 +227,11 @@ contract SolvencyTest is BaseTest {
         while (((transitoinSubset >> transitionIdx) & 1) != 1) {
             transitionIdx =  _randInt(0, nTransitions - 1);
         }
+        transitionByIndex(transitionIdx);
+    }
+
+    function transitionByIndex(uint256 transitionIdx) internal {
+        require(transitionIdx < nTransitions);
         if (transitionIdx == 0) {
             transitionRandomDeposit();
         }
