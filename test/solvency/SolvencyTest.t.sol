@@ -36,7 +36,7 @@ contract SolvencyTest is BaseTest {
     uint256[] public depositedAmounts;
     uint256[] public withdrawnAmounts;
 
-    uint256 nTransitions = 5;
+    uint256 nTransitions = 7;
 
     function testRunSolvency() external {
         deploy(1e8 ether, 1e16 ether);
@@ -137,6 +137,8 @@ contract SolvencyTest is BaseTest {
          FactoryDeploy.FactoryDeployParams memory __
         ) = FactoryDeploy.deploy(factoryDeployParams);
         mellowSymbioticVault = MellowSymbioticVault(address(iMellowSymbioticVault));
+
+        transitionsRan = 0;
     }
 
     function addRandomUser() internal returns (address)  {
@@ -216,6 +218,21 @@ contract SolvencyTest is BaseTest {
         vm.stopPrank();
     }
 
+    function transitionRandomSlashing() internal {
+        vm.startPrank(symbioticVault.slasher());
+        uint256 slashedAmount = calc_random_amount_d18();
+        symbioticVault.onSlash(slashedAmount, uint48(block.timestamp));
+        vm.stopPrank();
+    }
+
+    function transitionFarm() internal {
+        address user = depositors[_randInt(0, depositors.length - 1)];
+        vm.startPrank(user);
+        
+
+        vm.stopPrank();
+    }
+
     function randomTransition() internal {
         randomTransition(2 ** nTransitions - 1);
     }
@@ -247,6 +264,13 @@ contract SolvencyTest is BaseTest {
         if (transitionIdx == 4) {
             transitionPushIntoSymbiotic();
         }
+        if (transitionIdx == 5) {
+            transitionRandomSlashing();
+        }
+        if (transitionIdx == 6) {
+            transitionFarm();
+        }
+        transitionsRan += 1;
     }
 
     function finilizeTest() internal {
