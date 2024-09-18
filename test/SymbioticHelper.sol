@@ -44,6 +44,16 @@ contract SymbioticHelper {
         uint256 depositLimit;
     }
 
+    struct CreationParamsExtended {
+        address vaultOwner;
+        address vaultAdmin;
+        address burner;
+        uint48 epochDuration;
+        address asset;
+        bool isDepositLimit;
+        uint256 depositLimit;
+    }
+
     SymbioticDeployment private deployment;
 
     function getSymbioticDeployment() public view returns (SymbioticDeployment memory) {
@@ -105,6 +115,47 @@ contract SymbioticHelper {
 
     function generateAddress(string memory salt) private view returns (address) {
         return address(uint160(uint256(keccak256(abi.encodePacked(salt, address(this))))));
+    }
+
+    function createNewSymbioticVault(CreationParamsExtended memory params) 
+        public
+        returns (address symbioticVault)
+    {
+        IFullRestakeDelegator.InitParams memory initParams = IFullRestakeDelegator.InitParams({
+            baseParams: IBaseDelegator.BaseParams({
+                defaultAdminRoleHolder: generateAddress("defaultAdminRoleHolder"),
+                hook: address(0),
+                hookSetRoleHolder: generateAddress("hookSetRoleHolder")
+            }),
+            networkLimitSetRoleHolders: new address[](0),
+            operatorNetworkLimitSetRoleHolders: new address[](0)
+        });
+        (symbioticVault,,) = IVaultConfigurator(getSymbioticDeployment().vaultConfigurator).create(
+            IVaultConfigurator.InitParams({
+                version: 1,
+                owner: params.vaultOwner,
+                vaultParams: IVault.InitParams({
+                    collateral: params.asset,
+                    delegator: address(0),
+                    slasher: address(0),
+                    burner: params.burner,
+                    epochDuration: params.epochDuration,
+                    depositWhitelist: false,
+                    isDepositLimit: params.isDepositLimit,
+                    depositLimit: params.depositLimit,
+                    defaultAdminRoleHolder: params.vaultAdmin,
+                    depositWhitelistSetRoleHolder: params.vaultAdmin,
+                    depositorWhitelistRoleHolder: params.vaultAdmin,
+                    isDepositLimitSetRoleHolder: params.vaultAdmin,
+                    depositLimitSetRoleHolder: params.vaultAdmin
+                }),
+                delegatorIndex: 0,
+                delegatorParams: abi.encode(initParams),
+                withSlasher: false,
+                slasherIndex: 0,
+                slasherParams: ""
+            })
+        );
     }
 
     function createNewSymbioticVault(CreationParams memory params)

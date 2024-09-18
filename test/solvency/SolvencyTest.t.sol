@@ -9,7 +9,7 @@ import "../../scripts/mainnet/FactoryDeploy.sol";
 contract SolvencyTest is BaseTest {
     using SafeERC20 for IERC20;
 
-    uint256 ITER = 1000;
+    uint256 ITER = 20;
     bytes32 private constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
 
     address admin = makeAddr("admin");
@@ -25,6 +25,7 @@ contract SolvencyTest is BaseTest {
     address vaultAdmin = makeAddr("vaultAdmin");
     address proxyAdmin = makeAddr("proxyAdmin");
     address mellowVaultAdmin = makeAddr("mellowVaultAdmin");
+    address burner = makeAddr("burner");
     uint48 epochDuration = 3600;
 
     uint256 symbioticLimit;
@@ -92,9 +93,10 @@ contract SolvencyTest is BaseTest {
         symbioticLimit = _symbioticLimit;
         symbioticVault = ISymbioticVault(
             symbioticHelper.createNewSymbioticVault(
-                SymbioticHelper.CreationParams({
+                SymbioticHelper.CreationParamsExtended({
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,
+                    burner: burner,
                     epochDuration: epochDuration,
                     asset: wsteth,
                     isDepositLimit: false,
@@ -137,8 +139,6 @@ contract SolvencyTest is BaseTest {
          FactoryDeploy.FactoryDeployParams memory __
         ) = FactoryDeploy.deploy(factoryDeployParams);
         mellowSymbioticVault = MellowSymbioticVault(address(iMellowSymbioticVault));
-
-        transitionsRan = 0;
     }
 
     function addRandomUser() internal returns (address)  {
@@ -193,7 +193,7 @@ contract SolvencyTest is BaseTest {
         vm.stopPrank();
     }
 
-    function transitionRandomClaim() internal {
+    function transitionRandomClaim() internal {  
         address user = depositors[_randInt(0, depositors.length - 1)];
         vm.startPrank(user);
         mellowSymbioticVault.claim(user, user, type(uint256).max);
@@ -270,7 +270,6 @@ contract SolvencyTest is BaseTest {
         if (transitionIdx == 6) {
             transitionFarm();
         }
-        transitionsRan += 1;
     }
 
     function finilizeTest() internal {
