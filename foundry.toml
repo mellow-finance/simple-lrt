@@ -15,3 +15,4 @@ int_types = 'long'
 quote_style = 'double'
 number_underscore = 'remove'
 sort_imports = true
+ignore = ['test/migration/Users_*.sol']

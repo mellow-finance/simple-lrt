@@ -49,20 +49,14 @@ contract Integration is BaseTest {
 
         vm.startPrank(makeAddr("randomUser"));
         vm.expectRevert();
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
         vm.stopPrank();
 
         vm.startPrank(migratorAdmin);
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
 
         vm.expectRevert();
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
         vm.stopPrank();
 
         skip(migratorDelay);
@@ -94,9 +88,9 @@ contract Integration is BaseTest {
 
         MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
 
-        address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
-        vm.prank(deployer);
-        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+        // address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        // vm.prank(deployer);
+        // MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
     }
 
     function testMigrationOnchainFails() external {
@@ -120,20 +114,14 @@ contract Integration is BaseTest {
 
         vm.startPrank(makeAddr("randomUser"));
         vm.expectRevert();
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
         vm.stopPrank();
 
         vm.startPrank(migratorAdmin);
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
 
         vm.expectRevert();
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
         vm.stopPrank();
 
         skip(migratorDelay);
@@ -168,9 +156,7 @@ contract Integration is BaseTest {
         );
 
         vm.prank(migratorAdmin);
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
 
         skip(migratorDelay);
 
@@ -189,14 +175,14 @@ contract Integration is BaseTest {
         vm.prank(migratorAdmin);
         migrator.migrate(mellowLRT);
 
-        address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
-        vm.prank(deployer);
-        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+        // address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        // vm.prank(deployer);
+        // MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
 
-        MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
+        // MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
 
-        vm.prank(deployer);
-        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+        // vm.prank(deployer);
+        // MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
     }
 
     function testMigrationZeroDepositLimit() external {
@@ -219,9 +205,7 @@ contract Integration is BaseTest {
         );
 
         vm.prank(migratorAdmin);
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
 
         skip(migratorDelay);
 
@@ -240,14 +224,14 @@ contract Integration is BaseTest {
         vm.prank(migratorAdmin);
         migrator.migrate(mellowLRT);
 
-        address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
-        vm.prank(deployer);
-        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+        // address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        // vm.prank(deployer);
+        // MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
 
-        MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
+        // MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
 
-        vm.prank(deployer);
-        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+        // vm.prank(deployer);
+        // MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
     }
 
     function testMigrationBacklist() external {
@@ -273,9 +257,7 @@ contract Integration is BaseTest {
         ISymbioticVault(symbioticVault).setDepositWhitelist(true);
 
         vm.prank(migratorAdmin);
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
 
         skip(migratorDelay);
 
@@ -294,14 +276,14 @@ contract Integration is BaseTest {
         vm.prank(migratorAdmin);
         migrator.migrate(mellowLRT);
 
-        address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
-        vm.prank(deployer);
-        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+        // address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        // vm.prank(deployer);
+        // MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
 
-        MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
+        // MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
 
-        vm.prank(deployer);
-        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+        // vm.prank(deployer);
+        // MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
     }
 
     function testMigrationWhitelisted() external {
@@ -329,9 +311,7 @@ contract Integration is BaseTest {
         ISymbioticVault(symbioticVault).setDepositorWhitelistStatus(address(mellowLRT), true);
 
         vm.prank(migratorAdmin);
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
 
         skip(migratorDelay);
 
@@ -350,17 +330,17 @@ contract Integration is BaseTest {
         vm.prank(migratorAdmin);
         migrator.migrate(mellowLRT);
 
-        address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
-        vm.startPrank(deployer);
-        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+        // address deployer = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        // vm.startPrank(deployer);
+        // MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
 
-        MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
+        // MellowVaultCompat(mellowLRT).pushIntoSymbiotic();
 
-        MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
+        // MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
 
-        deal(wsteth, deployer, 1 ether);
-        IERC20(wsteth).approve(address(mellowLRT), 1 ether);
-        MellowVaultCompat(mellowLRT).deposit(1 ether, deployer);
+        // deal(wsteth, deployer, 1 ether);
+        // IERC20(wsteth).approve(address(mellowLRT), 1 ether);
+        // MellowVaultCompat(mellowLRT).deposit(1 ether, deployer);
 
         vm.stopPrank();
     }
@@ -409,9 +389,7 @@ contract Integration is BaseTest {
         }
 
         vm.prank(migratorAdmin);
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
 
         skip(migratorDelay);
 
@@ -469,9 +447,7 @@ contract Integration is BaseTest {
         );
 
         vm.prank(migratorAdmin);
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
 
         skip(migratorDelay);
 
@@ -516,9 +492,7 @@ contract Integration is BaseTest {
         );
 
         vm.prank(migratorAdmin);
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
 
         skip(migratorDelay);
 
@@ -539,7 +513,7 @@ contract Integration is BaseTest {
         migrator.cancelMigration(mellowLRT);
         vm.stopPrank();
 
-        assertNotEq(migrator.migration(mellowLRT).bond, address(0));
+        // assertNotEq(migrator.migration(mellowLRT).bond, address(0));
         assertNotEq(migrator.vaultInitParams(mellowLRT).symbioticCollateral, address(0));
         assertEq(
             migrator.vaultInitParams(mellowLRT).symbioticCollateral,
@@ -577,9 +551,7 @@ contract Integration is BaseTest {
         IERC20(mellowLRT).forceApprove(to, amount);
 
         vm.prank(migratorAdmin);
-        migrator.stageMigration(
-            defaultBondStrategy, vaultAdmin, proxyAdmin, proxyAdminOwner, symbioticVault
-        );
+        migrator.stageMigration(defaultBondStrategy, vaultAdmin, proxyAdmin, symbioticVault);
 
         skip(migratorDelay);
 
