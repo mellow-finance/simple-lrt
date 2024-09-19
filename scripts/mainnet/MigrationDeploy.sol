@@ -68,7 +68,6 @@ library MigrationDeploy {
             $.defaultBondStrategy,
             $.vaultAdmin,
             $.proxyAdmin,
-            $.proxyAdminOwner,
             $.symbioticVault
         );
     }

@@ -10,7 +10,7 @@ import "./Users_0x7a4EffD87C2f3C55CA251080b1343b605f327E3a.sol";
 import "./Users_0x7b31F008c48EFb65da78eA0f255EE424af855249.sol";
 import "./Users_0x82dc3260f599f4fC4307209A1122B6eAa007163b.sol";
 import "./Users_0x84631c0d0081FDe56DeB72F6DE77abBbF6A9f93a.sol";
-// import "./Users_0x8c9532a60E0E7C6BbD2B2c1303F63aCE1c3E9811.sol"; Renzo vault
+// import "./Users_0x8c9532a60E0E7C6BbD2B2c1303F63aCE1c3E9811.sol"; // Renzo vault
 import "./Users_0xBEEF69Ac7870777598A04B2bd4771c71212E6aBc.sol";
 import "./Users_0xd6E09a5e6D719d1c881579C9C8670a210437931b.sol";
 
@@ -236,7 +236,6 @@ contract Integration is BaseTest {
             migration.defaultBondStrategy,
             migration.vaultAdmin,
             migration.proxyAdmin,
-            migration.proxyAdminOwner,
             migration.symbioticVault
         );
 

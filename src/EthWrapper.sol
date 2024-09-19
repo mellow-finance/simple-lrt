@@ -64,7 +64,6 @@ contract EthWrapper is IEthWrapper {
         if (depositToken == ETH) {
             (bool success,) = payable(wstETH).call{value: amount}("");
             require(success, "EthWrapper: ETH transfer failed");
-            depositToken = wstETH;
             amount = IERC20(wstETH).balanceOf(address(this));
         }
 
@@ -72,13 +71,14 @@ contract EthWrapper is IEthWrapper {
         if (depositToken == stETH) {
             IERC20(stETH).safeIncreaseAllowance(wstETH, amount);
             amount = IWSTETH(wstETH).wrap(amount);
-            depositToken = wstETH;
         }
 
         return amount;
     }
 
-    receive() external payable {}
+    receive() external payable {
+        require(msg.sender == WETH, "EthWrapper: invalid sender");
+    }
 
     /// @inheritdoc IEthWrapper
     function deposit(

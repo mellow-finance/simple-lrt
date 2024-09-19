@@ -17,6 +17,13 @@ interface IMellowLRT {
     function underlyingTokens() external view returns (address[] memory underlyinigTokens_);
 
     function configurator() external view returns (IMellowLRTConfigurator);
+
+    function underlyingTvl()
+        external
+        view
+        returns (address[] memory tokens, uint256[] memory amounts);
+
+    function tvlModules() external view returns (address[] memory);
 }
 
 interface IMellowLRTConfigurator {
@@ -64,7 +71,6 @@ interface IDefaultBondModule {
 interface IMigrator {
     /**
      * @notice Struct to store parameters related to a migration.
-     * @param vault The address of the vault being migrated.
      * @param proxyAdmin The address of the proxy admin managing the vault's proxy.
      * @param proxyAdminOwner The address of the owner of the proxy admin.
      * @param token The address of the token used by the vault.
@@ -72,7 +78,6 @@ interface IMigrator {
      * @param defaultBondStrategy The address of the default bond strategy contract associated with the vault.
      */
     struct Parameters {
-        address vault;
         address proxyAdmin;
         address proxyAdminOwner;
         address token;
@@ -97,12 +102,6 @@ interface IMigrator {
      * @return The migration delay in seconds.
      */
     function migrationDelay() external view returns (uint256);
-
-    /**
-     * @notice Returns the total number of migrations that have been staged.
-     * @return The total number of migrations.
-     */
-    function migrations() external view returns (uint256);
 
     /**
      * @notice Returns the migration parameters for a given vault.
@@ -133,14 +132,12 @@ interface IMigrator {
      * @param defaultBondStrategy The address of the default bond strategy contract.
      * @param vaultAdmin The address of the admin for the new vault.
      * @param proxyAdmin The address of the proxy admin managing the vault's proxy.
-     * @param proxyAdminOwner The address of the new owner of the proxy admin.
      * @param symbioticVault The address of the symbiotic vault to which the migration is directed.
      */
     function stageMigration(
         address defaultBondStrategy,
         address vaultAdmin,
         address proxyAdmin,
-        address proxyAdminOwner,
         address symbioticVault
     ) external;
 
@@ -155,4 +152,11 @@ interface IMigrator {
      * @param vault The address of the vault being migrated.
      */
     function migrate(address vault) external;
+
+    /**
+     * @notice Emitted when a new vault is migrated.
+     * @param vault The address of the vault that was migrated.
+     * @param timestamp The timestamp of when the vault was migrated.
+     */
+    event EntityCreated(address indexed vault, uint256 timestamp);
 }
