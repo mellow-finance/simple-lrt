@@ -21,10 +21,27 @@ contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
         external
         returns (IMellowSymbioticVault vault, IWithdrawalQueue withdrawalQueue)
     {
-        vault = IMellowSymbioticVault(
-            address(new TransparentUpgradeableProxy(singleton, initParams.proxyAdmin, ""))
+        bytes32 salt = keccak256(
+            abi.encode(
+                _entities.length,
+                initParams.symbioticVault,
+                initParams.limit,
+                initParams.symbioticCollateral,
+                initParams.admin,
+                initParams.depositPause,
+                initParams.withdrawalPause,
+                initParams.depositWhitelist,
+                initParams.name,
+                initParams.symbol
+            )
         );
-        withdrawalQueue = new SymbioticWithdrawalQueue(address(vault), initParams.symbioticVault);
+        vault = IMellowSymbioticVault(
+            address(
+                new TransparentUpgradeableProxy{salt: salt}(singleton, initParams.proxyAdmin, "")
+            )
+        );
+        withdrawalQueue =
+            new SymbioticWithdrawalQueue{salt: salt}(address(vault), initParams.symbioticVault);
         vault.initialize(
             IMellowSymbioticVault.InitParams({
                 limit: initParams.limit,

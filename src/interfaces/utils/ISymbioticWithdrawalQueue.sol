@@ -138,9 +138,6 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
     /// @notice Emitted when assets are successfully claimed for a specific epoch.
     event EpochClaimed(uint256 indexed epoch, uint256 claimedAssets);
 
-    /// @notice Emitted when claiming assets for a specific epoch fails.
-    event EpochClaimFailed(uint256 indexed epoch);
-
     /// @notice Emitted when assets are successfully withdrawn and transferred to a recipient.
     event Claimed(address indexed account, address indexed recipient, uint256 amount);
 }
