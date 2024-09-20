@@ -6,6 +6,10 @@ import "../../src/interfaces/vaults/IVaultControl.sol";
 import "../../src/VaultControl.sol";
 import "../../scripts/mainnet/FactoryDeploy.sol";
 
+import {IStakerRewards} from "@symbiotic/rewards/interfaces/stakerRewards/IStakerRewards.sol";
+import {IDefaultStakerRewards} from "@symbiotic/rewards/interfaces/defaultStakerRewards/IDefaultStakerRewards.sol";
+import {MockDefaultStakerRewards} from "../mocks/MockDefaultStakerRewards.sol";
+
 contract SolvencyTest is BaseTest {
     using SafeERC20 for IERC20;
 
@@ -27,6 +31,7 @@ contract SolvencyTest is BaseTest {
     address mellowVaultAdmin = makeAddr("mellowVaultAdmin");
     address burner = makeAddr("burner");
     uint48 epochDuration = 3600;
+    address rewardToken1 = makeAddr("rewardToken1");
 
     uint256 symbioticLimit;
     ISymbioticVault symbioticVault;
@@ -38,6 +43,8 @@ contract SolvencyTest is BaseTest {
     uint256[] public withdrawnAmounts;
 
     uint256 nTransitions = 7;
+
+    MockDefaultStakerRewards defaultStakerRewards;
 
     function testRunSolvency() external {
         deploy(1e8 ether, 1e16 ether);
@@ -139,6 +146,8 @@ contract SolvencyTest is BaseTest {
          FactoryDeploy.FactoryDeployParams memory __
         ) = FactoryDeploy.deploy(factoryDeployParams);
         mellowSymbioticVault = MellowSymbioticVault(address(iMellowSymbioticVault));
+
+        defaultStakerRewards = createDefaultStakerRewards();
     }
 
     function addRandomUser() internal returns (address)  {
@@ -227,10 +236,34 @@ contract SolvencyTest is BaseTest {
 
     function transitionFarm() internal {
         address user = depositors[_randInt(0, depositors.length - 1)];
-        vm.startPrank(user);
-        
+        vm.startPrank(vaultAdmin);
 
+        uint256 amount = 1;
+        
+        defaultStakerRewards.distributeRewards(
+            wsteth, rewardToken1, amount, ""
+        );
+        
         vm.stopPrank();
+    }
+
+    function createDefaultStakerRewards() internal returns (MockDefaultStakerRewards) {
+        SymbioticHelper.SymbioticDeployment memory deployment = symbioticHelper.getSymbioticDeployment();
+        MockDefaultStakerRewards defaultStakerRewards = new MockDefaultStakerRewards(
+            deployment.vaultFactory,
+            deployment.networkRegistry,
+            deployment.networkMiddlewareService
+        );
+        IDefaultStakerRewards.InitParams memory params = IDefaultStakerRewards.InitParams({
+            vault: address(symbioticVault),
+            adminFee: 0,
+            defaultAdminRoleHolder: vaultAdmin,
+            adminFeeClaimRoleHolder: vaultAdmin,
+            adminFeeSetRoleHolder: vaultAdmin
+        });
+        
+        defaultStakerRewards.initialize(params);
+        return defaultStakerRewards;
     }
 
     function randomTransition() internal {
