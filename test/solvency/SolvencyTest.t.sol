@@ -293,6 +293,11 @@ contract SolvencyTest is BaseTest {
         bytes memory activeStakeHint
     ) internal {
         vm.startPrank(user);
+
+        IERC20(wsteth).safeIncreaseAllowance(
+            address(user),
+            amount
+        );
         defaultStakerRewards.distributeRewards(
             network, token, amount, abi.encode(timestamp, maxAdminFee, activeSharesHint, activeStakeHint)
         );
