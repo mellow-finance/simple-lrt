@@ -31,6 +31,24 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     /// @inheritdoc ISymbioticWithdrawalQueue
+    function getAccountData(address account)
+        external
+        view
+        returns (
+            uint256 sharesToClaimPrev,
+            uint256 sharesToClaim,
+            uint256 claimableAssets,
+            uint256 claimEpoch
+        )
+    {
+        AccountData storage accountData = _accountData[account];
+        claimEpoch = accountData.claimEpoch;
+        sharesToClaimPrev = claimEpoch == 0 ? 0 : accountData.sharesToClaim[claimEpoch - 1];
+        sharesToClaim = accountData.sharesToClaim[claimEpoch];
+        claimableAssets = accountData.claimableAssets;
+    }
+
+    /// @inheritdoc ISymbioticWithdrawalQueue
     function getEpochData(uint256 epoch) external view returns (EpochData memory) {
         return _epochData[epoch];
     }
