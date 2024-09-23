@@ -10,6 +10,9 @@ import {IStakerRewards} from "@symbiotic/rewards/interfaces/stakerRewards/IStake
 import {IDefaultStakerRewards} from "@symbiotic/rewards/interfaces/defaultStakerRewards/IDefaultStakerRewards.sol";
 import {MockDefaultStakerRewards} from "../mocks/MockDefaultStakerRewards.sol";
 
+import {NetworkRegistry} from "@symbiotic/core/contracts/NetworkRegistry.sol";
+import {NetworkMiddlewareService} from "@symbiotic/core/contracts/service/NetworkMiddlewareService.sol";
+
 contract SolvencyTest is BaseTest {
     using SafeERC20 for IERC20;
 
@@ -32,6 +35,7 @@ contract SolvencyTest is BaseTest {
     address burner = makeAddr("burner");
     uint48 epochDuration = 3600;
     address rewardToken1 = makeAddr("rewardToken1");
+    address bob = makeAddr("bob");
 
     uint256 symbioticLimit;
     ISymbioticVault symbioticVault;
@@ -235,17 +239,21 @@ contract SolvencyTest is BaseTest {
     }
 
     function transitionFarm() internal {
-        address user = depositors[_randInt(0, depositors.length - 1)];
-        vm.startPrank(vaultAdmin);
-
-        uint256 amount = 1;
-        
-        defaultStakerRewards.distributeRewards(
-            wsteth, rewardToken1, amount, ""
+        address network = bob;
+        uint256 distributeAmount = bound(calc_random_amount_d18(), 1, 1e18);
+        _distributeRewards(
+            bob,
+            network,
+            wsteth,
+            distributeAmount,
+            uint48(block.timestamp),
+            type(uint256).max,
+            "",
+            ""
         );
-        
-        vm.stopPrank();
     }
+
+    
 
     function createDefaultStakerRewards() internal returns (MockDefaultStakerRewards) {
         SymbioticHelper.SymbioticDeployment memory deployment = symbioticHelper.getSymbioticDeployment();
@@ -263,7 +271,41 @@ contract SolvencyTest is BaseTest {
         });
         
         defaultStakerRewards.initialize(params);
+
+
+        IERC20 token = IERC20(wsteth);
+        deal(wsteth, bob, 100_000 * 1e18);
+        
+        address network = bob;
+        _registerNetwork(network, bob);
+
         return defaultStakerRewards;
+    }
+
+    function _distributeRewards(
+        address user,
+        address network,
+        address token,
+        uint256 amount,
+        uint48 timestamp,
+        uint256 maxAdminFee,
+        bytes memory activeSharesHint,
+        bytes memory activeStakeHint
+    ) internal {
+        vm.startPrank(user);
+        defaultStakerRewards.distributeRewards(
+            network, token, amount, abi.encode(timestamp, maxAdminFee, activeSharesHint, activeStakeHint)
+        );
+        vm.stopPrank();
+    }
+
+    function _registerNetwork(address user, address middleware) internal {
+        SymbioticHelper.SymbioticDeployment memory deployment = symbioticHelper.getSymbioticDeployment();
+        vm.startPrank(user);
+
+        NetworkRegistry(deployment.networkRegistry).registerNetwork();
+        NetworkMiddlewareService(deployment.networkMiddlewareService).setMiddleware(middleware);
+        vm.stopPrank();
     }
 
     function randomTransition() internal {

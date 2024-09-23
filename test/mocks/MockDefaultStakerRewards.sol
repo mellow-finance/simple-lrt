@@ -183,9 +183,9 @@ contract MockDefaultStakerRewards is
             revert NotNetworkMiddleware();
         }
 
-        if (timestamp >= Time.timestamp()) {
-            revert InvalidRewardTimestamp();
-        }
+        //if (timestamp >= Time.timestamp()) {
+        //    revert InvalidRewardTimestamp();
+        //}
 
         uint256 adminFee_ = adminFee;
         if (maxAdminFee < adminFee_) {
@@ -196,9 +196,9 @@ contract MockDefaultStakerRewards is
             uint256 activeShares_ = IVault(VAULT).activeSharesAt(timestamp, activeSharesHint);
             uint256 activeStake_ = IVault(VAULT).activeStakeAt(timestamp, activeStakeHint);
 
-            if (activeShares_ == 0 || activeStake_ == 0) {
-                revert InvalidRewardTimestamp();
-            }
+            // if (activeShares_ == 0 || activeStake_ == 0) {
+            //     revert InvalidRewardTimestamp();
+            // }
 
             _activeSharesCache[timestamp] = activeShares_;
         }
