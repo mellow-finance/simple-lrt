@@ -76,7 +76,7 @@ contract SolvencyTest is BaseTest {
         finalValidation();
     }
 
-    function fuzzyTestTransitonBitmask(uint256 iter, uint256 _limit, uint256 _symbioticLimit, uint256 transitionSubset) external {
+    function testFuzz_TransitonBitmask(uint256 iter, uint256 _limit, uint256 _symbioticLimit, uint256 transitionSubset) external {
         deploy(_limit, _symbioticLimit);
 
         addRandomUser();
@@ -88,7 +88,7 @@ contract SolvencyTest is BaseTest {
         finalValidation();
     }
 
-    function fuzzyTestTrasitionList(uint256[] memory transitions, uint256 _limit, uint256 _symbioticLimit) external {
+    function testFuzz_TrasitionList(uint256[] memory transitions, uint256 _limit, uint256 _symbioticLimit) external {
         deploy(_limit, _symbioticLimit);
 
         addRandomUser();
@@ -238,7 +238,7 @@ contract SolvencyTest is BaseTest {
         vm.stopPrank();
     }
 
-    function transitionFarm() internal {
+    function transitionRandomFarm() internal {
         address network = bob;
         uint256 distributeAmount = bound(calc_random_amount_d18(), 1, 1e18);
         _distributeRewards(
@@ -348,7 +348,7 @@ contract SolvencyTest is BaseTest {
             transitionRandomSlashing();
         }
         if (transitionIdx == 6) {
-            transitionFarm();
+            transitionRandomFarm();
         }
     }
 
