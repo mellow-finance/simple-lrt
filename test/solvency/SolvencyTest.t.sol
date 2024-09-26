@@ -13,10 +13,13 @@ import {MockDefaultStakerRewards} from "../mocks/MockDefaultStakerRewards.sol";
 import {NetworkRegistry} from "@symbiotic/core/contracts/NetworkRegistry.sol";
 import {NetworkMiddlewareService} from "@symbiotic/core/contracts/service/NetworkMiddlewareService.sol";
 
+import {Token} from "@symbiotic/core-test/mocks/Token.sol";
+import {FeeOnTransferToken} from "@symbiotic/core-test/mocks/FeeOnTransferToken.sol";
+
 contract SolvencyTest is BaseTest {
     using SafeERC20 for IERC20;
 
-    uint256 ITER = 20;
+    uint256 ITER = 200;
     bytes32 private constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
 
     address admin = makeAddr("admin");
@@ -36,6 +39,11 @@ contract SolvencyTest is BaseTest {
     uint48 epochDuration = 3600;
     address rewardToken1 = makeAddr("rewardToken1");
     address bob = makeAddr("bob");
+
+    IERC20 feeOnTransferToken;
+    IERC20 token;
+
+    event Log(string message);
 
     uint256 symbioticLimit;
     ISymbioticVault symbioticVault;
@@ -151,6 +159,7 @@ contract SolvencyTest is BaseTest {
         ) = FactoryDeploy.deploy(factoryDeployParams);
         mellowSymbioticVault = MellowSymbioticVault(address(iMellowSymbioticVault));
 
+        feeOnTransferToken = IERC20(new FeeOnTransferToken("FeeOnTransferToken"));
         defaultStakerRewards = createDefaultStakerRewards();
     }
 
@@ -240,11 +249,12 @@ contract SolvencyTest is BaseTest {
 
     function transitionRandomFarm() internal {
         address network = bob;
-        uint256 distributeAmount = bound(calc_random_amount_d18(), 1, 1e18);
+        uint256 distributeAmount = _randInt(1, 1e18);
+        
         _distributeRewards(
             bob,
             network,
-            wsteth,
+            address(feeOnTransferToken),
             distributeAmount,
             uint48(block.timestamp),
             type(uint256).max,
@@ -271,13 +281,24 @@ contract SolvencyTest is BaseTest {
         });
         
         defaultStakerRewards.initialize(params);
-
-
-        IERC20 token = IERC20(wsteth);
-        deal(wsteth, bob, 100_000 * 1e18);
         
         address network = bob;
         _registerNetwork(network, bob);
+        
+        uint256 amount = 100_000 * 1e18;
+        feeOnTransferToken.transfer(bob, 100_000 * 1e18);
+        vm.startPrank(bob);
+        feeOnTransferToken.approve(address(defaultStakerRewards), type(uint256).max);
+
+        IERC20(feeOnTransferToken).safeIncreaseAllowance(
+            address(bob),
+            amount
+        );
+        IERC20(feeOnTransferToken).safeIncreaseAllowance(
+            address(defaultStakerRewards),
+            amount
+        );
+        vm.stopPrank();
 
         return defaultStakerRewards;
     }
@@ -293,11 +314,6 @@ contract SolvencyTest is BaseTest {
         bytes memory activeStakeHint
     ) internal {
         vm.startPrank(user);
-
-        IERC20(wsteth).safeIncreaseAllowance(
-            address(user),
-            amount
-        );
         defaultStakerRewards.distributeRewards(
             network, token, amount, abi.encode(timestamp, maxAdminFee, activeSharesHint, activeStakeHint)
         );
@@ -330,24 +346,31 @@ contract SolvencyTest is BaseTest {
     function transitionByIndex(uint256 transitionIdx) internal {
         require(transitionIdx < nTransitions);
         if (transitionIdx == 0) {
+            emit Log("transitionRandomDeposit");
             transitionRandomDeposit();
         }
         if (transitionIdx == 1) {
+            emit Log("transitionRandomWithdrawal");
             transitionRandomWithdrawal();
         }
         if (transitionIdx == 2) {
+            emit Log("transitionRandomLimitIncrease");
             transitionRandomLimitIncrease();
         }
         if (transitionIdx == 3) {
+            emit Log("transitionRandomClaim");
             transitionRandomClaim();
         }
         if (transitionIdx == 4) {
+            emit Log("transitionPushIntoSymbiotic");
             transitionPushIntoSymbiotic();
         }
         if (transitionIdx == 5) {
-            transitionRandomSlashing();
+            emit Log("transitionRandomSlashing");
+            // transitionRandomSlashing();
         }
         if (transitionIdx == 6) {
+            emit Log("transitionRandomFarm");
             transitionRandomFarm();
         }
     }
