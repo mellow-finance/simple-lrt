@@ -54,8 +54,12 @@ contract SolvencyTest is BaseTest {
     address[] public depositors;
     uint256[] public depositedAmounts;
     uint256[] public slashedAmounts;
+    uint256[] public withdrawnAmounts;
+
     uint256 totalSlashedAmount = 0;
     uint256 totalDepositedAmount = 0;
+    uint256 totalDistributedReward = 0; 
+
     EthWrapper ethereumWrapper = new EthWrapper(weth, wsteth, steth);
     address[] ethTokens = [
         ethereumWrapper.ETH(), 
@@ -188,6 +192,7 @@ contract SolvencyTest is BaseTest {
         depositors.push(user);
         depositedAmounts.push(0);
         slashedAmounts.push(0);
+        withdrawnAmounts.push(0);
         return user;
     }
 
@@ -306,7 +311,9 @@ contract SolvencyTest is BaseTest {
         emit Log("transitionRandomFarm");
 
         address network = bob;
-        uint256 distributeAmount = _randInt(1, 1 ether);
+        uint256 distributeAmount = _randInt(1, 1e18);
+
+        totalDistributedReward += distributeAmount;
         
         _distributeRewards(
             bob,
@@ -406,15 +413,25 @@ contract SolvencyTest is BaseTest {
     }
 
     function finilizeTest() internal {
-        transitionPushIntoSymbiotic();
+        skip(epochDuration * 2);
+        for (uint256 i = 0; i < depositors.length; i++) {
+            address user;
+            user = depositors[i];
+            vm.startPrank(user);
+            uint256 amount = mellowSymbioticVault.maxWithdraw(user);
+            mellowSymbioticVault.withdraw(amount, user, user);
+            withdrawnAmounts[i] = amount;
+            vm.stopPrank();
+        }
+        skip(epochDuration * 2);
         for (uint256 i = 0; i < depositors.length; i++) {
             address user;
             user = depositors[i];
             vm.startPrank(user);
             mellowSymbioticVault.claim(user, user, type(uint256).max);
-
             vm.stopPrank();
         }
+        skip(epochDuration * 2);
     }
 
     function finalValidation() internal {
