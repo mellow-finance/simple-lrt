@@ -20,6 +20,7 @@ contract SolvencyTest is BaseTest {
 
     uint256 ITER = 50;
     bytes32 private constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
+    bytes32 private constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
 
     address admin = makeAddr("admin");
 
@@ -186,6 +187,21 @@ contract SolvencyTest is BaseTest {
         
         rewardToken = IERC20(new Token("RewardToken"));
         defaultStakerRewards = createDefaultStakerRewards();
+
+
+        vm.startPrank(admin);
+        mellowSymbioticVault.grantRole(SET_FARM_ROLE, admin);
+        
+        IMellowSymbioticVaultStorage.FarmData memory farmData = IMellowSymbioticVaultStorage.FarmData({
+            rewardToken: address(rewardToken),
+            symbioticFarm: address(defaultStakerRewards),
+            distributionFarm: makeAddr("distributionFarm"),
+            curatorTreasury: makeAddr("curatorTreasury"),
+            curatorFeeD6: 0
+        });
+        mellowSymbioticVault.setFarm(1, farmData);
+
+        vm.stopPrank();
     }
 
     function addRandomUser() internal returns (address)  {
