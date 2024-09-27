@@ -14,7 +14,6 @@ import {NetworkRegistry} from "@symbiotic/core/contracts/NetworkRegistry.sol";
 import {NetworkMiddlewareService} from "@symbiotic/core/contracts/service/NetworkMiddlewareService.sol";
 
 import {Token} from "@symbiotic/core-test/mocks/Token.sol";
-import {FeeOnTransferToken} from "@symbiotic/core-test/mocks/FeeOnTransferToken.sol";
 
 contract SolvencyTest is BaseTest {
     using SafeERC20 for IERC20;
@@ -40,10 +39,9 @@ contract SolvencyTest is BaseTest {
     address mellowVaultAdmin = makeAddr("mellowVaultAdmin");
     address burner = makeAddr("burner");
     uint48 epochDuration = 3600;
-    address rewardToken1 = makeAddr("rewardToken1");
     address bob = makeAddr("bob");
 
-    IERC20 feeOnTransferToken;
+    IERC20 rewardToken;
     IERC20 token;
 
     event Log(string message);
@@ -181,7 +179,7 @@ contract SolvencyTest is BaseTest {
         ) = FactoryDeploy.deploy(factoryDeployParams);
         mellowSymbioticVault = MellowSymbioticVault(address(iMellowSymbioticVault));
         
-        feeOnTransferToken = IERC20(new FeeOnTransferToken("FeeOnTransferToken"));
+        rewardToken = IERC20(new Token("RewardToken"));
         defaultStakerRewards = createDefaultStakerRewards();
     }
 
@@ -313,7 +311,7 @@ contract SolvencyTest is BaseTest {
         _distributeRewards(
             bob,
             network,
-            address(feeOnTransferToken),
+            address(rewardToken),
             distributeAmount,
             uint48(block.timestamp),
             type(uint256).max,
@@ -345,15 +343,15 @@ contract SolvencyTest is BaseTest {
         _registerNetwork(network, bob);
         
         uint256 amount = 100_000 * 1e18;
-        feeOnTransferToken.transfer(bob, 100_000 ether);
+        rewardToken.transfer(bob, 100_000 ether);
         vm.startPrank(bob);
-        feeOnTransferToken.approve(address(defaultStakerRewards), type(uint256).max);
+        rewardToken.approve(address(defaultStakerRewards), type(uint256).max);
 
-        IERC20(feeOnTransferToken).safeIncreaseAllowance(
+        IERC20(rewardToken).safeIncreaseAllowance(
             address(bob),
             amount
         );
-        IERC20(feeOnTransferToken).safeIncreaseAllowance(
+        IERC20(rewardToken).safeIncreaseAllowance(
             address(defaultStakerRewards),
             amount
         );
