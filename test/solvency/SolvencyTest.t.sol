@@ -46,6 +46,7 @@ contract SolvencyTest is BaseTest {
     IERC20 token;
 
     event Log(string message);
+    event LpValidation(uint256 assets, uint256 supply, uint256 avaiable, uint256 totalDepositedAmount);
 
     uint256 symbioticLimit;
     ISymbioticVault symbioticVault;
@@ -454,9 +455,28 @@ contract SolvencyTest is BaseTest {
     }
 
     function validatateInvariants() internal {
+        validateLpPrice();
+
         for (uint256 i = 0; i < depositors.length; i++) {
             assertLe(depositedAmounts[i], limit);
             assertGe(depositedAmounts[i], 0);
+        }
+    }
+
+    function validateLpPrice() internal {
+        uint256 assets = mellowSymbioticVault.totalAssets();
+        uint256 supply = mellowSymbioticVault.totalSupply();
+        uint256 totalAvailable = totalDepositedAmount - totalSlashedAmount;
+        // lpPrice = assets / supply ~= totalAvailable / totalDepositedAmount
+
+        emit LpValidation(assets, supply, totalAvailable, totalDepositedAmount);
+        uint256 lpPrice = Math.mulDiv(assets, 1 ether, Math.max(1, supply));
+        uint256 expected = Math.mulDiv(totalAvailable, 1 ether, Math.max(1, totalDepositedAmount));
+        
+        if (totalSlashedAmount == 0) {
+            assertApproxEqAbs(lpPrice, expected, 1 gwei);
+        } else {
+            assertLe(lpPrice, 1 ether);
         }
     }
 
