@@ -51,14 +51,15 @@ contract SolvencyTest is BaseTest {
     MellowSymbioticVault mellowSymbioticVault;
 
     uint256 limit;
-    address[] public depositors;
-    uint256[] public depositedAmounts;
-    uint256[] public slashedAmounts;
-    uint256[] public withdrawnAmounts;
+    address[] depositors;
+    uint256[] depositedAmounts;
+    uint256[] slashedAmounts;
+    uint256[] finalWithdrawnAmounts;
 
     uint256 totalSlashedAmount = 0;
     uint256 totalDepositedAmount = 0;
     uint256 totalDistributedReward = 0; 
+    uint256 totalFinalWithdrawnAmount = 0;
 
     EthWrapper ethereumWrapper = new EthWrapper(weth, wsteth, steth);
     address[] ethTokens = [
@@ -192,7 +193,7 @@ contract SolvencyTest is BaseTest {
         depositors.push(user);
         depositedAmounts.push(0);
         slashedAmounts.push(0);
-        withdrawnAmounts.push(0);
+        finalWithdrawnAmounts.push(0);
         return user;
     }
 
@@ -409,7 +410,8 @@ contract SolvencyTest is BaseTest {
 
     function transitionByIndex(uint256 transitionIdx) internal {
         require(transitionIdx < nTransitions);
-        return transitions[transitionIdx]();
+        transitions[transitionIdx]();
+        validatateInvariants();
     }
 
     function finilizeTest() internal {
@@ -420,7 +422,8 @@ contract SolvencyTest is BaseTest {
             vm.startPrank(user);
             uint256 amount = mellowSymbioticVault.maxWithdraw(user);
             mellowSymbioticVault.withdraw(amount, user, user);
-            withdrawnAmounts[i] = amount;
+            finalWithdrawnAmounts[i] += amount;
+            totalFinalWithdrawnAmount += amount;
             vm.stopPrank();
         }
         skip(epochDuration * 2);
@@ -434,9 +437,20 @@ contract SolvencyTest is BaseTest {
         skip(epochDuration * 2);
     }
 
-    function finalValidation() internal {
+    function validatateInvariants() internal {
         for (uint256 i = 0; i < depositors.length; i++) {
-            assert(depositedAmounts[i] <= limit);
+            assertLe(depositedAmounts[i], limit);
+            assertGe(depositedAmounts[i], 0);
+        }
+    }
+
+    function finalValidation() internal {
+        assertApproxEqAbs(totalDepositedAmount - totalSlashedAmount, totalFinalWithdrawnAmount, 1 gwei);
+            
+        for (uint256 i = 0; i < depositors.length; i++) {
+            assertLe(depositedAmounts[i], limit);
+            assertGe(depositedAmounts[i] - finalWithdrawnAmounts[i], 0);
+            assertApproxEqAbs(depositedAmounts[i] - slashedAmounts[i], finalWithdrawnAmounts[i], 1 wei);
         }
     }
 
