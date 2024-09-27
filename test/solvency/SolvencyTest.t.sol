@@ -52,7 +52,9 @@ contract SolvencyTest is BaseTest {
     uint256 limit;
     address[] public depositors;
     uint256[] public depositedAmounts;
-    uint256[] public withdrawnAmounts;
+    uint256[] public slashedAmounts;
+    uint256 totalSlashedAmount = 0;
+    uint256 totalDepositedAmount = 0;
 
     uint256 nTransitions = 7;
 
@@ -167,11 +169,13 @@ contract SolvencyTest is BaseTest {
         address user = random_address();
         depositors.push(user);
         depositedAmounts.push(0);
-        withdrawnAmounts.push(0);
+        slashedAmounts.push(0);
         return user;
     }
 
     function transitionRandomDeposit() internal {
+        emit Log("transitionRandomDeposit");
+
         address user;
         if (random_bool()) {
             user = addRandomUser();
@@ -192,11 +196,14 @@ contract SolvencyTest is BaseTest {
         } else {
             mellowSymbioticVault.deposit(amount, user, address(0));
             depositedAmounts[_indexOf(user)] += amount;
+            totalDepositedAmount += amount;
         }
         vm.stopPrank();
     }
     
     function transitionRandomWithdrawal() internal {
+        emit Log("transitionRandomWithdrawal");
+
         address user = depositors[_randInt(0, depositors.length - 1)];
         uint256 amount = calc_random_amount_d18();
         vm.startPrank(user);
@@ -204,8 +211,8 @@ contract SolvencyTest is BaseTest {
             address(mellowSymbioticVault),
             amount
         );
-    
-        if (amount > depositedAmounts[_indexOf(user)]) {
+        uint256 availableAmount = depositedAmounts[_indexOf(user)] - slashedAmounts[_indexOf(user)];
+        if (amount > availableAmount) {
             vm.expectRevert();
             mellowSymbioticVault.withdraw(amount, user, user);
         }  else {
@@ -216,6 +223,8 @@ contract SolvencyTest is BaseTest {
     }
 
     function transitionRandomClaim() internal {  
+        emit Log("transitionRandomClaim");
+
         address user = depositors[_randInt(0, depositors.length - 1)];
         vm.startPrank(user);
         mellowSymbioticVault.claim(user, user, type(uint256).max);
@@ -224,6 +233,8 @@ contract SolvencyTest is BaseTest {
     }
 
     function transitionRandomLimitIncrease() internal {
+        emit Log("transitionRandomLimitIncrease");
+
         address user = depositors[_randInt(0, depositors.length - 1)];
         uint256 newLimit = limit + calc_random_amount_d18();
         vm.startPrank(admin);
@@ -234,6 +245,8 @@ contract SolvencyTest is BaseTest {
     }
 
     function transitionPushIntoSymbiotic() internal {
+        emit Log("transitionPushIntoSymbiotic");
+
         address user = depositors[_randInt(0, depositors.length - 1)];
         vm.startPrank(user);
         mellowSymbioticVault.pushIntoSymbiotic();
@@ -241,13 +254,29 @@ contract SolvencyTest is BaseTest {
     }
 
     function transitionRandomSlashing() internal {
+        emit Log("transitionRandomSlashing");
+
         vm.startPrank(symbioticVault.slasher());
         uint256 slashedAmount = calc_random_amount_d18();
         symbioticVault.onSlash(slashedAmount, uint48(block.timestamp));
+        
+        slashedAmount = Math.min(totalSlashedAmount + slashedAmount, totalDepositedAmount) - totalSlashedAmount;
+        uint256 totalAvailableAmount = totalDepositedAmount - totalSlashedAmount;
+        for (uint256 i = 0; i < depositors.length; i++) {
+            uint256 availableAmount = depositedAmounts[i] - slashedAmounts[i];
+            slashedAmounts[i] += Math.mulDiv(
+                slashedAmount, 
+                availableAmount, 
+                Math.max(1, totalAvailableAmount)
+            );
+        }
+        totalSlashedAmount += slashedAmount;
         vm.stopPrank();
     }
 
     function transitionRandomFarm() internal {
+        emit Log("transitionRandomFarm");
+
         address network = bob;
         uint256 distributeAmount = _randInt(1, 1e18);
         
@@ -346,31 +375,24 @@ contract SolvencyTest is BaseTest {
     function transitionByIndex(uint256 transitionIdx) internal {
         require(transitionIdx < nTransitions);
         if (transitionIdx == 0) {
-            emit Log("transitionRandomDeposit");
             transitionRandomDeposit();
         }
         if (transitionIdx == 1) {
-            emit Log("transitionRandomWithdrawal");
             transitionRandomWithdrawal();
         }
         if (transitionIdx == 2) {
-            emit Log("transitionRandomLimitIncrease");
             transitionRandomLimitIncrease();
         }
         if (transitionIdx == 3) {
-            emit Log("transitionRandomClaim");
             transitionRandomClaim();
         }
         if (transitionIdx == 4) {
-            emit Log("transitionPushIntoSymbiotic");
             transitionPushIntoSymbiotic();
         }
         if (transitionIdx == 5) {
-            emit Log("transitionRandomSlashing");
-            // transitionRandomSlashing();
+            transitionRandomSlashing();
         }
         if (transitionIdx == 6) {
-            emit Log("transitionRandomFarm");
             transitionRandomFarm();
         }
     }
