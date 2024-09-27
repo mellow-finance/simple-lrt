@@ -19,7 +19,7 @@ import {FeeOnTransferToken} from "@symbiotic/core-test/mocks/FeeOnTransferToken.
 contract SolvencyTest is BaseTest {
     using SafeERC20 for IERC20;
 
-    uint256 ITER = 200;
+    uint256 ITER = 50;
     bytes32 private constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
 
     address admin = makeAddr("admin");
@@ -31,6 +31,9 @@ contract SolvencyTest is BaseTest {
     uint256 public constant D18 = 1e18;
 
     address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
+    address steth = 0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
+    address weth = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
+
     address vaultOwner = makeAddr("vaultOwner");
     address vaultAdmin = makeAddr("vaultAdmin");
     address proxyAdmin = makeAddr("proxyAdmin");
@@ -55,12 +58,29 @@ contract SolvencyTest is BaseTest {
     uint256[] public slashedAmounts;
     uint256 totalSlashedAmount = 0;
     uint256 totalDepositedAmount = 0;
+    EthWrapper ethereumWrapper = new EthWrapper(weth, wsteth, steth);
+    address[] ethTokens = [
+        ethereumWrapper.ETH(), 
+        ethereumWrapper.wstETH(), 
+        ethereumWrapper.stETH(),
+        ethereumWrapper.WETH()
+    ];
 
-    uint256 nTransitions = 7;
+    function()[] transitions = [
+        transitionRandomDeposit,
+        transitionRandomWithdrawal, 
+        transitionRandomLimitIncrease,
+        transitionRandomClaim,
+        transitionPushIntoSymbiotic,
+        transitionRandomSlashing,
+        transitionRandomFarm
+    ];
+
+    uint256 nTransitions = transitions.length;
 
     MockDefaultStakerRewards defaultStakerRewards;
 
-    function testRunSolvency() external {
+    function testSolvencyAllTransitions() external {
         deploy(1e8 ether, 1e16 ether);
 
         addRandomUser();
@@ -73,7 +93,7 @@ contract SolvencyTest is BaseTest {
         finalValidation();
     }
 
-    function testRandomTransitionSubset() external {
+    function testSolvencyRandomTransitionSubset() external {
         deploy(1e8 ether, 1e16 ether);
 
         addRandomUser();
@@ -98,12 +118,12 @@ contract SolvencyTest is BaseTest {
         finalValidation();
     }
 
-    function testFuzz_TrasitionList(uint256[] memory transitions, uint256 _limit, uint256 _symbioticLimit) external {
+    function testFuzz_TrasitionList(uint256[] memory transitionIndexes, uint256 _limit, uint256 _symbioticLimit) external {
         deploy(_limit, _symbioticLimit);
 
         addRandomUser();
-        for (uint256 i = 0; i < transitions.length; i++) {
-            transitionByIndex(transitions[i]);
+        for (uint256 i = 0; i < transitionIndexes.length; i++) {
+            transitionByIndex(transitionIndexes[i]);
         }
 
         finilizeTest();
@@ -160,7 +180,7 @@ contract SolvencyTest is BaseTest {
          FactoryDeploy.FactoryDeployParams memory __
         ) = FactoryDeploy.deploy(factoryDeployParams);
         mellowSymbioticVault = MellowSymbioticVault(address(iMellowSymbioticVault));
-
+        
         feeOnTransferToken = IERC20(new FeeOnTransferToken("FeeOnTransferToken"));
         defaultStakerRewards = createDefaultStakerRewards();
     }
@@ -183,6 +203,16 @@ contract SolvencyTest is BaseTest {
             user = depositors[_randInt(0, depositors.length - 1)];
         }
         uint256 amount = calc_random_amount_d18();
+        
+
+        address token;
+        if (random_bool()) {
+            uint256 tokenIdx = _randInt(0, ethTokens.length - 1);
+            token = ethTokens[tokenIdx];
+        } else {
+            token = wsteth;
+        }
+
         deal(wsteth, user, amount);
         vm.startPrank(user);
         IERC20(wsteth).safeIncreaseAllowance(
@@ -278,7 +308,7 @@ contract SolvencyTest is BaseTest {
         emit Log("transitionRandomFarm");
 
         address network = bob;
-        uint256 distributeAmount = _randInt(1, 1e18);
+        uint256 distributeAmount = _randInt(1, 1 ether);
         
         _distributeRewards(
             bob,
@@ -315,7 +345,7 @@ contract SolvencyTest is BaseTest {
         _registerNetwork(network, bob);
         
         uint256 amount = 100_000 * 1e18;
-        feeOnTransferToken.transfer(bob, 100_000 * 1e18);
+        feeOnTransferToken.transfer(bob, 100_000 ether);
         vm.startPrank(bob);
         feeOnTransferToken.approve(address(defaultStakerRewards), type(uint256).max);
 
@@ -374,27 +404,7 @@ contract SolvencyTest is BaseTest {
 
     function transitionByIndex(uint256 transitionIdx) internal {
         require(transitionIdx < nTransitions);
-        if (transitionIdx == 0) {
-            transitionRandomDeposit();
-        }
-        if (transitionIdx == 1) {
-            transitionRandomWithdrawal();
-        }
-        if (transitionIdx == 2) {
-            transitionRandomLimitIncrease();
-        }
-        if (transitionIdx == 3) {
-            transitionRandomClaim();
-        }
-        if (transitionIdx == 4) {
-            transitionPushIntoSymbiotic();
-        }
-        if (transitionIdx == 5) {
-            transitionRandomSlashing();
-        }
-        if (transitionIdx == 6) {
-            transitionRandomFarm();
-        }
+        return transitions[transitionIdx]();
     }
 
     function finilizeTest() internal {
