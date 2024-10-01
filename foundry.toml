@@ -2,6 +2,7 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+evm_version = 'shanghai'
 
 [fmt]
 line_length = 100
@@ -15,3 +16,4 @@ int_types = 'long'
 quote_style = 'double'
 number_underscore = 'remove'
 sort_imports = true
+ignore = ['test/migration/Users_*.sol']

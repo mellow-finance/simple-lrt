@@ -65,6 +65,24 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
     function getCurrentEpoch() external view returns (uint256);
 
     /**
+     * @notice Returns the data for a specific account.
+     * @param account The address of the account to retrieve data for.
+     * @return sharesToClaimPrev The amount of shares to claim for the epoch before the last requested epoch.
+     * @return sharesToClaim The amount of shares to claim for the last requested epoch.
+     * @return claimableAssets The total amount of assets that can be claimed.
+     * @return claimEpoch The most recent epoch requested for withdrawal.
+     */
+    function getAccountData(address account)
+        external
+        view
+        returns (
+            uint256 sharesToClaimPrev,
+            uint256 sharesToClaim,
+            uint256 claimableAssets,
+            uint256 claimEpoch
+        );
+
+    /**
      * @notice Returns the data for a specific epoch.
      * @param epoch The epoch number to retrieve data for.
      * @return epochData The data for the specified epoch.
@@ -137,9 +155,6 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
 
     /// @notice Emitted when assets are successfully claimed for a specific epoch.
     event EpochClaimed(uint256 indexed epoch, uint256 claimedAssets);
-
-    /// @notice Emitted when claiming assets for a specific epoch fails.
-    event EpochClaimFailed(uint256 indexed epoch);
 
     /// @notice Emitted when assets are successfully withdrawn and transferred to a recipient.
     event Claimed(address indexed account, address indexed recipient, uint256 amount);

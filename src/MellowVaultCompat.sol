@@ -46,8 +46,8 @@ contract MellowVaultCompat is IMellowVaultCompat, MellowSymbioticVault {
         }
         ERC20Storage storage upgradeableStorage = _getERC20UpgradeableStorage();
         delete compatStorage._balances[user];
-        upgradeableStorage._balances[user] += balance;
         unchecked {
+            upgradeableStorage._balances[user] += balance;
             compatStorage._totalSupply -= balance;
             upgradeableStorage._totalSupply += balance;
         }

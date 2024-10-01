@@ -11,9 +11,10 @@ import "../../src/VaultControl.sol";
 /*
     this is a test script, all actions will be processed on behalf of permissioned accounts.
 */
-contract MigrationDeploy is Test {
-    bytes32 private constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
-    bytes32 private constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
+library MigrationDeploy {
+    bytes32 public constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
+    bytes32 public constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
+    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
  
     struct MigrationDeployParams {
         address migrator;
@@ -50,7 +51,6 @@ contract MigrationDeploy is Test {
             require($.migratorAdmin != address(0), "MigrationDeploy: migratorAdmin is required");
             $.migrator = address(new Migrator(
                 $.singleton,
-                address(0),
                 $.migratorAdmin,
                 $.migratorDelay
             ));
@@ -58,12 +58,8 @@ contract MigrationDeploy is Test {
         return $;
     }
 
-    function _grantRole(address _vault, bytes32 _role, address _account) private {
-        if (_account == address(0)) return;
-        VaultControl(_vault).grantRole(_role, _account);
-    }
 
-    function deploy(MigrationDeployParams memory $) public returns (IMellowSymbioticVault vault, IWithdrawalQueue withdrawalQueue) {
+    function deployStage(MigrationDeployParams memory $) public {
         $ = commonDeploy($);
 
         require($.migratorAdmin == address(this), "MigrationDeploy: migratorAdmin must be MigrationDeploy.sol");
@@ -72,17 +68,13 @@ contract MigrationDeploy is Test {
             $.defaultBondStrategy,
             $.vaultAdmin,
             $.proxyAdmin,
-            $.proxyAdminOwner,
             $.symbioticVault
         );
+    }
 
-        skip($.migratorDelay);
-
+    function deployCommit(MigrationDeployParams memory $) public returns (IMellowSymbioticVault vault, IWithdrawalQueue withdrawalQueue) {
         Migrator($.migrator).migrate($.vault);
-
-        _grantRole(address(vault), SET_FARM_ROLE, $.setFarmRoleHoler);
-        _grantRole(address(vault), SET_LIMIT_ROLE, $.setLimitRoleHolder);
-
+        vault = IMellowSymbioticVault($.vault);
         withdrawalQueue = vault.withdrawalQueue();
     }
 }
