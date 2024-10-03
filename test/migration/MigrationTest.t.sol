@@ -31,8 +31,8 @@ contract Integration is BaseTest {
         Migrator migrator =
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
-        IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
+        // IVaultConfigurator.InitParams memory emptyParams;
+        // emptyParams.vaultParams = .collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
@@ -96,8 +96,8 @@ contract Integration is BaseTest {
         Migrator migrator =
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
-        IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
+        // IVaultConfigurator.InitParams memory emptyParams;
+        // emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
@@ -139,8 +139,8 @@ contract Integration is BaseTest {
         Migrator migrator =
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
-        IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
+        // IVaultConfigurator.InitParams memory emptyParams;
+        // emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
@@ -188,8 +188,8 @@ contract Integration is BaseTest {
         Migrator migrator =
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
-        IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
+        // IVaultConfigurator.InitParams memory emptyParams;
+        // emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
@@ -237,8 +237,8 @@ contract Integration is BaseTest {
         Migrator migrator =
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
-        IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
+        // IVaultConfigurator.InitParams memory emptyParams;
+        // emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
@@ -289,8 +289,8 @@ contract Integration is BaseTest {
         Migrator migrator =
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
-        IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
+        // IVaultConfigurator.InitParams memory emptyParams;
+        // emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
@@ -355,8 +355,8 @@ contract Integration is BaseTest {
         Migrator migrator =
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
-        IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
+        // IVaultConfigurator.InitParams memory emptyParams;
+        // emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
@@ -430,8 +430,8 @@ contract Integration is BaseTest {
         Migrator migrator =
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
-        IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
+        // IVaultConfigurator.InitParams memory emptyParams;
+        // emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
@@ -475,8 +475,8 @@ contract Integration is BaseTest {
         Migrator migrator =
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
-        IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
+        // IVaultConfigurator.InitParams memory emptyParams;
+        // emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
@@ -528,8 +528,8 @@ contract Integration is BaseTest {
         Migrator migrator =
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
-        IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
+        // IVaultConfigurator.InitParams memory emptyParams;
+        // emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,

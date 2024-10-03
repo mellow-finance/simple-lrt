@@ -20,7 +20,9 @@ import {NetworkMiddlewareService} from
     "@symbiotic/core/contracts/service/NetworkMiddlewareService.sol";
 import {Slasher} from "@symbiotic/core/contracts/slasher/Slasher.sol";
 import {Vault} from "@symbiotic/core/contracts/vault/Vault.sol";
-import {IVault, IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
+
+import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
+import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
 contract SymbioticHelper {
     struct SymbioticDeployment {
@@ -134,21 +136,21 @@ contract SymbioticHelper {
             IVaultConfigurator.InitParams({
                 version: 1,
                 owner: params.vaultOwner,
-                vaultParams: IVault.InitParams({
-                    collateral: params.asset,
-                    delegator: address(0),
-                    slasher: address(0),
-                    burner: params.burner,
-                    epochDuration: params.epochDuration,
-                    depositWhitelist: false,
-                    isDepositLimit: params.isDepositLimit,
-                    depositLimit: params.depositLimit,
-                    defaultAdminRoleHolder: params.vaultAdmin,
-                    depositWhitelistSetRoleHolder: params.vaultAdmin,
-                    depositorWhitelistRoleHolder: params.vaultAdmin,
-                    isDepositLimitSetRoleHolder: params.vaultAdmin,
-                    depositLimitSetRoleHolder: params.vaultAdmin
-                }),
+                vaultParams: abi.encode(
+                    IVault.InitParams({
+                        collateral: params.asset,
+                        burner: params.burner,
+                        epochDuration: params.epochDuration,
+                        depositWhitelist: false,
+                        isDepositLimit: params.isDepositLimit,
+                        depositLimit: params.depositLimit,
+                        defaultAdminRoleHolder: params.vaultAdmin,
+                        depositWhitelistSetRoleHolder: params.vaultAdmin,
+                        depositorWhitelistRoleHolder: params.vaultAdmin,
+                        isDepositLimitSetRoleHolder: params.vaultAdmin,
+                        depositLimitSetRoleHolder: params.vaultAdmin
+                    })
+                ),
                 delegatorIndex: 0,
                 delegatorParams: abi.encode(initParams),
                 withSlasher: false,
@@ -175,21 +177,21 @@ contract SymbioticHelper {
             IVaultConfigurator.InitParams({
                 version: 1,
                 owner: params.vaultOwner,
-                vaultParams: IVault.InitParams({
-                    collateral: params.asset,
-                    delegator: address(0),
-                    slasher: address(0),
-                    burner: address(0),
-                    epochDuration: params.epochDuration,
-                    depositWhitelist: false,
-                    isDepositLimit: params.isDepositLimit,
-                    depositLimit: params.depositLimit,
-                    defaultAdminRoleHolder: params.vaultAdmin,
-                    depositWhitelistSetRoleHolder: params.vaultAdmin,
-                    depositorWhitelistRoleHolder: params.vaultAdmin,
-                    isDepositLimitSetRoleHolder: params.vaultAdmin,
-                    depositLimitSetRoleHolder: params.vaultAdmin
-                }),
+                vaultParams: abi.encode(
+                    IVault.InitParams({
+                        collateral: params.asset,
+                        burner: address(0),
+                        epochDuration: params.epochDuration,
+                        depositWhitelist: false,
+                        isDepositLimit: params.isDepositLimit,
+                        depositLimit: params.depositLimit,
+                        defaultAdminRoleHolder: params.vaultAdmin,
+                        depositWhitelistSetRoleHolder: params.vaultAdmin,
+                        depositorWhitelistRoleHolder: params.vaultAdmin,
+                        isDepositLimitSetRoleHolder: params.vaultAdmin,
+                        depositLimitSetRoleHolder: params.vaultAdmin
+                    })
+                ),
                 delegatorIndex: 0,
                 delegatorParams: abi.encode(initParams),
                 withSlasher: false,
@@ -217,21 +219,21 @@ contract SymbioticHelper {
             IVaultConfigurator.InitParams({
                 version: 1,
                 owner: params.vaultOwner,
-                vaultParams: IVault.InitParams({
-                    collateral: params.asset,
-                    delegator: address(0),
-                    slasher: address(0),
-                    burner: address(0),
-                    epochDuration: params.epochDuration,
-                    depositWhitelist: false,
-                    isDepositLimit: params.isDepositLimit,
-                    depositLimit: params.depositLimit,
-                    defaultAdminRoleHolder: params.vaultAdmin,
-                    depositWhitelistSetRoleHolder: params.vaultAdmin,
-                    depositorWhitelistRoleHolder: params.vaultAdmin,
-                    isDepositLimitSetRoleHolder: params.vaultAdmin,
-                    depositLimitSetRoleHolder: params.vaultAdmin
-                }),
+                vaultParams: abi.encode(
+                    IVault.InitParams({
+                        collateral: params.asset,
+                        burner: address(0),
+                        epochDuration: params.epochDuration,
+                        depositWhitelist: false,
+                        isDepositLimit: params.isDepositLimit,
+                        depositLimit: params.depositLimit,
+                        defaultAdminRoleHolder: params.vaultAdmin,
+                        depositWhitelistSetRoleHolder: params.vaultAdmin,
+                        depositorWhitelistRoleHolder: params.vaultAdmin,
+                        isDepositLimitSetRoleHolder: params.vaultAdmin,
+                        depositLimitSetRoleHolder: params.vaultAdmin
+                    })
+                ),
                 delegatorIndex: 0,
                 delegatorParams: abi.encode(initParams),
                 withSlasher: true,

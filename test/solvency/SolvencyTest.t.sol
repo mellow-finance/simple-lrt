@@ -450,13 +450,11 @@ contract SolvencyTest is BaseTest {
 
     function transitionRandomSlashing() internal {
         emit Log("transitionRandomSlashing");
-    
+
         uint256 totalStakedAmount = symbioticVault.totalStake();
         // TODO: WIP
         uint256 slashingAmount = _randInt(totalStakedAmount);
         uint256 mellowStakedAmount = symbioticVault.activeBalanceOf(address(mellowSymbioticVault));
-
-        
 
         vm.prank(symbioticVault.slasher());
         symbioticVault.onSlash(slashingAmount, uint48(block.timestamp));
