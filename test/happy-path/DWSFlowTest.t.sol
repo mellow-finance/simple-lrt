@@ -97,7 +97,7 @@ contract Integration is BaseTest {
 
         assertEq(IERC20(HOLESKY_WSTETH).balanceOf(address(mellowSymbioticVault)), 0);
         // assertEq(IERC20(collateral).balanceOf(address(mellowSymbioticVault)), 0);
-        assertEq(IERC20(address(symbioticVault)).balanceOf(address(mellowSymbioticVault)), 10 ether);
+        assertEq(symbioticVault.slashableBalanceOf(address(mellowSymbioticVault)), 10 ether);
 
         /*
             slashing

@@ -22,6 +22,9 @@ contract Integration is BaseTest {
     address proxyAdminOwner = 0x3995c5a3A74f3B3049fD5DA7C7D7BaB0b581A6e1;
 
     function setUp() external {
+        if (block.chainid != 1) {
+            revert("This test can only be run on the Ethereum mainnet");
+        }
         symbioticVaultConfigurator = symbioticHelper.getSymbioticDeployment().vaultConfigurator;
     }
 

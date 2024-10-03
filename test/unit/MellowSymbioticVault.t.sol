@@ -652,7 +652,7 @@ contract Unit is BaseTest {
             "Incorrect wsteth balance of the vault"
         );
         assertEq(
-            IERC20(address(symbioticVault)).balanceOf(address(mellowSymbioticVault)),
+            symbioticVault.slashableBalanceOf(address(mellowSymbioticVault)),
             vaultLimit / 2,
             "Incorrect symbioticVault balance of the vault"
         );
@@ -670,7 +670,7 @@ contract Unit is BaseTest {
         );
 
         assertEq(
-            IERC20(address(symbioticVault)).balanceOf(address(mellowSymbioticVault)),
+            symbioticVault.slashableBalanceOf(address(mellowSymbioticVault)),
             vaultLimit / 2,
             "Incorrect symbioticVault balance of the vault"
         );
@@ -732,7 +732,7 @@ contract Unit is BaseTest {
             "Incorrect wsteth balance of the vault"
         );
         assertEq(
-            IERC20(address(symbioticVault)).balanceOf(address(mellowSymbioticVault)),
+            symbioticVault.slashableBalanceOf(address(mellowSymbioticVault)),
             vaultLimit / 2,
             "Incorrect symbioticVault balance of the vault"
         );
@@ -801,7 +801,7 @@ contract Unit is BaseTest {
             "Incorrect wsteth balance of the vault"
         );
         assertEq(
-            IERC20(address(symbioticVault)).balanceOf(address(mellowSymbioticVault)),
+            symbioticVault.slashableBalanceOf(address(mellowSymbioticVault)),
             vaultLimit / 2,
             "Incorrect symbioticVault balance of the vault"
         );
@@ -819,13 +819,13 @@ contract Unit is BaseTest {
         );
 
         assertEq(
-            IERC20(address(symbioticVault)).balanceOf(address(mellowSymbioticVault)),
+            symbioticVault.slashableBalanceOf(address(mellowSymbioticVault)),
             0,
             "Incorrect symbioticVault balance of the vault"
         );
 
         assertEq(
-            IERC20(address(symbioticVault)).balanceOf(address(withdrawalQueue)),
+            symbioticVault.slashableBalanceOf(address(withdrawalQueue)),
             vaultLimit / 2,
             "Incorrect symbioticVault balance of the vault"
         );
@@ -901,7 +901,7 @@ contract Unit is BaseTest {
             "Incorrect wsteth balance of the vault"
         );
         assertEq(
-            IERC20(address(symbioticVault)).balanceOf(address(mellowSymbioticVault)),
+            symbioticVault.slashableBalanceOf(address(mellowSymbioticVault)),
             vaultLimit / 2,
             "Incorrect symbioticVault balance of the vault"
         );
@@ -928,13 +928,13 @@ contract Unit is BaseTest {
         );
 
         assertEq(
-            IERC20(address(symbioticVault)).balanceOf(address(mellowSymbioticVault)),
+            symbioticVault.slashableBalanceOf(address(mellowSymbioticVault)),
             0,
             "Incorrect symbioticVault balance of the vault"
         );
 
         assertEq(
-            IERC20(address(symbioticVault)).balanceOf(address(withdrawalQueue)),
+            symbioticVault.slashableBalanceOf(address(withdrawalQueue)),
             vaultLimit / 2,
             "Incorrect symbioticVault balance of the vault"
         );

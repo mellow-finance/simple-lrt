@@ -75,6 +75,8 @@ contract SolvencyTest is BaseTest {
     MockDefaultStakerRewards defaultStakerRewards;
 
     function setUp() external {
+        revert("not implemented");
+
         // logic below is used to prevent STAKE_LIMIT error in stETH contract
         bytes32 slot_ = 0xa3678de4a579be090bed1177e0a24f77cc29d181ac22fd7688aca344d8938015;
         bytes32 value = vm.load(HOLESKY_STETH, slot_);
