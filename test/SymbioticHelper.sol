@@ -117,7 +117,7 @@ contract SymbioticHelper {
         return address(uint160(uint256(keccak256(abi.encodePacked(salt, address(this))))));
     }
 
-    function createNewSymbioticVault(CreationParamsExtended memory params) 
+    function createNewSymbioticVault(CreationParamsExtended memory params)
         public
         returns (address symbioticVault)
     {

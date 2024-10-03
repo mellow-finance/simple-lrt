@@ -16,9 +16,6 @@ contract Integration is BaseTest {
     address vaultOwner = makeAddr("vaultOwner");
     address vaultAdmin = makeAddr("vaultAdmin");
     uint48 epochDuration = 3600;
-    address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
-    address steth = 0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
-    address weth = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
 
     uint256 symbioticLimit = 1000 ether;
 
@@ -34,7 +31,7 @@ contract Integration is BaseTest {
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,
                     epochDuration: epochDuration,
-                    asset: wsteth,
+                    asset: HOLESKY_WSTETH,
                     isDepositLimit: false,
                     depositLimit: symbioticLimit
                 })
@@ -46,7 +43,7 @@ contract Integration is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 100 ether,
-                symbioticCollateral: address(wstethSymbioticCollateral),
+                symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -59,21 +56,21 @@ contract Integration is BaseTest {
 
         address token =
             SymbioticWithdrawalQueue(address(withdrawalQueue)).symbioticVault().collateral();
-        assertEq(token, wsteth);
+        assertEq(token, HOLESKY_WSTETH);
 
         vm.startPrank(user);
 
         uint256 amount = 0.5 ether;
         uint256 n = 25;
 
-        EthWrapper wrapper = new EthWrapper(weth, wsteth, steth);
+        EthWrapper wrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_WSTETH, HOLESKY_STETH);
 
         deal(token, user, amount * n);
         IERC20(token).approve(address(wrapper), amount * n);
 
         for (uint256 i = 0; i < n; i++) {
             wrapper.deposit(
-                wsteth, amount, address(mellowSymbioticVault), user, makeAddr("referrer")
+                HOLESKY_WSTETH, amount, address(mellowSymbioticVault), user, makeAddr("referrer")
             );
         }
         for (uint256 i = 0; i < n; i++) {

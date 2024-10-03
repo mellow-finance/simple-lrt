@@ -14,37 +14,38 @@ contract Unit is BaseTest {
     address vaultOwner = makeAddr("vaultOwner");
     address vaultAdmin = makeAddr("vaultAdmin");
     uint48 epochDuration = 3600;
-    address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
-    address steth = 0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
-    address weth = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
 
     function testInitializeERC4626() external {
         MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
-        vault.initializeERC4626(admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH");
+        vault.initializeERC4626(
+            admin, 1000, false, false, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
+        );
 
         assertEq(vault.name(), "Wrapped stETH");
-        assertEq(vault.symbol(), "wstETH");
+        assertEq(vault.symbol(), "HOLESKY_WSTETH");
         assertEq(vault.decimals(), 18);
         assertEq(vault.totalSupply(), 0);
         assertEq(vault.limit(), 1000);
         assertEq(vault.depositPause(), false);
         assertEq(vault.withdrawalPause(), false);
         assertEq(vault.depositWhitelist(), false);
-        assertEq(vault.asset(), wsteth);
+        assertEq(vault.asset(), HOLESKY_WSTETH);
 
         // DEFAULT_ADMIN_ROLE
         assertTrue(vault.hasRole(bytes32(0), admin));
 
         // second initalization should fail
         vm.expectRevert();
-        vault.initializeERC4626(admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH");
+        vault.initializeERC4626(
+            admin, 1000, false, false, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
+        );
     }
 
     function testMaxMint() external {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, false, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             assertEq(vault.maxMint(address(this)), 1000);
@@ -53,7 +54,14 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, type(uint256).max, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin,
+                type(uint256).max,
+                false,
+                false,
+                false,
+                HOLESKY_WSTETH,
+                "Wrapped stETH",
+                "HOLESKY_WSTETH"
             );
 
             assertEq(vault.maxMint(address(this)), type(uint256).max);
@@ -62,7 +70,14 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, type(uint256).max, false, false, true, wsteth, "Wrapped stETH", "wstETH"
+                admin,
+                type(uint256).max,
+                false,
+                false,
+                true,
+                HOLESKY_WSTETH,
+                "Wrapped stETH",
+                "HOLESKY_WSTETH"
             );
 
             assertEq(vault.maxMint(address(this)), 0);
@@ -71,7 +86,14 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, type(uint256).max, false, false, true, wsteth, "Wrapped stETH", "wstETH"
+                admin,
+                type(uint256).max,
+                false,
+                false,
+                true,
+                HOLESKY_WSTETH,
+                "Wrapped stETH",
+                "HOLESKY_WSTETH"
             );
 
             vm.startPrank(admin);
@@ -88,7 +110,7 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, false, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             assertEq(vault.maxDeposit(address(this)), 1000);
@@ -97,7 +119,14 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, type(uint256).max, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin,
+                type(uint256).max,
+                false,
+                false,
+                false,
+                HOLESKY_WSTETH,
+                "Wrapped stETH",
+                "HOLESKY_WSTETH"
             );
 
             assertEq(vault.maxDeposit(address(this)), type(uint256).max);
@@ -106,7 +135,14 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, type(uint256).max, true, true, true, wsteth, "Wrapped stETH", "wstETH"
+                admin,
+                type(uint256).max,
+                true,
+                true,
+                true,
+                HOLESKY_WSTETH,
+                "Wrapped stETH",
+                "HOLESKY_WSTETH"
             );
 
             assertEq(vault.maxDeposit(address(this)), 0);
@@ -115,7 +151,14 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, type(uint256).max, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin,
+                type(uint256).max,
+                false,
+                false,
+                false,
+                HOLESKY_WSTETH,
+                "Wrapped stETH",
+                "HOLESKY_WSTETH"
             );
 
             assertEq(vault.maxDeposit(address(this)), type(uint256).max);
@@ -124,7 +167,14 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, type(uint256).max, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin,
+                type(uint256).max,
+                false,
+                false,
+                false,
+                HOLESKY_WSTETH,
+                "Wrapped stETH",
+                "HOLESKY_WSTETH"
             );
 
             assertEq(vault.maxDeposit(address(this)), type(uint256).max);
@@ -133,7 +183,14 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, type(uint256).max, false, false, true, wsteth, "Wrapped stETH", "wstETH"
+                admin,
+                type(uint256).max,
+                false,
+                false,
+                true,
+                HOLESKY_WSTETH,
+                "Wrapped stETH",
+                "HOLESKY_WSTETH"
             );
 
             assertEq(vault.maxDeposit(address(this)), 0);
@@ -142,7 +199,14 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, type(uint256).max, false, false, true, wsteth, "Wrapped stETH", "wstETH"
+                admin,
+                type(uint256).max,
+                false,
+                false,
+                true,
+                HOLESKY_WSTETH,
+                "Wrapped stETH",
+                "HOLESKY_WSTETH"
             );
 
             vm.startPrank(admin);
@@ -160,12 +224,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, false, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vault.deposit(amount, user1);
 
             assertEq(vault.balanceOf(user1), amount);
@@ -174,12 +238,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, true, true, true, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, true, true, true, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vm.expectRevert();
             vault.deposit(amount, user1);
         }
@@ -192,12 +256,12 @@ contract Unit is BaseTest {
             address referral = makeAddr("referral");
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, false, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vm.recordLogs();
             vault.deposit(amount, user1, referral);
 
@@ -212,12 +276,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, true, true, true, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, true, true, true, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vm.expectRevert();
             vault.deposit(amount, user1);
         }
@@ -229,12 +293,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, false, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vault.mint(amount, user1);
 
             assertEq(vault.balanceOf(user1), amount);
@@ -244,12 +308,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, true, true, true, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, true, true, true, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vm.expectRevert();
             vault.mint(amount, user1);
         }
@@ -262,12 +326,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, true, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, true, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vault.mint(amount, user1);
 
             assertEq(vault.balanceOf(user1), amount);
@@ -278,12 +342,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, false, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vault.mint(amount, user1);
 
             assertEq(vault.balanceOf(user1), amount);
@@ -298,12 +362,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, true, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, true, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vault.mint(amount, user1);
 
             assertEq(vault.balanceOf(user1), amount);
@@ -314,12 +378,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, false, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vault.mint(amount, user1);
 
             assertEq(vault.balanceOf(user1), amount);
@@ -334,12 +398,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, false, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vault.mint(amount, user1);
 
             assertEq(vault.balanceOf(user1), amount);
@@ -354,12 +418,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, true, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, true, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vault.mint(amount, user1);
 
             assertEq(vault.balanceOf(user1), amount);
@@ -377,12 +441,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, false, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, false, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vault.mint(amount, user1);
 
             assertEq(vault.balanceOf(user1), amount);
@@ -397,12 +461,12 @@ contract Unit is BaseTest {
         {
             MockERC4626Vault vault = new MockERC4626Vault("Vault", vaultVersion);
             vault.initializeERC4626(
-                admin, 1000, false, true, false, wsteth, "Wrapped stETH", "wstETH"
+                admin, 1000, false, true, false, HOLESKY_WSTETH, "Wrapped stETH", "HOLESKY_WSTETH"
             );
 
             uint256 amount = 100;
-            deal(wsteth, user1, amount);
-            IERC20(wsteth).approve(address(vault), amount);
+            deal(HOLESKY_WSTETH, user1, amount);
+            IERC20(HOLESKY_WSTETH).approve(address(vault), amount);
             vault.mint(amount, user1);
 
             assertEq(vault.balanceOf(user1), amount);

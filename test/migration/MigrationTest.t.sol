@@ -10,9 +10,6 @@ contract Integration is BaseTest {
     address migratorAdmin = makeAddr("migratorAdmin");
     uint256 migratorDelay = 1 days;
     address symbioticVaultOwner = makeAddr("symbioticVaultOwner");
-    address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
-    address steth = 0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
-    address weth = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
 
     uint48 epochDuration = 604800;
 
@@ -35,12 +32,12 @@ contract Integration is BaseTest {
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = wsteth;
+        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: wsteth,
+                asset: HOLESKY_WSTETH,
                 epochDuration: epochDuration,
                 isDepositLimit: false,
                 depositLimit: 0
@@ -100,12 +97,12 @@ contract Integration is BaseTest {
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = wsteth;
+        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: wsteth,
+                asset: HOLESKY_WSTETH,
                 epochDuration: epochDuration,
                 isDepositLimit: false,
                 depositLimit: 0
@@ -143,12 +140,12 @@ contract Integration is BaseTest {
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = wsteth;
+        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: wsteth,
+                asset: HOLESKY_WSTETH,
                 epochDuration: epochDuration,
                 isDepositLimit: false,
                 depositLimit: 0
@@ -192,12 +189,12 @@ contract Integration is BaseTest {
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = wsteth;
+        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: wsteth,
+                asset: HOLESKY_WSTETH,
                 epochDuration: epochDuration,
                 isDepositLimit: true,
                 depositLimit: 0
@@ -241,12 +238,12 @@ contract Integration is BaseTest {
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = wsteth;
+        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: wsteth,
+                asset: HOLESKY_WSTETH,
                 epochDuration: epochDuration,
                 isDepositLimit: true,
                 depositLimit: 0
@@ -293,12 +290,12 @@ contract Integration is BaseTest {
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = wsteth;
+        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: wsteth,
+                asset: HOLESKY_WSTETH,
                 epochDuration: epochDuration,
                 isDepositLimit: true,
                 depositLimit: 0
@@ -338,8 +335,8 @@ contract Integration is BaseTest {
 
         // MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
 
-        // deal(wsteth, deployer, 1 ether);
-        // IERC20(wsteth).approve(address(mellowLRT), 1 ether);
+        // deal(HOLESKY_WSTETH, deployer, 1 ether);
+        // IERC20(HOLESKY_WSTETH).approve(address(mellowLRT), 1 ether);
         // MellowVaultCompat(mellowLRT).deposit(1 ether, deployer);
 
         vm.stopPrank();
@@ -359,12 +356,12 @@ contract Integration is BaseTest {
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = wsteth;
+        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: wsteth,
+                asset: HOLESKY_WSTETH,
                 epochDuration: epochDuration,
                 isDepositLimit: symbioticVaultLimit,
                 depositLimit: 0
@@ -372,7 +369,7 @@ contract Integration is BaseTest {
         );
 
         if (!collateralLimit) {
-            IDefaultCollateral c = IDefaultCollateral(wstethSymbioticCollateral);
+            IDefaultCollateral c = IDefaultCollateral(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL);
             vm.prank(c.limitIncreaser());
             c.increaseLimit(1e6 ether);
         }
@@ -419,8 +416,8 @@ contract Integration is BaseTest {
         MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
 
         if (withDeposit) {
-            deal(wsteth, deployer, 1 ether);
-            IERC20(wsteth).approve(address(mellowLRT), 1 ether);
+            deal(HOLESKY_WSTETH, deployer, 1 ether);
+            IERC20(HOLESKY_WSTETH).approve(address(mellowLRT), 1 ether);
             MellowVaultCompat(mellowLRT).deposit(1 ether, deployer);
         }
 
@@ -434,12 +431,12 @@ contract Integration is BaseTest {
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = wsteth;
+        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: wsteth,
+                asset: HOLESKY_WSTETH,
                 epochDuration: epochDuration,
                 isDepositLimit: false,
                 depositLimit: 0
@@ -479,12 +476,12 @@ contract Integration is BaseTest {
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = wsteth;
+        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: wsteth,
+                asset: HOLESKY_WSTETH,
                 epochDuration: epochDuration,
                 isDepositLimit: false,
                 depositLimit: 0
@@ -532,12 +529,12 @@ contract Integration is BaseTest {
             new Migrator(address(mellowVaultCompat), address(migratorAdmin), migratorDelay);
 
         IVaultConfigurator.InitParams memory emptyParams;
-        emptyParams.vaultParams.collateral = wsteth;
+        emptyParams.vaultParams.collateral = HOLESKY_WSTETH;
         address symbioticVault = symbioticHelper.createNewSymbioticVault(
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: wsteth,
+                asset: HOLESKY_WSTETH,
                 epochDuration: epochDuration,
                 isDepositLimit: false,
                 depositLimit: 0
@@ -592,16 +589,16 @@ interface IManagedValidator {
     Validator:  0x1Bd18BD7A2DEC5550D5EB1be7717bB23258AED4C
     DefaultBondStrategy:  0x8b9B55BA5D48D4De08915D14bC561Db30006A307
     DepositWrapper:  0x041cf4dfeBCDad293319F958AC6bad5c62Ee03EE
-    WstethAmountDeposited:  9852045351
+    HOLESKY_WSTETHAmountDeposited:  9852045351
     TransparentUpgradeableProxy-ProxyAdmin:  0xd67241F8FA670D1eaEd14b7A17B82819087AE86d
     ---------------------------
     Deployer:  0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE
     ProxyAdmin:  0x3995c5a3A74f3B3049fD5DA7C7D7BaB0b581A6e1
     Admin:  0x2C5f98743e4Cb30d8d65e30B8cd748967D7A051e
     Curator:  0x20daa9d68196aa882A856D0aBBEbB6836Dc4B840
-    WstethDefaultBondFactory:  0x7224eeF9f38E9240beA197970367E0A8CBDFDD8B
-    WstethDefaultBond:  0x23E98253F372Ee29910e22986fe75Bb287b011fC
-    Wsteth:  0x8d09a4502Cc8Cf1547aD300E066060D043f6982D
+    HOLESKY_WSTETHDefaultBondFactory:  0x7224eeF9f38E9240beA197970367E0A8CBDFDD8B
+    HOLESKY_WSTETHDefaultBond:  0x23E98253F372Ee29910e22986fe75Bb287b011fC
+    HOLESKY_WSTETH:  0x8d09a4502Cc8Cf1547aD300E066060D043f6982D
     Steth:  0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034
     Weth:  0x94373a4919B3240D86eA41593D5eBa789FEF3848
     MaximalTotalSupply:  10000000000000000000000
@@ -616,6 +613,6 @@ interface IManagedValidator {
     RatiosOracle:  0xF59f34A1BD7e17b520f3922dD1FB77148abBc10d
     PriceOracle:  0x634c9D1d0ae5475F20008b4E60DdD930BA224709
     WethAggregatorV3:  0x912118DD8978336F6f16B8753c3666042e2828fC
-    WstethAggregatorV3:  0xfBc622f4B138A94dB41791CFA13e48A4647834aD
+    HOLESKY_WSTETHAggregatorV3:  0xfBc622f4B138A94dB41791CFA13e48A4647834aD
     DefaultProxyImplementation:  0x76106208D69faD40db74BBa8bbb12afAA0699616
 */

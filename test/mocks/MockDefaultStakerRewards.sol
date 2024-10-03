@@ -1,19 +1,25 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
+import {IDefaultStakerRewards} from
+    "@symbiotic/rewards/interfaces/defaultStakerRewards/IDefaultStakerRewards.sol";
 import {IStakerRewards} from "@symbiotic/rewards/interfaces/stakerRewards/IStakerRewards.sol";
-import {IDefaultStakerRewards} from "@symbiotic/rewards/interfaces/defaultStakerRewards/IDefaultStakerRewards.sol";
 
-import {INetworkMiddlewareService} from "@symbiotic/core/interfaces/service/INetworkMiddlewareService.sol";
 import {IRegistry} from "@symbiotic/core/interfaces/common/IRegistry.sol";
+import {INetworkMiddlewareService} from
+    "@symbiotic/core/interfaces/service/INetworkMiddlewareService.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
-import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {AccessControlUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+
+import {MulticallUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {MulticallUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Time} from "@openzeppelin/contracts/utils/types/Time.sol";
 
 contract MockDefaultStakerRewards is
@@ -30,7 +36,7 @@ contract MockDefaultStakerRewards is
     /**
      * @inheritdoc IDefaultStakerRewards
      */
-    uint256 public constant ADMIN_FEE_BASE = 10_000;
+    uint256 public constant ADMIN_FEE_BASE = 10000;
 
     /**
      * @inheritdoc IDefaultStakerRewards
@@ -70,13 +76,15 @@ contract MockDefaultStakerRewards is
     /**
      * @inheritdoc IDefaultStakerRewards
      */
-    mapping(address token => mapping(address network => RewardDistribution[] rewards_)) public rewards;
+    mapping(address token => mapping(address network => RewardDistribution[] rewards_)) public
+        rewards;
 
     /**
      * @inheritdoc IDefaultStakerRewards
      */
-    mapping(address account => mapping(address token => mapping(address network => uint256 rewardIndex))) public
-        lastUnclaimedReward;
+    mapping(
+        address account => mapping(address token => mapping(address network => uint256 rewardIndex))
+    ) public lastUnclaimedReward;
 
     /**
      * @inheritdoc IDefaultStakerRewards
@@ -100,11 +108,12 @@ contract MockDefaultStakerRewards is
         return rewards[token][network].length;
     }
 
-    function claimable(
-        address token,
-        address account,
-        bytes calldata data
-    ) external view override returns (uint256 amount) {
+    function claimable(address token, address account, bytes calldata data)
+        external
+        view
+        override
+        returns (uint256 amount)
+    {
         // network - a network to claim rewards for
         // maxRewards - the maximum amount of rewards to process
         (address network, uint256 maxRewards) = abi.decode(data, (address, uint256));
@@ -128,9 +137,11 @@ contract MockDefaultStakerRewards is
         }
     }
 
-    function initialize(
-        InitParams calldata params
-    ) external /** initializer */ {
+    function initialize(InitParams calldata params) external 
+    /**
+     * initializer
+     */
+    {
         if (!IRegistry(VAULT_FACTORY).isEntity(params.vault)) {
             revert NotVault();
         }
@@ -166,20 +177,24 @@ contract MockDefaultStakerRewards is
         }
     }
 
-    function distributeRewards(
-        address network,
-        address token,
-        uint256 amount,
-        bytes calldata data
-    ) external override nonReentrant {
+    function distributeRewards(address network, address token, uint256 amount, bytes calldata data)
+        external
+        override
+        nonReentrant
+    {
         // timestamp - a time point stakes must be taken into account at
         // maxAdminFee - the maximum admin fee to allow
         // activeSharesHint - a hint index to optimize `activeSharesAt()` processing
         // activeStakeHint - a hint index to optimize `activeStakeAt()` processing
-        (uint48 timestamp, uint256 maxAdminFee, bytes memory activeSharesHint, bytes memory activeStakeHint) =
-            abi.decode(data, (uint48, uint256, bytes, bytes));
+        (
+            uint48 timestamp,
+            uint256 maxAdminFee,
+            bytes memory activeSharesHint,
+            bytes memory activeStakeHint
+        ) = abi.decode(data, (uint48, uint256, bytes, bytes));
 
-        if (INetworkMiddlewareService(NETWORK_MIDDLEWARE_SERVICE).middleware(network) != msg.sender) {
+        if (INetworkMiddlewareService(NETWORK_MIDDLEWARE_SERVICE).middleware(network) != msg.sender)
+        {
             revert NotNetworkMiddleware();
         }
 
@@ -217,13 +232,19 @@ contract MockDefaultStakerRewards is
         claimableAdminFee[token] += adminFeeAmount;
 
         if (distributeAmount > 0) {
-            rewards[token][network].push(RewardDistribution({amount: distributeAmount, timestamp: timestamp}));
+            rewards[token][network].push(
+                RewardDistribution({amount: distributeAmount, timestamp: timestamp})
+            );
         }
 
         emit DistributeRewards(network, token, amount, data);
     }
 
-    function claimRewards(address recipient, address token, bytes calldata data) external override nonReentrant {
+    function claimRewards(address recipient, address token, bytes calldata data)
+        external
+        override
+        nonReentrant
+    {
         // network - a network to claim rewards for
         // maxRewards - the maximum amount of rewards to process
         // activeSharesOfHints - hint indexes to optimize `activeSharesOf()` processing
@@ -237,7 +258,8 @@ contract MockDefaultStakerRewards is
         RewardDistribution[] storage rewardsByTokenNetwork = rewards[token][network];
         uint256 lastUnclaimedReward_ = lastUnclaimedReward[msg.sender][token][network];
 
-        uint256 rewardsToClaim = Math.min(maxRewards, rewardsByTokenNetwork.length - lastUnclaimedReward_);
+        uint256 rewardsToClaim =
+            Math.min(maxRewards, rewardsByTokenNetwork.length - lastUnclaimedReward_);
 
         if (rewardsToClaim == 0) {
             revert NoRewardsToClaim();
@@ -254,9 +276,9 @@ contract MockDefaultStakerRewards is
         for (uint256 i; i < rewardsToClaim;) {
             RewardDistribution storage reward = rewardsByTokenNetwork[rewardIndex];
 
-            amount += IVault(VAULT).activeSharesOfAt(msg.sender, reward.timestamp, activeSharesOfHints[i]).mulDiv(
-                reward.amount, _activeSharesCache[reward.timestamp]
-            );
+            amount += IVault(VAULT).activeSharesOfAt(
+                msg.sender, reward.timestamp, activeSharesOfHints[i]
+            ).mulDiv(reward.amount, _activeSharesCache[reward.timestamp]);
 
             unchecked {
                 ++i;
@@ -270,13 +292,19 @@ contract MockDefaultStakerRewards is
             IERC20(token).safeTransfer(recipient, amount);
         }
 
-        emit ClaimRewards(token, network, msg.sender, recipient, lastUnclaimedReward_, rewardsToClaim, amount);
+        emit ClaimRewards(
+            token, network, msg.sender, recipient, lastUnclaimedReward_, rewardsToClaim, amount
+        );
     }
 
     /**
      * @inheritdoc IDefaultStakerRewards
      */
-    function claimAdminFee(address recipient, address token) external nonReentrant onlyRole(ADMIN_FEE_CLAIM_ROLE) {
+    function claimAdminFee(address recipient, address token)
+        external
+        nonReentrant
+        onlyRole(ADMIN_FEE_CLAIM_ROLE)
+    {
         uint256 claimableAdminFee_ = claimableAdminFee[token];
         if (claimableAdminFee_ == 0) {
             revert InsufficientAdminFee();
@@ -292,9 +320,7 @@ contract MockDefaultStakerRewards is
     /**
      * @inheritdoc IDefaultStakerRewards
      */
-    function setAdminFee(
-        uint256 adminFee_
-    ) external onlyRole(ADMIN_FEE_SET_ROLE) {
+    function setAdminFee(uint256 adminFee_) external onlyRole(ADMIN_FEE_SET_ROLE) {
         if (adminFee == adminFee_) {
             revert AlreadySet();
         }
@@ -304,9 +330,7 @@ contract MockDefaultStakerRewards is
         emit SetAdminFee(adminFee_);
     }
 
-    function _setAdminFee(
-        uint256 adminFee_
-    ) private {
+    function _setAdminFee(uint256 adminFee_) private {
         if (adminFee_ > ADMIN_FEE_BASE) {
             revert InvalidAdminFee();
         }
