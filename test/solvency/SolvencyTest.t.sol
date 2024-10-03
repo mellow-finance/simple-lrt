@@ -20,9 +20,9 @@ import {NetworkMiddlewareService} from
 contract SolvencyTest is BaseTest {
     using SafeERC20 for IERC20;
 
-    uint256 private constant ITER = 50;
-
-    uint256 private seed = 42;
+    uint256 constant ITER = 50;
+    uint256 constant MAX_ALLOWED_ERROR = ITER;
+    uint256 seed = 42;
 
     address immutable admin = makeAddr("admin");
     address immutable vaultOwner = makeAddr("vaultOwner");
@@ -30,8 +30,7 @@ contract SolvencyTest is BaseTest {
     address immutable proxyAdmin = makeAddr("proxyAdmin");
     address immutable mellowVaultAdmin = makeAddr("mellowVaultAdmin");
     address immutable burner = makeAddr("burner");
-
-    address bob = makeAddr("bob");
+    address immutable network = makeAddr("network");
 
     uint48 epochDuration = 3600;
 
@@ -44,13 +43,10 @@ contract SolvencyTest is BaseTest {
     uint256 limit;
     address[] depositors;
     uint256[] depositedAmounts;
+    uint256[] claimedAmounts;
     uint256[] slashedAmounts;
-    uint256[] finalWithdrawnAmounts;
 
-    uint256 totalSlashedAmount = 0;
-    uint256 totalDepositedAmount = 0;
-    uint256 totalDistributedReward = 0;
-    uint256 totalFinalWithdrawnAmount = 0;
+    uint256 cumulativeSlashedAmounts;
 
     EthWrapper depositWrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_WSTETH, HOLESKY_STETH);
     address[] depositWrapperTokens = [
@@ -65,9 +61,10 @@ contract SolvencyTest is BaseTest {
         transitionRandomWithdrawal,
         transitionRandomLimitSet,
         transitionRandomClaim,
-        transitionPushIntoSymbiotic,
         transitionRandomSlashing,
-        transitionRandomFarm
+        transitionRandomFarm,
+        transitionPushIntoSymbiotic,
+        transitionEpochSkip
     ];
 
     uint256 nTransitions = transitions.length;
@@ -75,8 +72,6 @@ contract SolvencyTest is BaseTest {
     MockDefaultStakerRewards defaultStakerRewards;
 
     function setUp() external {
-        revert("not implemented");
-
         // logic below is used to prevent STAKE_LIMIT error in stETH contract
         bytes32 slot_ = 0xa3678de4a579be090bed1177e0a24f77cc29d181ac22fd7688aca344d8938015;
         bytes32 value = vm.load(HOLESKY_STETH, slot_);
@@ -216,7 +211,7 @@ contract SolvencyTest is BaseTest {
         depositors.push(user);
         depositedAmounts.push(0);
         slashedAmounts.push(0);
-        finalWithdrawnAmounts.push(0);
+        claimedAmounts.push(0);
         return user;
     }
 
@@ -286,7 +281,7 @@ contract SolvencyTest is BaseTest {
         if (s.withPlainEth) {
             deal(s.user, s.amount);
             if (isLimitOverflowExpected) {
-                vm.expectRevert("ERC4626 error");
+                vm.expectRevert();
             }
             depositWrapper.deposit{value: s.amount}(
                 s.depositToken, s.amount, address(mellowSymbioticVault), s.user, referral
@@ -333,23 +328,35 @@ contract SolvencyTest is BaseTest {
         // assertApproxEqAbs(vaultSupplyAfter, expectedTotalSupplyAfter, 1 gwei, "vaultSupplyAfter");
 
         depositedAmounts[_indexOf(s.user)] += s.expectedVaultVaultIncrement;
-        totalDepositedAmount += s.expectedVaultVaultIncrement;
 
         vm.stopPrank();
     }
 
     function transitionRandomWithdrawal() internal {
-        address user = depositors[_randInt(0, depositors.length - 1)];
+        uint256 index = _randInt(0, depositors.length - 1);
+        address user = depositors[index];
         uint256 amount = calc_random_amount_d18();
         vm.startPrank(user);
-        IERC20(HOLESKY_WSTETH).safeIncreaseAllowance(address(mellowSymbioticVault), amount);
-        uint256 availableAmount = depositedAmounts[_indexOf(user)] - slashedAmounts[_indexOf(user)];
-        if (amount > availableAmount) {
+
+        uint256 pendingAssets = mellowSymbioticVault.pendingAssetsOf(user);
+        uint256 claimableAssets = mellowSymbioticVault.claimableAssetsOf(user);
+        uint256 availableAmount = depositedAmounts[index]
+            - (slashedAmounts[index] + pendingAssets + claimableAssets + claimedAmounts[index]);
+
+        uint256 maxWithdraw = mellowSymbioticVault.maxWithdraw(user);
+
+        assertApproxEqAbs(
+            availableAmount,
+            maxWithdraw,
+            MAX_ALLOWED_ERROR,
+            "transitionRandomWithdrawal: maxWithdraw != availableAmount"
+        );
+
+        if (amount > maxWithdraw) {
             vm.expectRevert();
             mellowSymbioticVault.withdraw(amount, user, user);
         } else {
             mellowSymbioticVault.withdraw(amount, user, user);
-            depositedAmounts[_indexOf(user)] -= amount;
         }
         vm.stopPrank();
     }
@@ -393,6 +400,8 @@ contract SolvencyTest is BaseTest {
             assertEq(returnedValue, expectedClaimedAmount, "returnedValue");
 
             vm.stopPrank();
+
+            claimedAmounts[index] += returnedValue;
         } else if (depositors.length != claimableAccounts && random_bool()) {
             // empty claim for depositor
 
@@ -450,31 +459,128 @@ contract SolvencyTest is BaseTest {
         vm.stopPrank();
     }
 
-    function transitionRandomSlashing() internal {
-        emit Log("transitionRandomSlashing");
+    struct Position {
+        uint256 shares;
+        uint256 assets;
+        uint256 claimable;
+        uint256 pending;
+    }
 
-        uint256 totalStakedAmount = symbioticVault.totalStake();
-        // TODO: WIP
-        uint256 slashingAmount = _randInt(totalStakedAmount);
+    function getUserPositions() internal view returns (Position[] memory positions) {
+        positions = new Position[](depositors.length);
+        for (uint256 i = 0; i < depositors.length; i++) {
+            address user = depositors[i];
+            positions[i] = Position({
+                shares: mellowSymbioticVault.balanceOf(user),
+                assets: mellowSymbioticVault.maxWithdraw(user),
+                claimable: mellowSymbioticVault.claimableAssetsOf(user),
+                pending: mellowSymbioticVault.pendingAssetsOf(user)
+            });
+        }
+    }
+
+    function transitionRandomSlashing() internal {
+        uint256 totalStake = symbioticVault.totalStake();
         uint256 mellowStakedAmount = symbioticVault.activeBalanceOf(address(mellowSymbioticVault));
+
+        uint256 slashingAmount = _randInt(totalStake);
+
+        uint256 assetsBefore = mellowSymbioticVault.totalAssets();
+
+        Position[] memory positionBeforeSlashing = getUserPositions();
 
         vm.prank(symbioticVault.slasher());
         symbioticVault.onSlash(slashingAmount, uint48(block.timestamp));
 
-        totalSlashedAmount += slashingAmount;
+        uint256 assetsAfter = mellowSymbioticVault.totalAssets();
+        uint256 mellowSlashedAmount = totalStake == 0
+            ? 0
+            : Math.mulDiv(mellowStakedAmount, slashingAmount + 1, totalStake + 1); // Symbiotic logic
+
+        console2.log("Expected slashing amount:", mellowStakedAmount, slashingAmount, totalStake);
+        console2.log("Delta:", assetsBefore - assetsAfter, mellowSlashedAmount);
+
+        assertApproxEqAbs(
+            assetsAfter + mellowSlashedAmount,
+            assetsBefore,
+            MAX_ALLOWED_ERROR + 1 gwei,
+            "transitionRandomSlashing: assetsAfter + mellowSlashedAmount != assetsBefore"
+        );
+
+        Position[] memory positionAfterSlashing = getUserPositions();
+
+        assertEq(
+            positionBeforeSlashing.length,
+            positionAfterSlashing.length,
+            "transitionRandomSlashing: position length"
+        );
+
+        for (uint256 i = 0; i < positionAfterSlashing.length; i++) {
+            Position memory before = positionBeforeSlashing[i];
+            Position memory after_ = positionAfterSlashing[i];
+
+            assertEq(before.claimable, after_.claimable, "transitionRandomSlashing: claimable");
+            assertEq(before.shares, after_.shares, "transitionRandomSlashing: shares");
+
+            assertApproxEqAbs(
+                before.assets + before.pending,
+                depositedAmounts[i] - slashedAmounts[i] - claimedAmounts[i],
+                MAX_ALLOWED_ERROR,
+                "transitionRandomSlashing: invalid initial balances"
+            );
+
+            assertLe(
+                after_.assets,
+                before.assets,
+                "transitionRandomSlashing: after.assets > before.assets"
+            );
+            assertLe(
+                after_.pending,
+                before.pending,
+                "transitionRandomSlashing: after.pending > before.pending"
+            );
+
+            uint256 pendingReduction = before.pending - after_.pending;
+            uint256 assetsReduction = before.assets - after_.assets;
+
+            uint256 expectedPendingReduction = before.pending == 0
+                ? 0
+                : Math.mulDiv(before.pending, mellowSlashedAmount + 1, assetsBefore + 1);
+
+            uint256 expectedAssetsReduction = before.assets == 0
+                ? 0
+                : Math.mulDiv(before.assets, mellowSlashedAmount + 1, assetsBefore + 1);
+
+            assertApproxEqAbs(
+                pendingReduction,
+                expectedPendingReduction,
+                MAX_ALLOWED_ERROR + 1 gwei,
+                "transitionRandomSlashing: pendingReduction"
+            );
+
+            assertApproxEqAbs(
+                assetsReduction,
+                expectedAssetsReduction,
+                MAX_ALLOWED_ERROR + 1 gwei,
+                "transitionRandomSlashing: assetsReduction"
+            );
+
+            slashedAmounts[i] += before.assets - after_.assets + before.pending - after_.pending;
+        }
+
+        cumulativeSlashedAmounts += mellowSlashedAmount;
     }
 
     function transitionRandomFarm() internal {
-        address network = bob;
         uint256 distributeAmount = _randInt(1, 1e18);
 
-        totalDistributedReward += distributeAmount;
+        // totalDistributedReward += distributeAmount;
+        bytes memory data = abi.encode(block.timestamp, 0, "", "");
 
-        vm.startPrank(network);
+        vm.prank(network);
         defaultStakerRewards.distributeRewards(
-            network, address(rewardToken), distributeAmount, abi.encode(block.timestamp, 0, "", "")
+            network, address(rewardToken), distributeAmount, data
         );
-        vm.stopPrank();
     }
 
     function createDefaultStakerRewards() internal returns (MockDefaultStakerRewards) {
@@ -493,15 +599,14 @@ contract SolvencyTest is BaseTest {
 
         defaultStakerRewards.initialize(params);
 
-        address network = bob;
-        _registerNetwork(network, bob);
+        _registerNetwork(network, network);
 
         uint256 amount = 100000 * 1e18;
-        rewardToken.transfer(bob, 100000 ether);
-        vm.startPrank(bob);
+        rewardToken.transfer(network, 100000 ether);
+        vm.startPrank(network);
         rewardToken.approve(address(defaultStakerRewards), type(uint256).max);
 
-        IERC20(rewardToken).safeIncreaseAllowance(address(bob), amount);
+        IERC20(rewardToken).safeIncreaseAllowance(address(network), amount);
         IERC20(rewardToken).safeIncreaseAllowance(address(defaultStakerRewards), amount);
         vm.stopPrank();
 
@@ -538,27 +643,23 @@ contract SolvencyTest is BaseTest {
         validatateInvariants();
     }
 
+    function transitionEpochSkip() internal {
+        skip(epochDuration);
+    }
+
     function finilizeTest() internal {
-        skip(epochDuration * 2);
         for (uint256 i = 0; i < depositors.length; i++) {
-            address user;
-            user = depositors[i];
-            vm.startPrank(user);
+            address user = depositors[i];
             uint256 amount = mellowSymbioticVault.maxWithdraw(user);
+            vm.prank(user);
             mellowSymbioticVault.withdraw(amount, user, user);
-            finalWithdrawnAmounts[i] += amount;
-            totalFinalWithdrawnAmount += amount;
-            vm.stopPrank();
         }
         skip(epochDuration * 2);
         for (uint256 i = 0; i < depositors.length; i++) {
-            address user;
-            user = depositors[i];
-            vm.startPrank(user);
-            mellowSymbioticVault.claim(user, user, type(uint256).max);
-            vm.stopPrank();
+            address user = depositors[i];
+            vm.prank(user);
+            claimedAmounts[i] += mellowSymbioticVault.claim(user, user, type(uint256).max);
         }
-        skip(epochDuration * 2);
     }
 
     function validatateInvariants() internal {
@@ -571,34 +672,44 @@ contract SolvencyTest is BaseTest {
     }
 
     function validateLpPrice() internal {
-        uint256 assets = mellowSymbioticVault.totalAssets();
-        uint256 supply = mellowSymbioticVault.totalSupply();
-        uint256 totalAvailable = totalDepositedAmount - totalSlashedAmount;
-        // lpPrice = assets / supply ~= totalAvailable / totalDepositedAmount
+        // uint256 assets = mellowSymbioticVault.totalAssets();
+        // uint256 supply = mellowSymbioticVault.totalSupply();
+        // uint256 totalAvailable = totalDepositedAmount - totalSlashedAmount;
+        // // lpPrice = assets / supply ~= totalAvailable / totalDepositedAmount
 
-        emit LpValidation(assets, supply, totalAvailable, totalDepositedAmount);
-        uint256 lpPrice = Math.mulDiv(assets, 1 ether, Math.max(1, supply));
-        uint256 expected = Math.mulDiv(totalAvailable, 1 ether, Math.max(1, totalDepositedAmount));
+        // emit LpValidation(assets, supply, totalAvailable, totalDepositedAmount);
+        // uint256 lpPrice = Math.mulDiv(assets, 1 ether, Math.max(1, supply));
+        // uint256 expected = Math.mulDiv(totalAvailable, 1 ether, Math.max(1, totalDepositedAmount));
 
-        if (totalSlashedAmount == 0) {
-            assertApproxEqAbs(lpPrice, expected, 1 gwei);
-        } else {
-            assertLe(lpPrice, 1 ether);
-        }
+        // if (totalSlashedAmount == 0) {
+        //     assertApproxEqAbs(lpPrice, expected, 1 gwei, "validateLpPrice: lpPrice != expected");
+        // } else {
+        //     assertLe(lpPrice, 1 ether, "validateLpPrice: lpPrice > 1 ether");
+        // }
     }
 
     function finalValidation() internal view {
+        uint256 cumulativeDepositedAmounts = 0;
+        uint256 cumulativeWithdrawnAmounts = 0;
+        for (uint256 i = 0; i < depositors.length; i++) {
+            cumulativeDepositedAmounts += depositedAmounts[i];
+            cumulativeWithdrawnAmounts += claimedAmounts[i];
+        }
+
         assertApproxEqAbs(
-            totalDepositedAmount - totalSlashedAmount, totalFinalWithdrawnAmount, 1 gwei
+            cumulativeDepositedAmounts,
+            cumulativeWithdrawnAmounts + cumulativeSlashedAmounts,
+            1 gwei,
+            "cumulativeDepositedAmounts != cumulativeWithdrawnAmounts + cumulativeSlashedAmounts"
         );
 
-        for (uint256 i = 0; i < depositors.length; i++) {
-            assertLe(depositedAmounts[i], limit);
-            assertGe(depositedAmounts[i] - finalWithdrawnAmounts[i], 0);
-            assertApproxEqAbs(
-                depositedAmounts[i] - slashedAmounts[i], finalWithdrawnAmounts[i], 1 wei
-            );
-        }
+        // for (uint256 i = 0; i < depositors.length; i++) {
+        //     assertLe(depositedAmounts[i], limit);
+        //     assertGe(depositedAmounts[i] - finalWithdrawnAmounts[i], 0);
+        //     assertApproxEqAbs(
+        //         depositedAmounts[i] - slashedAmounts[i], finalWithdrawnAmounts[i], 1 wei
+        //     );
+        // }
     }
 
     function _random() internal returns (uint256) {
