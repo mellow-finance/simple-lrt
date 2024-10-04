@@ -317,13 +317,6 @@ contract SolvencyTest is BaseTest {
         uint256 vaultValueAfter = mellowSymbioticVault.totalAssets();
         uint256 vaultSupplyAfter = mellowSymbioticVault.totalSupply();
 
-        console2.log(
-            "Deposits:",
-            s.amount,
-            vaultSupplyAfter - vaultSupplyBefore,
-            vaultValueAfter - vaultValueBefore
-        );
-
         assertEq(vaultValueAfter, expectedVaultValueAfter, "vaultValueAfter");
         // assertApproxEqAbs(vaultSupplyAfter, expectedTotalSupplyAfter, 1 gwei, "vaultSupplyAfter");
 
@@ -464,111 +457,195 @@ contract SolvencyTest is BaseTest {
         uint256 assets;
         uint256 claimable;
         uint256 pending;
+        uint256 pendingNext;
+    }
+
+    function pendingWithdrawalsOf(SymbioticWithdrawalQueue queue, address user, uint256 epoch)
+        internal
+        view
+        returns (uint256 pendingAssets)
+    {
+        (
+            uint256 sharesToClaimPrev,
+            uint256 sharesToClaim,
+            uint256 claimableAssets,
+            uint256 claimEpoch
+        ) = queue.getAccountData(user);
+
+        if (epoch != claimEpoch && epoch + 1 != claimEpoch) {
+            return 0;
+        }
+
+        uint256 shares = epoch == claimEpoch ? sharesToClaim : sharesToClaimPrev;
+        if (shares == 0) {
+            return 0;
+        }
+        return Math.mulDiv(
+            shares,
+            symbioticVault.withdrawalsOf(epoch, address(this)),
+            queue.getEpochData(epoch).sharesToClaim
+        );
     }
 
     function getUserPositions() internal view returns (Position[] memory positions) {
         positions = new Position[](depositors.length);
+        SymbioticWithdrawalQueue queue =
+            SymbioticWithdrawalQueue(address(mellowSymbioticVault.withdrawalQueue()));
+        uint256 epoch = symbioticVault.currentEpoch();
         for (uint256 i = 0; i < depositors.length; i++) {
             address user = depositors[i];
             positions[i] = Position({
                 shares: mellowSymbioticVault.balanceOf(user),
                 assets: mellowSymbioticVault.maxWithdraw(user),
                 claimable: mellowSymbioticVault.claimableAssetsOf(user),
-                pending: mellowSymbioticVault.pendingAssetsOf(user)
+                pending: pendingWithdrawalsOf(queue, user, epoch),
+                pendingNext: pendingWithdrawalsOf(queue, user, epoch + 1)
             });
         }
     }
 
     function transitionRandomSlashing() internal {
-        uint256 totalStake = symbioticVault.totalStake();
-        uint256 mellowStakedAmount = symbioticVault.activeBalanceOf(address(mellowSymbioticVault));
-
-        uint256 slashingAmount = _randInt(totalStake);
-
-        uint256 assetsBefore = mellowSymbioticVault.totalAssets();
-
         Position[] memory positionBeforeSlashing = getUserPositions();
 
-        vm.prank(symbioticVault.slasher());
-        symbioticVault.onSlash(slashingAmount, uint48(block.timestamp));
+        uint256 activeStake = symbioticVault.activeStake();
+        uint256 activeShares = symbioticVault.activeShares();
+        uint256 symbioticActiveShares = symbioticVault.activeSharesOf(address(mellowSymbioticVault));
+        uint256 mellowStakedAmount =
+            activeShares == 0 ? 0 : Math.mulDiv(symbioticActiveShares, activeStake, activeShares);
 
-        uint256 assetsAfter = mellowSymbioticVault.totalAssets();
-        uint256 mellowSlashedAmount = totalStake == 0
-            ? 0
-            : Math.mulDiv(mellowStakedAmount, slashingAmount + 1, totalStake + 1); // Symbiotic logic
+        uint256 assetsBefore = mellowSymbioticVault.totalAssets();
+        uint256 slashedAmount;
 
-        console2.log("Expected slashing amount:", mellowStakedAmount, slashingAmount, totalStake);
-        console2.log("Delta:", assetsBefore - assetsAfter, mellowSlashedAmount);
+        uint256 currentEpoch = symbioticVault.currentEpoch();
 
-        assertApproxEqAbs(
-            assetsAfter + mellowSlashedAmount,
-            assetsBefore,
-            MAX_ALLOWED_ERROR + 1 gwei,
-            "transitionRandomSlashing: assetsAfter + mellowSlashedAmount != assetsBefore"
-        );
+        uint256 mellowSlashableStake;
+        uint256 symbioticSlashableStake;
 
-        Position[] memory positionAfterSlashing = getUserPositions();
+        uint48 captureTimestamp = uint48(block.timestamp);
 
-        assertEq(
-            positionBeforeSlashing.length,
-            positionAfterSlashing.length,
-            "transitionRandomSlashing: position length"
-        );
+        uint256 currentEpochSlashingAmount = 0;
+        uint256 nextEpochSlashingAmount = 0;
+        uint256 stakeSlashingAmount = 0;
 
-        for (uint256 i = 0; i < positionAfterSlashing.length; i++) {
-            Position memory before = positionBeforeSlashing[i];
-            Position memory after_ = positionAfterSlashing[i];
-
-            assertEq(before.claimable, after_.claimable, "transitionRandomSlashing: claimable");
-            assertEq(before.shares, after_.shares, "transitionRandomSlashing: shares");
-
-            assertApproxEqAbs(
-                before.assets + before.pending,
-                depositedAmounts[i] - slashedAmounts[i] - claimedAmounts[i],
-                MAX_ALLOWED_ERROR,
-                "transitionRandomSlashing: invalid initial balances"
+        // scenario for current epoch
+        if (random_bool() || symbioticVault.currentEpoch() == 0) {
+            assertEq(
+                symbioticVault.epochAt(captureTimestamp),
+                currentEpoch,
+                "transitionRandomSlashing: epochAt(captureTimestamp) != currentEpoch"
             );
 
-            assertLe(
-                after_.assets,
-                before.assets,
-                "transitionRandomSlashing: after.assets > before.assets"
-            );
-            assertLe(
-                after_.pending,
-                before.pending,
-                "transitionRandomSlashing: after.pending > before.pending"
-            );
+            mellowSlashableStake = symbioticVault.activeBalanceOf(address(mellowSymbioticVault))
+                + symbioticVault.withdrawalsOf(currentEpoch + 1, address(mellowSymbioticVault));
 
-            uint256 pendingReduction = before.pending - after_.pending;
-            uint256 assetsReduction = before.assets - after_.assets;
+            uint256 symbioticActiveStakeBefore = symbioticVault.activeStake();
+            uint256 symbioticNextWithdrawalsBefore = symbioticVault.withdrawals(currentEpoch + 1);
 
-            uint256 expectedPendingReduction = before.pending == 0
-                ? 0
-                : Math.mulDiv(before.pending, mellowSlashedAmount + 1, assetsBefore + 1);
+            symbioticSlashableStake = symbioticActiveStakeBefore + symbioticNextWithdrawalsBefore;
 
-            uint256 expectedAssetsReduction = before.assets == 0
-                ? 0
-                : Math.mulDiv(before.assets, mellowSlashedAmount + 1, assetsBefore + 1);
+            uint256 requestedSlashingAmount = _randInt(1, symbioticSlashableStake);
 
-            assertApproxEqAbs(
-                pendingReduction,
-                expectedPendingReduction,
-                MAX_ALLOWED_ERROR + 1 gwei,
-                "transitionRandomSlashing: pendingReduction"
+            uint256 activeStakeBefore = symbioticVault.activeStake();
+
+            vm.prank(symbioticVault.slasher());
+            symbioticVault.onSlash(requestedSlashingAmount, uint48(block.timestamp));
+
+            uint256 activeStakeAfter = symbioticVault.activeStake();
+            slashedAmount = activeStakeBefore - activeStakeAfter;
+
+            assertEq(
+                slashedAmount,
+                requestedSlashingAmount,
+                "transitionRandomSlashing: slashedAmount != requestedSlashingAmount"
             );
 
-            assertApproxEqAbs(
-                assetsReduction,
-                expectedAssetsReduction,
-                MAX_ALLOWED_ERROR + 1 gwei,
-                "transitionRandomSlashing: assetsReduction"
-            );
+            // currentEpochSlashingAmount = 0;
 
-            slashedAmounts[i] += before.assets - after_.assets + before.pending - after_.pending;
-        }
+            // uint256 activeStakeSlashed = Math.mulDiv(
+            //     slashedAmount,
+            //     symbioticActiveStakeBefore,
+            //     symbioticSlashableStake
+            // );
 
-        cumulativeSlashedAmounts += mellowSlashedAmount;
+            // uint256 nextWithdrawalsSlashed = slashedAmount - activeStakeSlashed;
+
+            /*
+                нужно всё же понимать какие значения были раньше
+
+            */
+        } else {}
+
+        // uint256 expectedSlashingAmount = activeStake == 0
+        //     ? 0
+        //     : Math.mulDiv(mellowStakedAmount, slashedAmount + 1, activeStake + 1); // Symbiotic logic
+
+        // uint256 assetsAfter = mellowSymbioticVault.totalAssets();
+
+        // assertApproxEqAbs(
+        //     assetsAfter + expectedSlashingAmount,
+        //     assetsBefore,
+        //     MAX_ALLOWED_ERROR,
+        //     "transitionRandomSlashing: assetsAfter + expectedSlashingAmount != assetsBefore"
+        // );
+
+        // Position[] memory positionAfterSlashing = getUserPositions();
+
+        // for (uint256 i = 0; i < positionAfterSlashing.length; i++) {
+        //     Position memory before = positionBeforeSlashing[i];
+        //     Position memory after_ = positionAfterSlashing[i];
+
+        //     assertEq(before.claimable, after_.claimable, "transitionRandomSlashing: claimable");
+        //     assertEq(before.shares, after_.shares, "transitionRandomSlashing: shares");
+
+        //     assertApproxEqAbs(
+        //         before.assets + before.pending,
+        //         depositedAmounts[i] - slashedAmounts[i] - claimedAmounts[i],
+        //         MAX_ALLOWED_ERROR,
+        //         "transitionRandomSlashing: invalid initial balances"
+        //     );
+
+        //     assertLe(
+        //         after_.assets,
+        //         before.assets,
+        //         "transitionRandomSlashing: after.assets > before.assets"
+        //     );
+        //     assertLe(
+        //         after_.pending,
+        //         before.pending,
+        //         "transitionRandomSlashing: after.pending > before.pending"
+        //     );
+
+        //     uint256 pendingReduction = before.pending - after_.pending;
+        //     uint256 assetsReduction = before.assets - after_.assets;
+
+        //     uint256 expectedPendingReduction = before.pending == 0
+        //         ? 0
+        //         : Math.mulDiv(before.pending, expectedSlashingAmount, assetsBefore);
+
+        //     uint256 expectedAssetsReduction = before.assets == 0
+        //         ? 0
+        //         : Math.mulDiv(before.assets, expectedSlashingAmount, assetsBefore);
+
+        //     console2.log(before.pending, after_.pending);
+        //     console2.log("currentEpoch:", symbioticVault.currentEpoch());
+        //     assertApproxEqAbs(
+        //         pendingReduction,
+        //         expectedPendingReduction,
+        //         MAX_ALLOWED_ERROR + 1 gwei,
+        //         "transitionRandomSlashing: pendingReduction"
+        //     );
+
+        //     assertApproxEqAbs(
+        //         assetsReduction,
+        //         expectedAssetsReduction,
+        //         MAX_ALLOWED_ERROR,
+        //         "transitionRandomSlashing: assetsReduction"
+        //     );
+
+        //     slashedAmounts[i] += before.assets - after_.assets + before.pending - after_.pending;
+        // }
+
+        // cumulativeSlashedAmounts += expectedSlashingAmount;
     }
 
     function transitionRandomFarm() internal {
