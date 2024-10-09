@@ -15,7 +15,6 @@ contract Integration is BaseTest {
     address vaultOwner = makeAddr("vaultOwner");
     address vaultAdmin = makeAddr("vaultAdmin");
     uint48 epochDuration = 3600;
-    address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
 
     uint256 symbioticLimit = 1000 ether;
 
@@ -30,7 +29,7 @@ contract Integration is BaseTest {
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,
                     epochDuration: epochDuration,
-                    asset: wsteth,
+                    asset: Constants.WSTETH(),
                     isDepositLimit: false,
                     depositLimit: symbioticLimit
                 })
@@ -43,7 +42,7 @@ contract Integration is BaseTest {
             IMellowSymbioticVault.InitParams({
                 name: "MellowSymbioticVault",
                 symbol: "MSV",
-                symbioticCollateral: address(wstethSymbioticCollateral),
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 withdrawalQueue: address(withdrawalQueue),
                 admin: admin,
@@ -55,7 +54,7 @@ contract Integration is BaseTest {
         );
 
         address token = withdrawalQueue.symbioticVault().collateral();
-        assertEq(token, wsteth);
+        assertEq(token, Constants.WSTETH());
 
         vm.startPrank(user);
 

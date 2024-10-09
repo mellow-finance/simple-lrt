@@ -43,7 +43,7 @@ contract Integration is BaseTest {
             IMellowSymbioticVault.InitParams({
                 name: "MellowSymbioticVault",
                 symbol: "MSV",
-                symbioticCollateral: address(wstethSymbioticCollateral),
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 withdrawalQueue: address(withdrawalQueue),
                 admin: admin,

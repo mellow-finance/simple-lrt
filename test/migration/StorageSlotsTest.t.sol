@@ -40,6 +40,10 @@ contract Integration is BaseTest {
     MigrationData[] private migrations;
 
     function setUp() external {
+        if (block.chainid != 1) {
+            revert("This test can only be run on the Ethereum mainnet");
+        }
+
         migrations.push(
             MigrationData({
                 defaultBondStrategy: 0x20ad4d9bbbBBeE7d3abA91558a02c17c3387b834,

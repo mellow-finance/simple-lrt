@@ -11,15 +11,12 @@ contract Integration is BaseTest {
     address admin = makeAddr("admin");
     address user = makeAddr("user");
     address limitIncreaser = makeAddr("limitIncreaser");
-    address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
-    address steth = 0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
-    address weth = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
 
     function testIdle() external {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
         IdleVault vault = new IdleVault();
-        address token = wsteth;
+        address token = Constants.WSTETH();
         vault.initialize(
             IIdleVault.InitParams({
                 asset: token,
@@ -33,7 +30,7 @@ contract Integration is BaseTest {
             })
         );
 
-        EthWrapper wrapper = new EthWrapper(weth, wsteth, steth);
+        EthWrapper wrapper = new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
 
         uint256 amount = 0.33 ether;
         uint256 n = 10;
