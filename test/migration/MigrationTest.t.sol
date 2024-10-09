@@ -40,7 +40,7 @@ contract Integration is BaseTest {
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: HOLESKY_WSTETH,
+                asset: Constants.WSTETH(),
                 epochDuration: epochDuration,
                 isDepositLimit: false,
                 depositLimit: 0
@@ -105,7 +105,7 @@ contract Integration is BaseTest {
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: HOLESKY_WSTETH,
+                asset: Constants.WSTETH(),
                 epochDuration: epochDuration,
                 isDepositLimit: false,
                 depositLimit: 0
@@ -148,7 +148,7 @@ contract Integration is BaseTest {
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: HOLESKY_WSTETH,
+                asset: Constants.WSTETH(),
                 epochDuration: epochDuration,
                 isDepositLimit: false,
                 depositLimit: 0
@@ -197,7 +197,7 @@ contract Integration is BaseTest {
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: HOLESKY_WSTETH,
+                asset: Constants.WSTETH(),
                 epochDuration: epochDuration,
                 isDepositLimit: true,
                 depositLimit: 0
@@ -246,7 +246,7 @@ contract Integration is BaseTest {
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: HOLESKY_WSTETH,
+                asset: Constants.WSTETH(),
                 epochDuration: epochDuration,
                 isDepositLimit: true,
                 depositLimit: 0
@@ -298,7 +298,7 @@ contract Integration is BaseTest {
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: HOLESKY_WSTETH,
+                asset: Constants.WSTETH(),
                 epochDuration: epochDuration,
                 isDepositLimit: true,
                 depositLimit: 0
@@ -364,7 +364,7 @@ contract Integration is BaseTest {
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: HOLESKY_WSTETH,
+                asset: Constants.WSTETH(),
                 epochDuration: epochDuration,
                 isDepositLimit: symbioticVaultLimit,
                 depositLimit: 0
@@ -372,7 +372,7 @@ contract Integration is BaseTest {
         );
 
         if (!collateralLimit) {
-            IDefaultCollateral c = IDefaultCollateral(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL);
+            IDefaultCollateral c = IDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
             vm.prank(c.limitIncreaser());
             c.increaseLimit(1e6 ether);
         }
@@ -419,8 +419,8 @@ contract Integration is BaseTest {
         MellowVaultCompat(mellowLRT).withdraw(10 gwei, deployer, deployer);
 
         if (withDeposit) {
-            deal(HOLESKY_WSTETH, deployer, 1 ether);
-            IERC20(HOLESKY_WSTETH).approve(address(mellowLRT), 1 ether);
+            deal(Constants.WSTETH(), deployer, 1 ether);
+            IERC20(Constants.WSTETH()).approve(address(mellowLRT), 1 ether);
             MellowVaultCompat(mellowLRT).deposit(1 ether, deployer);
         }
 
@@ -439,7 +439,7 @@ contract Integration is BaseTest {
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: HOLESKY_WSTETH,
+                asset: Constants.WSTETH(),
                 epochDuration: epochDuration,
                 isDepositLimit: false,
                 depositLimit: 0
@@ -484,7 +484,7 @@ contract Integration is BaseTest {
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: HOLESKY_WSTETH,
+                asset: Constants.WSTETH(),
                 epochDuration: epochDuration,
                 isDepositLimit: false,
                 depositLimit: 0
@@ -537,7 +537,7 @@ contract Integration is BaseTest {
             SymbioticHelper.CreationParams({
                 vaultOwner: symbioticVaultOwner,
                 vaultAdmin: symbioticVaultOwner,
-                asset: HOLESKY_WSTETH,
+                asset: Constants.WSTETH(),
                 epochDuration: epochDuration,
                 isDepositLimit: false,
                 depositLimit: 0

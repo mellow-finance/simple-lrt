@@ -6,10 +6,11 @@ import "../BaseTest.sol";
 contract Unit is BaseTest {
     function testConstructor() external {
         {
-            EthWrapper ethWrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_WSTETH, HOLESKY_STETH);
-            assertEq(ethWrapper.WETH(), HOLESKY_WETH);
-            assertEq(ethWrapper.wstETH(), HOLESKY_WSTETH);
-            assertEq(ethWrapper.stETH(), HOLESKY_STETH);
+            EthWrapper ethWrapper =
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
+            assertEq(ethWrapper.WETH(), Constants.WETH());
+            assertEq(ethWrapper.wstETH(), Constants.WSTETH());
+            assertEq(ethWrapper.stETH(), Constants.WSTETH());
         }
 
         // zero params
@@ -23,12 +24,13 @@ contract Unit is BaseTest {
 
     function testEthDeposit() external {
         {
-            EthWrapper ethWrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_WSTETH, HOLESKY_STETH);
+            EthWrapper ethWrapper =
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
 
             address user = makeAddr("user");
 
             IdleVault vault = new IdleVault();
-            address token = HOLESKY_WSTETH;
+            address token = Constants.WSTETH();
             vault.initialize(
                 IIdleVault.InitParams({
                     asset: token,
@@ -60,25 +62,26 @@ contract Unit is BaseTest {
 
             vm.expectRevert();
             ethWrapper.deposit{value: amount}(
-                HOLESKY_WETH, amount, address(vault), user, address(0)
+                Constants.WETH(), amount, address(vault), user, address(0)
             );
 
             ethWrapper.deposit{value: amount}(eth, amount, address(vault), user, address(0));
 
             assertApproxEqAbs(
-                vault.balanceOf(user), IWSTETH(HOLESKY_WSTETH).getWstETHByStETH(amount), 1 wei
+                vault.balanceOf(user), IWSTETH(Constants.WSTETH()).getWstETHByStETH(amount), 1 wei
             );
 
             vm.stopPrank();
         }
 
         {
-            EthWrapper ethWrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_WSTETH, HOLESKY_STETH);
+            EthWrapper ethWrapper =
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
 
             address user = makeAddr("user");
 
             IdleVault vault = new IdleVault();
-            address token = HOLESKY_WSTETH;
+            address token = Constants.WSTETH();
             vault.initialize(
                 IIdleVault.InitParams({
                     asset: token,
@@ -107,12 +110,13 @@ contract Unit is BaseTest {
 
     function testWethDeposit() external {
         {
-            EthWrapper ethWrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_WSTETH, HOLESKY_STETH);
+            EthWrapper ethWrapper =
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
 
             address user = makeAddr("user");
 
             IdleVault vault = new IdleVault();
-            address token = HOLESKY_WSTETH;
+            address token = Constants.WSTETH();
             vault.initialize(
                 IIdleVault.InitParams({
                     asset: token,
@@ -129,25 +133,26 @@ contract Unit is BaseTest {
             vm.startPrank(user);
 
             uint256 amount = 0.1 ether;
-            deal(HOLESKY_WETH, user, amount);
+            deal(Constants.WETH(), user, amount);
 
-            IERC20(HOLESKY_WETH).approve(address(ethWrapper), amount);
-            ethWrapper.deposit(HOLESKY_WETH, amount, address(vault), user, address(0));
+            IERC20(Constants.WETH()).approve(address(ethWrapper), amount);
+            ethWrapper.deposit(Constants.WETH(), amount, address(vault), user, address(0));
 
             assertApproxEqAbs(
-                vault.balanceOf(user), IWSTETH(HOLESKY_WSTETH).getWstETHByStETH(amount), 1 wei
+                vault.balanceOf(user), IWSTETH(Constants.WSTETH()).getWstETHByStETH(amount), 1 wei
             );
 
             vm.stopPrank();
         }
 
         {
-            EthWrapper ethWrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_WSTETH, HOLESKY_STETH);
+            EthWrapper ethWrapper =
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
 
             address user = makeAddr("user");
 
             IdleVault vault = new IdleVault();
-            address token = HOLESKY_WSTETH;
+            address token = Constants.WSTETH();
             vault.initialize(
                 IIdleVault.InitParams({
                     asset: token,
@@ -164,23 +169,25 @@ contract Unit is BaseTest {
             vm.startPrank(user);
 
             uint256 amount = 1e10 ether;
-            deal(HOLESKY_WETH, user, amount);
+            deal(Constants.WETH(), user, amount);
 
-            IERC20(HOLESKY_WETH).approve(address(ethWrapper), amount);
+            IERC20(Constants.WETH()).approve(address(ethWrapper), amount);
             vm.expectRevert();
-            ethWrapper.deposit(HOLESKY_WETH, amount, address(vault), user, address(0));
+            ethWrapper.deposit(Constants.WETH(), amount, address(vault), user, address(0));
 
             vm.stopPrank();
         }
 
         {
-            EthWrapper oldWrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_WSTETH, HOLESKY_STETH);
-            EthWrapper ethWrapper = new EthWrapper(HOLESKY_WETH, address(oldWrapper), HOLESKY_STETH);
+            EthWrapper oldWrapper =
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
+            EthWrapper ethWrapper =
+                new EthWrapper(Constants.WETH(), address(oldWrapper), Constants.WSTETH());
 
             address user = makeAddr("user");
 
             IdleVault vault = new IdleVault();
-            address token = HOLESKY_WSTETH;
+            address token = Constants.WSTETH();
             vault.initialize(
                 IIdleVault.InitParams({
                     asset: token,
@@ -197,22 +204,23 @@ contract Unit is BaseTest {
             vm.startPrank(user);
 
             uint256 amount = 1 ether;
-            deal(HOLESKY_WETH, user, amount);
+            deal(Constants.WETH(), user, amount);
 
-            IERC20(HOLESKY_WETH).approve(address(ethWrapper), amount);
+            IERC20(Constants.WETH()).approve(address(ethWrapper), amount);
             vm.expectRevert();
-            ethWrapper.deposit(HOLESKY_WETH, amount, address(vault), user, address(0));
+            ethWrapper.deposit(Constants.WETH(), amount, address(vault), user, address(0));
 
             vm.stopPrank();
         }
 
         {
-            EthWrapper ethWrapper = new EthWrapper(address(0), HOLESKY_WSTETH, HOLESKY_STETH);
+            EthWrapper ethWrapper =
+                new EthWrapper(address(0), Constants.WSTETH(), Constants.WSTETH());
 
             address user = makeAddr("user");
 
             IdleVault vault = new IdleVault();
-            address token = HOLESKY_WSTETH;
+            address token = Constants.WSTETH();
             vault.initialize(
                 IIdleVault.InitParams({
                     asset: token,
@@ -229,9 +237,9 @@ contract Unit is BaseTest {
             vm.startPrank(user);
 
             uint256 amount = 0.1 ether;
-            deal(HOLESKY_WETH, user, amount);
+            deal(Constants.WETH(), user, amount);
 
-            IERC20(HOLESKY_WETH).approve(address(ethWrapper), amount);
+            IERC20(Constants.WETH()).approve(address(ethWrapper), amount);
 
             vm.expectRevert();
             ethWrapper.deposit(address(0), amount, address(vault), user, address(0));
@@ -240,12 +248,13 @@ contract Unit is BaseTest {
     }
 
     function testWstethDeposit() external {
-        EthWrapper ethWrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_WSTETH, HOLESKY_STETH);
+        EthWrapper ethWrapper =
+            new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
 
         address user = makeAddr("user");
 
         IdleVault vault = new IdleVault();
-        address token = HOLESKY_WSTETH;
+        address token = Constants.WSTETH();
         vault.initialize(
             IIdleVault.InitParams({
                 asset: token,
@@ -262,10 +271,10 @@ contract Unit is BaseTest {
         vm.startPrank(user);
 
         uint256 amount = 0.1 ether;
-        deal(HOLESKY_WSTETH, user, amount);
+        deal(Constants.WSTETH(), user, amount);
 
-        IERC20(HOLESKY_WSTETH).approve(address(ethWrapper), amount);
-        ethWrapper.deposit(HOLESKY_WSTETH, amount, address(vault), user, address(0));
+        IERC20(Constants.WSTETH()).approve(address(ethWrapper), amount);
+        ethWrapper.deposit(Constants.WSTETH(), amount, address(vault), user, address(0));
 
         assertApproxEqAbs(vault.balanceOf(user), amount, 1 wei);
 
@@ -274,12 +283,13 @@ contract Unit is BaseTest {
 
     function testStethDeposit() external {
         {
-            EthWrapper ethWrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_WSTETH, HOLESKY_STETH);
+            EthWrapper ethWrapper =
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
 
             address user = makeAddr("user");
 
             IdleVault vault = new IdleVault();
-            address token = HOLESKY_WSTETH;
+            address token = Constants.WSTETH();
             vault.initialize(
                 IIdleVault.InitParams({
                     asset: token,
@@ -298,25 +308,26 @@ contract Unit is BaseTest {
             uint256 amount = 0.1 ether;
             deal(user, amount);
 
-            ISTETH(HOLESKY_STETH).submit{value: amount}(address(0));
-            IERC20(HOLESKY_STETH).approve(address(address(ethWrapper)), amount);
+            ISTETH(Constants.WSTETH()).submit{value: amount}(address(0));
+            IERC20(Constants.WSTETH()).approve(address(address(ethWrapper)), amount);
 
-            ethWrapper.deposit(HOLESKY_STETH, amount, address(vault), user, address(0));
+            ethWrapper.deposit(Constants.WSTETH(), amount, address(vault), user, address(0));
 
             assertApproxEqAbs(
-                vault.balanceOf(user), IWSTETH(HOLESKY_WSTETH).getWstETHByStETH(amount), 1 wei
+                vault.balanceOf(user), IWSTETH(Constants.WSTETH()).getWstETHByStETH(amount), 1 wei
             );
 
             vm.stopPrank();
         }
 
         {
-            EthWrapper ethWrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_STETH, HOLESKY_STETH);
+            EthWrapper ethWrapper =
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
 
             address user = makeAddr("user");
 
             IdleVault vault = new IdleVault();
-            address token = HOLESKY_WSTETH;
+            address token = Constants.WSTETH();
             vault.initialize(
                 IIdleVault.InitParams({
                     asset: token,
@@ -335,11 +346,11 @@ contract Unit is BaseTest {
             uint256 amount = 0.1 ether;
             deal(user, amount);
 
-            ISTETH(HOLESKY_STETH).submit{value: amount}(address(0));
-            IERC20(HOLESKY_STETH).approve(address(address(ethWrapper)), amount);
+            ISTETH(Constants.WSTETH()).submit{value: amount}(address(0));
+            IERC20(Constants.WSTETH()).approve(address(address(ethWrapper)), amount);
 
             vm.expectRevert();
-            ethWrapper.deposit(HOLESKY_STETH, amount, address(vault), user, address(0));
+            ethWrapper.deposit(Constants.WSTETH(), amount, address(vault), user, address(0));
 
             vm.stopPrank();
         }

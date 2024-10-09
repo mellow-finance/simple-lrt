@@ -6,7 +6,7 @@
   "scripts": {
     "prettier": "forge fmt",
     "test": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2219400",
-    "test:solvency": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2219400 --match-test testSolvencyAllTransitions",
+    "test:solvency": "forge test -vv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2219400 --match-path test/solvency\\**.sol",
     "test:migrations:mainnet": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20760000 --match-test testMigrations",
     "compile": "forge build",
     "sizes": "forge build --sizes --force",

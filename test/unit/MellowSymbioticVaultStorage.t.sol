@@ -46,7 +46,7 @@ contract Unit is BaseTest {
 
         vm.recordLogs();
         c.initializeMellowSymbioticVaultStorage(
-            address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+            address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
             address(symbioticVault),
             mockWithdrawalQueue
         );
@@ -68,7 +68,7 @@ contract Unit is BaseTest {
 
         assertEq(address(c.withdrawalQueue()), mockWithdrawalQueue);
         assertEq(address(c.symbioticVault()), address(symbioticVault));
-        assertEq(address(c.symbioticCollateral()), address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL));
+        assertEq(address(c.symbioticCollateral()), address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()));
         assertEq(c.symbioticFarmIds().length, 0);
         assertEq(c.symbioticFarmCount(), 0);
 
@@ -83,7 +83,9 @@ contract Unit is BaseTest {
         address mockSymbioticVault = makeAddr("mockSymbioticVault");
         address mockWithdrawalQueue = makeAddr("mockWithdrawalQueue");
         c.initializeMellowSymbioticVaultStorage(
-            address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL), mockSymbioticVault, mockWithdrawalQueue
+            address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
+            mockSymbioticVault,
+            mockWithdrawalQueue
         );
 
         address rewardToken1 = makeAddr("rewardToken1");

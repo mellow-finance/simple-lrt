@@ -16,7 +16,7 @@ contract Integration is BaseTest {
         require(block.chainid == 17000, "This test can only be run on the Holesky testnet");
 
         IdleVault vault = new IdleVault();
-        address token = HOLESKY_WSTETH;
+        address token = Constants.WSTETH();
         vault.initialize(
             IIdleVault.InitParams({
                 asset: token,
@@ -30,7 +30,7 @@ contract Integration is BaseTest {
             })
         );
 
-        EthWrapper wrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_WSTETH, HOLESKY_STETH);
+        EthWrapper wrapper = new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
 
         uint256 amount = 0.33 ether;
         uint256 n = 10;

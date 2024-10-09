@@ -29,7 +29,7 @@ contract Integration is BaseTest {
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,
                     epochDuration: epochDuration,
-                    asset: HOLESKY_WSTETH,
+                    asset: Constants.WSTETH(),
                     isDepositLimit: false,
                     depositLimit: symbioticLimit
                 })
@@ -42,7 +42,7 @@ contract Integration is BaseTest {
             IMellowSymbioticVault.InitParams({
                 name: "MellowSymbioticVault",
                 symbol: "MSV",
-                symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 withdrawalQueue: address(withdrawalQueue),
                 admin: admin,
@@ -54,7 +54,7 @@ contract Integration is BaseTest {
         );
 
         address token = withdrawalQueue.symbioticVault().collateral();
-        assertEq(token, HOLESKY_WSTETH);
+        assertEq(token, Constants.WSTETH());
 
         vm.startPrank(user);
 

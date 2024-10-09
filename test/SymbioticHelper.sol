@@ -24,6 +24,11 @@ import {Vault} from "@symbiotic/core/contracts/vault/Vault.sol";
 import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
+import {DefaultStakerRewards} from
+    "@symbiotic/rewards/contracts/defaultStakerRewards/DefaultStakerRewards.sol";
+import {IDefaultStakerRewards} from
+    "@symbiotic/rewards/interfaces/defaultStakerRewards/IDefaultStakerRewards.sol";
+
 contract SymbioticHelper {
     struct SymbioticDeployment {
         address networkRegistry;

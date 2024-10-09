@@ -24,7 +24,7 @@ contract Unit is BaseTest {
     address vaultAdmin = makeAddr("vaultAdmin");
 
     function setUp() external {
-        shrinkDefaultCollateralLimit(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL);
+        shrinkDefaultCollateralLimit(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
     }
 
     function _defaultDeploy()
@@ -50,7 +50,7 @@ contract Unit is BaseTest {
                 new SymbioticWithdrawalQueue(address(mellowSymbioticVault), address(symbioticVault))
             ),
             limit: vaultLimit,
-            symbioticCollateral: HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL,
+            symbioticCollateral: Constants.WSTETH_SYMBIOTIC_COLLATERAL(),
             symbioticVault: address(symbioticVault),
             admin: makeAddr("vaultAdmin"),
             depositPause: false,
@@ -85,7 +85,7 @@ contract Unit is BaseTest {
                 new SymbioticWithdrawalQueue(address(mellowSymbioticVault), address(symbioticVault))
             ),
             limit: vaultLimit,
-            symbioticCollateral: HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL,
+            symbioticCollateral: Constants.WSTETH_SYMBIOTIC_COLLATERAL(),
             symbioticVault: address(symbioticVault),
             admin: makeAddr("vaultAdmin"),
             depositPause: false,
@@ -272,18 +272,18 @@ contract Unit is BaseTest {
         assertEq(c.totalAssets(), 0);
         deal(wsteth, address(c), 1 ether);
         assertEq(c.totalAssets(), 1 ether);
-        deal(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL, address(c), 1 ether);
+        deal(Constants.WSTETH_SYMBIOTIC_COLLATERAL(), address(c), 1 ether);
         assertEq(c.totalAssets(), 2 ether);
 
         c.pushIntoSymbiotic();
 
         assertEq(IERC20(wsteth).balanceOf(address(c)), 0 ether);
-        assertEq(IERC20(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL).balanceOf(address(c)), 0 ether);
+        assertEq(IERC20(Constants.WSTETH_SYMBIOTIC_COLLATERAL()).balanceOf(address(c)), 0 ether);
         assertEq(c.totalAssets(), 2 ether);
 
         deal(wsteth, address(c), 1 ether);
         assertEq(c.totalAssets(), 3 ether);
-        deal(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL, address(c), 1 ether);
+        deal(Constants.WSTETH_SYMBIOTIC_COLLATERAL(), address(c), 1 ether);
         assertEq(c.totalAssets(), 4 ether);
     }
 
@@ -310,7 +310,7 @@ contract Unit is BaseTest {
         assertEq(IERC20(wsteth).balanceOf(address(c)), 0, "Incorrect wsteth balance of the vault");
 
         assertEq(
-            IERC20(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL).balanceOf(address(c)),
+            IERC20(Constants.WSTETH_SYMBIOTIC_COLLATERAL()).balanceOf(address(c)),
             0,
             "Incorrect wsteth DefaultCollateral balance of the vault"
         );
@@ -406,7 +406,7 @@ contract Unit is BaseTest {
                 IMellowSymbioticVaultFactory.InitParams({
                     proxyAdmin: vaultProxyAdmin,
                     limit: vaultLimit,
-                    symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                    symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                     symbioticVault: address(symbioticVault),
                     admin: vaultAdmin,
                     depositPause: false,
@@ -417,7 +417,6 @@ contract Unit is BaseTest {
                 })
             );
 
-            address user = makeAddr("user");
             {
                 vm.startPrank(user);
                 uint256 amount = 200 ether;
@@ -427,7 +426,7 @@ contract Unit is BaseTest {
                 vm.stopPrank();
             }
 
-            IDefaultCollateral c = IDefaultCollateral(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL);
+            IDefaultCollateral c = IDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
             vm.prank(c.limitIncreaser());
             c.increaseLimit(50 ether);
 
@@ -463,7 +462,7 @@ contract Unit is BaseTest {
                 IMellowSymbioticVaultFactory.InitParams({
                     proxyAdmin: vaultProxyAdmin,
                     limit: vaultLimit,
-                    symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                    symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                     symbioticVault: address(symbioticVault),
                     admin: vaultAdmin,
                     depositPause: false,
@@ -488,7 +487,7 @@ contract Unit is BaseTest {
                 vm.stopPrank();
             }
 
-            IDefaultCollateral c = IDefaultCollateral(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL);
+            IDefaultCollateral c = IDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
             vm.prank(c.limitIncreaser());
             c.increaseLimit(50 ether);
 
@@ -525,7 +524,7 @@ contract Unit is BaseTest {
                 IMellowSymbioticVaultFactory.InitParams({
                     proxyAdmin: vaultProxyAdmin,
                     limit: vaultLimit,
-                    symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                    symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                     symbioticVault: address(symbioticVault),
                     admin: vaultAdmin,
                     depositPause: false,
@@ -545,7 +544,7 @@ contract Unit is BaseTest {
                 vm.stopPrank();
             }
 
-            IDefaultCollateral c = IDefaultCollateral(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL);
+            IDefaultCollateral c = IDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
             vm.prank(c.limitIncreaser());
             c.increaseLimit(50 ether);
 
@@ -612,7 +611,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
-                symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -628,7 +627,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVault.InitParams({
                 withdrawalQueue: address(withdrawalQueue),
                 limit: vaultLimit,
-                symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -708,7 +707,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
-                symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -765,7 +764,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
-                symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -877,7 +876,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
-                symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -997,7 +996,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
-                symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -1027,7 +1026,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
-                symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -1077,7 +1076,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: vaultProxyAdmin,
                 limit: vaultLimit,
-                symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: vaultAdmin,
                 depositPause: false,
@@ -1210,7 +1209,7 @@ contract Unit is BaseTest {
             vm.stopPrank();
         }
 
-        IDefaultCollateral c = IDefaultCollateral(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL);
+        IDefaultCollateral c = IDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
         assertEq(c.limit(), c.totalSupply());
 
         (uint256 collateralWithdrawal, uint256 collateralDeposit, uint256 vaultDeposit) =
@@ -1235,7 +1234,7 @@ contract Unit is BaseTest {
             vm.stopPrank();
         }
 
-        IDefaultCollateral c = IDefaultCollateral(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL);
+        IDefaultCollateral c = IDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
         assertEq(c.limit(), c.totalSupply());
 
         vm.prank(c.limitIncreaser());
@@ -1266,7 +1265,7 @@ contract Unit is BaseTest {
         vm.prank(symbioticVaultAdmin);
         symbioticVault.setIsDepositLimit(false);
 
-        IDefaultCollateral c = IDefaultCollateral(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL);
+        IDefaultCollateral c = IDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
         assertEq(c.limit(), c.totalSupply());
 
         (uint256 collateralWithdrawal, uint256 collateralDeposit, uint256 vaultDeposit) =
@@ -1282,7 +1281,7 @@ contract Unit is BaseTest {
     function testDepositExt101() external {
         (MockMellowSymbioticVaultExt vault, ISymbioticVault symbioticVault) = _extDeploy();
 
-        IDefaultCollateral c = IDefaultCollateral(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL);
+        IDefaultCollateral c = IDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
         assertEq(c.limit(), c.totalSupply());
 
         vm.prank(c.limitIncreaser());
@@ -1313,7 +1312,7 @@ contract Unit is BaseTest {
     function testDepositExt011() external {
         (MockMellowSymbioticVaultExt vault, ISymbioticVault symbioticVault) = _extDeploy();
 
-        IDefaultCollateral c = IDefaultCollateral(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL);
+        IDefaultCollateral c = IDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
         assertEq(c.limit(), c.totalSupply());
 
         {

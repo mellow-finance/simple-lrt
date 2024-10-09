@@ -31,7 +31,7 @@ contract Integration is BaseTest {
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,
                     epochDuration: epochDuration,
-                    asset: HOLESKY_WSTETH,
+                    asset: Constants.WSTETH(),
                     isDepositLimit: false,
                     depositLimit: symbioticLimit
                 })
@@ -43,7 +43,7 @@ contract Integration is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 100 ether,
-                symbioticCollateral: address(HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL),
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -56,21 +56,25 @@ contract Integration is BaseTest {
 
         address token =
             SymbioticWithdrawalQueue(address(withdrawalQueue)).symbioticVault().collateral();
-        assertEq(token, HOLESKY_WSTETH);
+        assertEq(token, Constants.WSTETH());
 
         vm.startPrank(user);
 
         uint256 amount = 0.5 ether;
         uint256 n = 25;
 
-        EthWrapper wrapper = new EthWrapper(HOLESKY_WETH, HOLESKY_WSTETH, HOLESKY_STETH);
+        EthWrapper wrapper = new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
 
         deal(token, user, amount * n);
         IERC20(token).approve(address(wrapper), amount * n);
 
         for (uint256 i = 0; i < n; i++) {
             wrapper.deposit(
-                HOLESKY_WSTETH, amount, address(mellowSymbioticVault), user, makeAddr("referrer")
+                Constants.WSTETH(),
+                amount,
+                address(mellowSymbioticVault),
+                user,
+                makeAddr("referrer")
             );
         }
         for (uint256 i = 0; i < n; i++) {
