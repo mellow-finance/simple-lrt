@@ -66,6 +66,20 @@ contract AcceptanceMigrationRunner is CommonBase {
         function previewMint(uint256 shares) public view virtual returns (uint256);
         function previewWithdraw(uint256 assets) public view virtual returns (uint256);
         function previewRedeem(uint256 shares) public view virtual returns (uint256);
+
+        SymbioticWithdrawalQueue view functions:
+        function vault() external view returns (address);
+        function symbioticVault() external view returns (ISymbioticVault);
+        function collateral() external view returns (address);
+        function getCurrentEpoch() public view returns (uint256);
+        function getAccountData(address account);
+        function getEpochData(uint256 epoch) external view returns (EpochData memory);
+        function pendingAssets() public view returns (uint256);
+        function balanceOf(address account) public view returns (uint256);
+        function pendingAssetsOf(address account) public view returns (uint256 assets);
+        function claimableAssetsOf(address account) public view returns (uint256 assets);
+    }
+
     */
 
     function runAcceptance(
@@ -80,6 +94,7 @@ contract AcceptanceMigrationRunner is CommonBase {
         runVaultControlStorageTest(vault, deployParams, testParams);
         runAccessControlEnumerableUpgradeableTest(vault, deployParams, testParams);
         runERC4626UpgradeableTest(vault, deployParams, testParams);
+        runSymbioticWithdrawalQueueTest(vault, deployParams, testParams);
 
         runPermissionsTest(vault, deployParams, testParams);
         runValuesTest(vault, deployParams, testParams);
@@ -539,6 +554,124 @@ contract AcceptanceMigrationRunner is CommonBase {
             vault.previewRedeem(amount) == Math.mulDiv(amount, totalAssets + 1, totalSupply + 1),
             "runERC4626UpgradeableTest: previewRedeem should be calculated correctly"
         );
+    }
+
+    function runSymbioticWithdrawalQueueTest(
+        MellowVaultCompat vault,
+        MigrationDeploy.MigrationDeployParams memory deployParams,
+        TestParams memory testParams
+    ) public view {
+        // SymbioticWithdrawalQueue view functions:
+        // function vault() external view returns (address);
+        // function symbioticVault() external view returns (ISymbioticVault);
+        // function collateral() external view returns (address);
+        // function getCurrentEpoch() public view returns (uint256);
+        // function getAccountData(address account);
+        // function getEpochData(uint256 epoch) external view returns (EpochData memory);
+        // function pendingAssets() public view returns (uint256);
+        // function balanceOf(address account) public view returns (uint256);
+        // function pendingAssetsOf(address account) public view returns (uint256 assets);
+        // function claimableAssetsOf(address account) public view returns (uint256 assets);
+
+        SymbioticWithdrawalQueue queue = SymbioticWithdrawalQueue(address(vault.withdrawalQueue()));
+
+        require(
+            queue.vault() == address(vault),
+            "runSymbioticWithdrawalQueueTest: Vault should be set correctly"
+        );
+
+        require(
+            queue.symbioticVault() == vault.symbioticVault(),
+            "runSymbioticWithdrawalQueueTest: Symbiotic vault should be set correctly"
+        );
+
+        require(
+            queue.collateral() == vault.asset(),
+            "runSymbioticWithdrawalQueueTest: Collateral should be set correctly"
+        );
+
+        require(
+            queue.getCurrentEpoch() == vault.symbioticVault().currentEpoch(),
+            "runSymbioticWithdrawalQueueTest: Current epoch should be set correctly"
+        );
+
+        address account = address(vault);
+        (
+            uint256 sharesToClaimPrev,
+            uint256 sharesToClaim,
+            uint256 claimableAssets,
+            uint256 claimEpoch
+        ) = queue.getAccountData(account);
+
+        require(
+            sharesToClaimPrev == 0, "runSymbioticWithdrawalQueueTest: sharesToClaimPrev should be 0"
+        );
+        require(sharesToClaim == 0, "runSymbioticWithdrawalQueueTest: sharesToClaim should be 0");
+        require(
+            claimableAssets == 0, "runSymbioticWithdrawalQueueTest: claimableAssets should be 0"
+        );
+        require(claimEpoch == 0, "runSymbioticWithdrawalQueueTest: claimEpoch should be 0");
+
+        if (testParams.isDuringDeployment) {
+            {
+                ISymbioticWithdrawalQueue.EpochData memory epochData =
+                    queue.getEpochData(queue.getCurrentEpoch());
+
+                require(
+                    epochData.isClaimed == false,
+                    "runSymbioticWithdrawalQueueTest: EpochData.isClaimed should be false"
+                );
+
+                require(
+                    epochData.sharesToClaim == 0,
+                    "runSymbioticWithdrawalQueueTest: EpochData.sharesToClaim should be 0"
+                );
+
+                require(
+                    epochData.claimableAssets == 0,
+                    "runSymbioticWithdrawalQueueTest: EpochData.claimableAssets should be 0"
+                );
+            }
+
+            {
+                ISymbioticWithdrawalQueue.EpochData memory epochData = queue.getEpochData(0);
+
+                require(
+                    epochData.isClaimed == false,
+                    "runSymbioticWithdrawalQueueTest: EpochData.isClaimed should be false"
+                );
+
+                require(
+                    epochData.sharesToClaim == 0,
+                    "runSymbioticWithdrawalQueueTest: EpochData.sharesToClaim should be 0"
+                );
+
+                require(
+                    epochData.claimableAssets == 0,
+                    "runSymbioticWithdrawalQueueTest: EpochData.claimableAssets should be 0"
+                );
+            }
+
+            require(
+                queue.pendingAssets() == 0,
+                "runSymbioticWithdrawalQueueTest: pendingAssets should be 0"
+            );
+
+            require(
+                queue.balanceOf(address(vault)) == 0,
+                "runSymbioticWithdrawalQueueTest: balanceOf should be 0"
+            );
+
+            require(
+                queue.pendingAssetsOf(address(vault)) == 0,
+                "runSymbioticWithdrawalQueueTest: balanceOf should be 0"
+            );
+
+            require(
+                queue.claimableAssetsOf(address(vault)) == 0,
+                "runSymbioticWithdrawalQueueTest: balanceOf should be 0"
+            );
+        }
     }
 
     function runPermissionsTest(
