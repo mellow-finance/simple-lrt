@@ -21,15 +21,15 @@ contract AcceptanceFactoryRunner is CommonBase {
         FactoryDeploy.FactoryDeployParams memory deployParams
     ) public view {
         bytes32[9] memory roles = [
-            FactoryDeploy.SET_FARM_ROLE,
-            FactoryDeploy.SET_LIMIT_ROLE,
-            FactoryDeploy.PAUSE_WITHDRAWALS_ROLE,
-            FactoryDeploy.UNPAUSE_WITHDRAWALS_ROLE,
-            FactoryDeploy.PAUSE_DEPOSITS_ROLE,
-            FactoryDeploy.UNPAUSE_DEPOSITS_ROLE,
-            FactoryDeploy.SET_DEPOSIT_WHITELIST_ROLE,
-            FactoryDeploy.SET_DEPOSITOR_WHITELIST_STATUS_ROLE,
-            FactoryDeploy.DEFAULT_ADMIN_ROLE
+            Permissions.SET_FARM_ROLE,
+            Permissions.SET_LIMIT_ROLE,
+            Permissions.PAUSE_WITHDRAWALS_ROLE,
+            Permissions.UNPAUSE_WITHDRAWALS_ROLE,
+            Permissions.PAUSE_DEPOSITS_ROLE,
+            Permissions.UNPAUSE_DEPOSITS_ROLE,
+            Permissions.SET_DEPOSIT_WHITELIST_ROLE,
+            Permissions.SET_DEPOSITOR_WHITELIST_STATUS_ROLE,
+            Permissions.DEFAULT_ADMIN_ROLE
         ];
 
         address[9] memory expectedHolders = [
@@ -45,7 +45,7 @@ contract AcceptanceFactoryRunner is CommonBase {
         ];
 
         require(
-            vault.getRoleMemberCount(FactoryDeploy.DEFAULT_ADMIN_ROLE) == 1,
+            vault.getRoleMemberCount(Permissions.DEFAULT_ADMIN_ROLE) == 1,
             "Default admin should be set"
         );
 

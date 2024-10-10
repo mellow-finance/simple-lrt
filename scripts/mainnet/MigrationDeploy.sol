@@ -8,14 +8,10 @@ import "../../src/MellowSymbioticVaultFactory.sol";
 import "../../src/Migrator.sol";
 import "../../src/VaultControl.sol";
 
-/*
-    this is a test script, all actions will be processed on behalf of permissioned accounts.
-*/
+import "./Permissions.sol";
+
+/// @notice this is a test script, all actions will be processed on behalf of permissioned accounts.
 library MigrationDeploy {
-    bytes32 public constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
-    bytes32 public constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
-    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
- 
     struct MigrationDeployParams {
         address migrator;
         address migratorAdmin;
@@ -30,9 +26,6 @@ library MigrationDeploy {
         address proxyAdmin;
         address proxyAdminOwner;
         address symbioticVault;
-
-        address setFarmRoleHoler;
-        address setLimitRoleHolder;
     }
 
     function commonDeploy(MigrationDeployParams memory $) public returns (MigrationDeployParams memory) {
