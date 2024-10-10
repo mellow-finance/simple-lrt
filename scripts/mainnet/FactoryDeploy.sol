@@ -7,19 +7,9 @@ import "../../src/MellowSymbioticVaultFactory.sol";
 import "../../src/Migrator.sol";
 import "../../src/VaultControl.sol";
 
+import "./Permissions.sol";
+
 library FactoryDeploy {
-    bytes32 public constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
-    bytes32 public constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
-    bytes32 public constant PAUSE_WITHDRAWALS_ROLE = keccak256("PAUSE_WITHDRAWALS_ROLE");
-    bytes32 public constant UNPAUSE_WITHDRAWALS_ROLE = keccak256("UNPAUSE_WITHDRAWALS_ROLE");
-    bytes32 public constant PAUSE_DEPOSITS_ROLE = keccak256("PAUSE_DEPOSITS_ROLE");
-    bytes32 public constant UNPAUSE_DEPOSITS_ROLE = keccak256("UNPAUSE_DEPOSITS_ROLE");
-    bytes32 public constant SET_DEPOSIT_WHITELIST_ROLE = keccak256("SET_DEPOSIT_WHITELIST_ROLE");
-    bytes32 public constant SET_DEPOSITOR_WHITELIST_STATUS_ROLE =
-        keccak256("SET_DEPOSITOR_WHITELIST_STATUS_ROLE");
-
-    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
-
     struct FactoryDeployParams {
         address factory;
         bytes32 singletonName;
@@ -62,16 +52,16 @@ library FactoryDeploy {
         $.initParams.admin = address(this);
         
         (IMellowSymbioticVault vault, ) = MellowSymbioticVaultFactory($.factory).create($.initParams);
-        _grantRole(address(vault), SET_FARM_ROLE, $.setFarmRoleHoler);
-        _grantRole(address(vault), SET_LIMIT_ROLE, $.setLimitRoleHolder);
-        _grantRole(address(vault), PAUSE_WITHDRAWALS_ROLE, $.pauseWithdrawalsRoleHolder);
-        _grantRole(address(vault), UNPAUSE_WITHDRAWALS_ROLE, $.unpauseWithdrawalsRoleHolder);
-        _grantRole(address(vault), PAUSE_DEPOSITS_ROLE, $.pauseDepositsRoleHolder);
-        _grantRole(address(vault), UNPAUSE_DEPOSITS_ROLE, $.unpauseDepositsRoleHolder);
-        _grantRole(address(vault), SET_DEPOSIT_WHITELIST_ROLE, $.setDepositWhitelistRoleHolder);
-        _grantRole(address(vault), SET_DEPOSITOR_WHITELIST_STATUS_ROLE, $.setDepositorWhitelistStatusRoleHolder);
-        _grantRole(address(vault), DEFAULT_ADMIN_ROLE, admin);
-        VaultControl(address(vault)).renounceRole(DEFAULT_ADMIN_ROLE, $.initParams.admin);
+        _grantRole(address(vault), Permissions.SET_FARM_ROLE, $.setFarmRoleHoler);
+        _grantRole(address(vault), Permissions.SET_LIMIT_ROLE, $.setLimitRoleHolder);
+        _grantRole(address(vault), Permissions.PAUSE_WITHDRAWALS_ROLE, $.pauseWithdrawalsRoleHolder);
+        _grantRole(address(vault), Permissions.UNPAUSE_WITHDRAWALS_ROLE, $.unpauseWithdrawalsRoleHolder);
+        _grantRole(address(vault), Permissions.PAUSE_DEPOSITS_ROLE, $.pauseDepositsRoleHolder);
+        _grantRole(address(vault), Permissions.UNPAUSE_DEPOSITS_ROLE, $.unpauseDepositsRoleHolder);
+        _grantRole(address(vault), Permissions.SET_DEPOSIT_WHITELIST_ROLE, $.setDepositWhitelistRoleHolder);
+        _grantRole(address(vault), Permissions.SET_DEPOSITOR_WHITELIST_STATUS_ROLE, $.setDepositorWhitelistStatusRoleHolder);
+        _grantRole(address(vault), Permissions.DEFAULT_ADMIN_ROLE, admin);
+        VaultControl(address(vault)).renounceRole(Permissions.DEFAULT_ADMIN_ROLE, $.initParams.admin);
         $.initParams.admin = admin;
         return (vault, $);
     }

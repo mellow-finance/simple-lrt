@@ -14,7 +14,7 @@ contract AcceptanceMigrationTest is AcceptanceMigrationRunner, BaseTest {
                 vaultOwner: makeAddr("symbioticVaultOwner"),
                 vaultAdmin: makeAddr("symbioticVaultAdmin"),
                 epochDuration: 7 days,
-                asset: Constants.HOLESKY_WSTETH,
+                asset: Constants.WSTETH(),
                 isDepositLimit: false,
                 depositLimit: 0
             })
@@ -33,9 +33,7 @@ contract AcceptanceMigrationTest is AcceptanceMigrationRunner, BaseTest {
             vaultAdmin: 0x2C5f98743e4Cb30d8d65e30B8cd748967D7A051e,
             proxyAdmin: 0xd67241F8FA670D1eaEd14b7A17B82819087AE86d,
             proxyAdminOwner: 0x3995c5a3A74f3B3049fD5DA7C7D7BaB0b581A6e1,
-            symbioticVault: symbioticVault,
-            setFarmRoleHoler: makeAddr("setFarmRoleHolder"),
-            setLimitRoleHolder: makeAddr("setLimitRoleHolder")
+            symbioticVault: symbioticVault
         });
 
         // DEPLOY:
@@ -52,23 +50,19 @@ contract AcceptanceMigrationTest is AcceptanceMigrationRunner, BaseTest {
         );
         vm.stopPrank();
 
+        MigrationDeploy.deployStage(deployParams);
+
         vm.prank(deployParams.proxyAdminOwner);
         ProxyAdmin(deployParams.proxyAdmin).transferOwnership(address(deployParams.migrator));
 
-        MigrationDeploy.deployStage(deployParams);
         skip(deployParams.migratorDelay);
         (IMellowSymbioticVault vault,) = MigrationDeploy.deployCommit(deployParams);
 
-        vm.startPrank(deployParams.vaultAdmin);
-        MellowSymbioticVault(address(vault)).grantRole(
-            MigrationDeploy.SET_FARM_ROLE, deployParams.setFarmRoleHoler
-        );
-        MellowSymbioticVault(address(vault)).grantRole(
-            MigrationDeploy.SET_LIMIT_ROLE, deployParams.setLimitRoleHolder
-        );
-        vm.stopPrank();
-
         // ACCEPTANCE TEST:
-        runAcceptance(MellowSymbioticVault(address(vault)), deployParams);
+        runAcceptance(
+            MellowSymbioticVault(address(vault)),
+            deployParams,
+            AcceptanceMigrationRunner.TestParams({isDuringDeployment: true})
+        );
     }
 }

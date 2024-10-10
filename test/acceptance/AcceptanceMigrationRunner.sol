@@ -8,106 +8,141 @@ import "forge-std/Base.sol";
 import "../../scripts/mainnet/MigrationDeploy.sol";
 
 contract AcceptanceMigrationRunner is CommonBase {
+    uint256 private constant Q96 = 2 ** 96;
+
+    struct TestParams {
+        bool isDuringDeployment;
+    }
+
     function runAcceptance(
         MellowSymbioticVault vault,
-        MigrationDeploy.MigrationDeployParams memory deployParams
+        MigrationDeploy.MigrationDeployParams memory deployParams,
+        TestParams memory testParams
     ) public view {
-        runPermissionsTest(vault, deployParams);
-        runValuesTest(vault, deployParams);
+        runPermissionsTest(vault, deployParams, testParams);
+        runValuesTest(vault, deployParams, testParams);
     }
 
     function runPermissionsTest(
         MellowSymbioticVault vault,
-        MigrationDeploy.MigrationDeployParams memory deployParams
+        MigrationDeploy.MigrationDeployParams memory deployParams,
+        TestParams memory testParams
     ) public view {
-        bytes32[2] memory roles = [MigrationDeploy.SET_FARM_ROLE, MigrationDeploy.SET_LIMIT_ROLE];
-
-        address[2] memory expectedHolders =
-            [deployParams.setFarmRoleHoler, deployParams.setLimitRoleHolder];
-
-        require(
-            vault.getRoleMemberCount(MigrationDeploy.DEFAULT_ADMIN_ROLE) == 1,
-            "Default admin should be set"
-        );
-
+        bytes32[] memory roles = Permissions.roles();
         for (uint256 i = 0; i < roles.length; i++) {
-            if (expectedHolders[i] == address(0)) {
+            if (roles[i] == Permissions.DEFAULT_ADMIN_ROLE) {
                 require(
-                    vault.getRoleMemberCount(roles[i]) <= 1, "Role should have at most one member"
+                    vault.getRoleMemberCount(Permissions.DEFAULT_ADMIN_ROLE) == 1,
+                    "runPermissionsTest: default admin should be set"
                 );
+                address admin = vault.getRoleMember(Permissions.DEFAULT_ADMIN_ROLE, 0);
+                require(admin != address(0), "runPermissionsTest: default admin should not be 0");
             } else {
-                require(
-                    vault.getRoleMemberCount(roles[i]) == 1, "Role should have exactly one member"
-                );
-                require(
-                    vault.getRoleMember(roles[i], 0) == expectedHolders[i],
-                    "Role member should be the expected address"
-                );
+                if (testParams.isDuringDeployment) {
+                    require(
+                        vault.getRoleMemberCount(roles[i]) == 0,
+                        "runPermissionsTest: role should not be set during deployment"
+                    );
+                } else {
+                    require(
+                        vault.getRoleMemberCount(roles[i]) <= 1,
+                        "runPermissionsTest: role should not have more than 1 member"
+                    );
+                }
             }
         }
     }
 
     function runValuesTest(
         MellowSymbioticVault vault,
-        MigrationDeploy.MigrationDeployParams memory deployParams
+        MigrationDeploy.MigrationDeployParams memory deployParams,
+        TestParams memory testParams
     ) public view {
-        // address immutableProxyAdmin =
-        //     address(uint160(uint256(vm.load(address(vault), ERC1967Utils.ADMIN_SLOT))));
-        // require(
-        //     ProxyAdmin(immutableProxyAdmin).owner() == deployParams.proxyAdminOwner,
-        //     "Proxy admin should be set correctly"
-        // );
-        // require(deployParams.proxyAdmin != address(0), "Proxy admin should be set");
+        address immutableProxyAdmin =
+            address(uint160(uint256(vm.load(address(vault), ERC1967Utils.ADMIN_SLOT))));
+        require(
+            immutableProxyAdmin == deployParams.proxyAdmin && deployParams.proxyAdmin != address(0),
+            "runValuesTest: proxy admin should be set correctly"
+        );
+        require(
+            ProxyAdmin(immutableProxyAdmin).owner() == deployParams.proxyAdminOwner
+                && deployParams.proxyAdminOwner != address(0),
+            "runValuesTest: proxy admin owner should be set correctly"
+        );
+        require(vault.limit() > 0, "Limit should be set correctly");
 
-        // require(vault.limit() != 0, "Limit should be set correctly");
+        address asset = vault.asset();
+        require(asset != address(0), "runValuesTest: asset address should be set correctly");
 
-        // // require(
-        // //     address(vault.symbioticCollateral()) == deployParams.initParams.symbioticCollateral,
-        // //     "Symbiotic collateral should be set correctly"
-        // // );
+        bytes memory bondData =
+            IDefaultBondStrategy(deployParams.defaultBondStrategy).tokenToData(asset);
+        require(bondData.length != 0, "runValuesTest: bondData should not be empty");
 
-        // require(
-        //     address(vault.symbioticVault()) == deployParams.symbioticVault,
-        //     "Symbiotic vault should be set correctly"
-        // );
+        IDefaultBondStrategy.Data[] memory data =
+            abi.decode(bondData, (IDefaultBondStrategy.Data[]));
 
-        // require(vault.depositPause() == false, "Deposit pause should be set correctly");
+        require(
+            data.length == 1 && data[0].bond != address(0) && data[0].ratioX96 == Q96,
+            "runValuesTest: invalid bond data"
+        );
 
-        // require(vault.withdrawalPause() == false, "Withdrawal pause should be set correctly");
+        require(
+            address(vault.symbioticCollateral()) == data[0].bond,
+            "runValuesTest: symbioticCollateral mistmatch"
+        );
 
-        // require(vault.depositWhitelist() == false, "Deposit whitelist should be set correctly");
+        require(IDefaultBond(data[0].bond).asset() == asset, "runValuesTest: bond asset mismatch");
 
-        // SymbioticWithdrawalQueue withdrawalQueue =
-        //     SymbioticWithdrawalQueue(address(vault.withdrawalQueue()));
+        require(
+            address(vault.symbioticVault()) == deployParams.symbioticVault,
+            "runValuesTest: symbioticVault mismatch"
+        );
 
-        // require(
-        //     address(withdrawalQueue.vault()) == address(vault),
-        //     "Withdrawal queue should be set correctly (mellowVault)"
-        // );
+        require(
+            ISymbioticVault(deployParams.symbioticVault).collateral() == asset,
+            "runValuesTest: symbioticVault collateral mismatch"
+        );
 
-        // require(
-        //     address(withdrawalQueue.symbioticVault()) == address(vault.symbioticVault()),
-        //     "Withdrawal queue should be set correctly (symbioticVault)"
-        // );
+        require(
+            vault.depositPause() == true, "runValuesTest: deposit pause should be set correctly"
+        );
+        require(
+            vault.withdrawalPause() == true,
+            "runValuesTest: withdrawal pause should be set correctly"
+        );
+        require(
+            vault.depositWhitelist() == false,
+            "runValuesTest: deposit whitelist should be set correctly"
+        );
 
-        // require(
-        //     address(withdrawalQueue.collateral()) == address(vault.asset()),
-        //     "Withdrawal queue should be set correctly (asset)"
-        // );
+        SymbioticWithdrawalQueue withdrawalQueue =
+            SymbioticWithdrawalQueue(address(vault.withdrawalQueue()));
 
-        // require(
-        //     withdrawalQueue.getCurrentEpoch() == vault.symbioticVault().currentEpoch(),
-        //     "Withdrawal queue should be set correctly (currentEpoch)"
-        // );
+        require(
+            address(withdrawalQueue.vault()) == address(vault),
+            "runValuesTest: withdrawal queue should be set correctly (mellowVault)"
+        );
 
-        // // we can assume that if the total supply is 0, then the deployment is in progress
-        // bool isDeployment = vault.totalSupply() == 0;
+        require(
+            address(withdrawalQueue.symbioticVault()) == address(vault.symbioticVault()),
+            "runValuesTest: withdrawal queue should be set correctly (symbioticVault)"
+        );
 
-        // if (isDeployment) {
-        //     runDeploymentValuesTest(vault, deployParams);
-        // } else {
-        //     runOnchainValuesTest(vault, deployParams);
-        // }
+        require(
+            address(withdrawalQueue.collateral()) == address(vault.asset()),
+            "runValuesTest: withdrawal queue should be set correctly (asset)"
+        );
+
+        require(
+            withdrawalQueue.getCurrentEpoch() == vault.symbioticVault().currentEpoch(),
+            "runValuesTest: withdrawal queue should be set correctly (currentEpoch)"
+        );
+
+        if (testParams.isDuringDeployment) {
+            runDeploymentValuesTest(vault, deployParams);
+        } else {
+            runOnchainValuesTest(vault, deployParams);
+        }
     }
 
     function runDeploymentValuesTest(
@@ -115,17 +150,27 @@ contract AcceptanceMigrationRunner is CommonBase {
         MigrationDeploy.MigrationDeployParams memory deployParams
     ) public view {
         // MellowSymbioticVault view functions:
-        require(vault.totalSupply() != 0, "Total supply should not be 0 during deployment");
-        require(vault.totalAssets() != 0, "Total assets should not be 0 during deployment");
+        require(
+            vault.totalSupply() != 0,
+            "runDeploymentValuesTest: Total supply should not be 0 during deployment"
+        );
+        require(
+            vault.totalAssets() != 0,
+            "runDeploymentValuesTest: Total assets should not be 0 during deployment"
+        );
+        require(
+            vault.balanceOf(address(vault)) != 0,
+            "runDeploymentValuesTest: Vault balance should not be 0 during deployment (initial deposit)"
+        );
 
         // no revert expected
         require(
             vault.claimableAssetsOf(address(vault)) == 0,
-            "Claimable assets should be 0 during deployment"
+            "runDeploymentValuesTest: Claimable assets should be 0 during deployment"
         );
         require(
             vault.pendingAssetsOf(address(vault)) == 0,
-            "Claimable assets should be 0 during deployment"
+            "runDeploymentValuesTest: Claimable assets should be 0 during deployment"
         );
 
         (
@@ -134,111 +179,104 @@ contract AcceptanceMigrationRunner is CommonBase {
             uint256 accountShares,
             uint256 accountInstantShares
         ) = vault.getBalances(address(vault));
-        require(accountAssets == 0, "Account assets should be 0 during deployment");
-        require(accountInstantAssets == 0, "Account instant assets should be 0 during deployment");
-        require(accountShares == 0, "Account shares should be 0 during deployment");
-        require(accountInstantShares == 0, "Account instant shares should be 0 during deployment");
+        require(
+            accountAssets != 0,
+            "runDeploymentValuesTest: vault getBalances.accountAssets should not be 0 during deployment"
+        );
+        require(
+            accountShares != 0,
+            "runDeploymentValuesTest: vault shares should not be 0 during deployment"
+        );
 
-        // MellowSymbioticVaultStorage view functions:
-        // require(
-        //     address(vault.symbioticVault()) != address(0)
-        //         && address(vault.symbioticVault()) == deployParams.initParams.symbioticVault,
-        //     "Symbiotic vault should be set correctly"
-        // );
+        require(
+            vault.symbioticFarmIds().length == 0,
+            "runDeploymentValuesTest: Symbiotic farm IDs should be empty during deployment"
+        );
 
-        // require(
-        //     address(vault.symbioticCollateral()) != address(0)
-        //         && address(vault.symbioticCollateral()) == deployParams.initParams.symbioticCollateral,
-        //     "Symbiotic collateral should be set correctly"
-        // );
+        require(
+            vault.symbioticFarmCount() == 0,
+            "runDeploymentValuesTest: Symbiotic farm count should be 0 during deployment"
+        );
 
-        // require(
-        //     vault.asset() == vault.symbioticCollateral().asset()
-        //         && vault.asset() == vault.symbioticVault().collateral(),
-        //     "Asset should be set correctly"
-        // );
+        require(
+            vault.symbioticFarmsContains(0) == false,
+            "runDeploymentValuesTest: Symbiotic farms should not contain farm ID 0 during deployment"
+        );
 
-        // require(
-        //     address(vault.withdrawalQueue()) != address(0),
-        //     "Withdrawal queue should be set correctly"
-        // );
+        require(
+            vault.symbioticFarm(0).rewardToken == address(0),
+            "runDeploymentValuesTest: Symbiotic farm reward token should be 0 during deployment"
+        );
 
-        // require(
-        //     vault.symbioticFarmIds().length == 0,
-        //     "Symbiotic farm IDs should be empty during deployment"
-        // );
+        // VaultControlStorage view functions:
+        require(
+            vault.depositPause() == true,
+            "runDeploymentValuesTest: Deposit pause should be set correctly"
+        );
+        require(
+            vault.withdrawalPause() == true,
+            "runDeploymentValuesTest: Withdrawal pause should be set correctly"
+        );
 
-        // require(
-        //     vault.symbioticFarmCount() == 0, "Symbiotic farm count should be 0 during deployment"
-        // );
+        require(vault.limit() != 0, "runDeploymentValuesTest: Limit should not be zero");
 
-        // try vault.symbioticFarmIdAt(0) {
-        //     revert("Should revert");
-        // } catch {}
+        require(
+            vault.depositWhitelist() == false,
+            "runDeploymentValuesTest: Deposit whitelist should be set correctly"
+        );
+        require(
+            vault.isDepositorWhitelisted(address(vault)) == false,
+            "runDeploymentValuesTest: Vault should not be whitelisted as a depositor"
+        );
 
-        // require(
-        //     vault.symbioticFarmsContains(0) == false,
-        //     "Symbiotic farms should not contain farm ID 0 during deployment"
-        // );
+        // ERC4626 view functions:
+        require(
+            vault.decimals() == 18,
+            "runDeploymentValuesTest: Decimals should be set to 18 during deployment"
+        );
 
-        // require(
-        //     vault.symbioticFarm(0).rewardToken == address(0),
-        //     "Symbiotic farm reward token should be 0 during deployment"
-        // );
+        require(
+            vault.asset() != address(0),
+            "runDeploymentValuesTest: Asset should be set during deployment"
+        );
 
-        // // ERC4626Vault view functions:
+        require(
+            vault.asset() == vault.symbioticCollateral().asset(),
+            "runDeploymentValuesTest: Asset should be set to the symbiotic collateral asset"
+        );
 
-        // // VaultControlStorage view functions:
-        // require(vault.depositPause() == false, "Deposit pause should be set correctly");
-        // require(vault.withdrawalPause() == false, "Withdrawal pause should be set correctly");
-        // require(vault.limit() == deployParams.initParams.limit, "Limit should be set correctly");
-        // require(vault.depositWhitelist() == false, "Deposit whitelist should be set correctly");
-        // require(
-        //     vault.isDepositorWhitelisted(address(vault)) == false,
-        //     "Vault should not be whitelisted as a depositor"
-        // );
+        require(
+            vault.asset() == vault.symbioticVault().collateral(),
+            "runDeploymentValuesTest: Asset should be set to the symbiotic vault collateral"
+        );
 
-        // // ERC4626 view functions:
-        // require(vault.decimals() == 18, "Decimals should be set to 18 during deployment");
+        SymbioticWithdrawalQueue withdrawalQueue =
+            SymbioticWithdrawalQueue(address(vault.withdrawalQueue()));
+        for (uint256 i = 0; i < 2; i++) {
+            ISymbioticWithdrawalQueue.EpochData memory epochData =
+                withdrawalQueue.getEpochData(withdrawalQueue.getCurrentEpoch() + i);
+            require(
+                epochData.isClaimed == false,
+                "runDeploymentValuesTest: Epoch data should not be claimed during deployment"
+            );
+            require(
+                epochData.sharesToClaim == 0 && epochData.claimableAssets == 0,
+                "runDeploymentValuesTest: Epoch data should be empty during deployment"
+            );
+        }
 
-        // require(vault.asset() != address(0), "Asset should be set during deployment");
-
-        // require(
-        //     vault.asset() == vault.symbioticCollateral().asset(),
-        //     "Asset should be set to the symbiotic collateral asset"
-        // );
-
-        // require(
-        //     vault.asset() == vault.symbioticVault().collateral(),
-        //     "Asset should be set to the symbiotic vault collateral"
-        // );
-
-        // SymbioticWithdrawalQueue withdrawalQueue =
-        //     SymbioticWithdrawalQueue(address(vault.withdrawalQueue()));
-        // for (uint256 i = 0; i < 2; i++) {
-        //     ISymbioticWithdrawalQueue.EpochData memory epochData =
-        //         withdrawalQueue.getEpochData(withdrawalQueue.getCurrentEpoch() + i);
-        //     require(
-        //         epochData.isClaimed == false, "Epoch data should not be claimed during deployment"
-        //     );
-        //     require(
-        //         epochData.sharesToClaim == 0 && epochData.claimableAssets == 0,
-        //         "Epoch data should be empty during deployment"
-        //     );
-        // }
-
-        // require(
-        //     withdrawalQueue.pendingAssets() == 0,
-        //     "Withdrawal queue pending assets should be 0 during deployment"
-        // );
-        // require(
-        //     withdrawalQueue.pendingAssetsOf(address(vault)) == 0,
-        //     "Withdrawal queue pending assets should be 0 for vault address"
-        // );
-        // require(
-        //     withdrawalQueue.claimableAssetsOf(address(vault)) == 0,
-        //     "Withdrawal queue claimable assets should be 0 for vault address"
-        // );
+        require(
+            withdrawalQueue.pendingAssets() == 0,
+            "runDeploymentValuesTest: Withdrawal queue pending assets should be 0 during deployment"
+        );
+        require(
+            withdrawalQueue.pendingAssetsOf(address(vault)) == 0,
+            "runDeploymentValuesTest: Withdrawal queue pending assets should be 0 for vault address"
+        );
+        require(
+            withdrawalQueue.claimableAssetsOf(address(vault)) == 0,
+            "runDeploymentValuesTest: Withdrawal queue claimable assets should be 0 for vault address"
+        );
     }
 
     function runOnchainValuesTest(
@@ -246,176 +284,75 @@ contract AcceptanceMigrationRunner is CommonBase {
         MigrationDeploy.MigrationDeployParams memory deployParams
     ) public view {
         // MellowSymbioticVault view functions:
-        // require(vault.totalSupply() != 0, "Total supply should be non-zero after deployment");
-        // require(vault.totalAssets() != 0, "Total assets should be non-zero after deployment");
+        require(
+            vault.totalSupply() != 0,
+            "runDeploymentValuesTest: Total supply should not be 0 during deployment"
+        );
+        require(
+            vault.totalAssets() != 0,
+            "runDeploymentValuesTest: Total assets should not be 0 during deployment"
+        );
+        require(
+            vault.balanceOf(address(vault)) != 0,
+            "runDeploymentValuesTest: Vault balance should not be 0 during deployment (initial deposit)"
+        );
 
-        // // no revert expected
-        // require(
-        //     vault.claimableAssetsOf(address(vault)) == 0,
-        //     "Claimable assets should be 0 after deployment for vault address"
-        // );
-        // require(
-        //     vault.pendingAssetsOf(address(vault)) == 0,
-        //     "Claimable assets should be 0 after deployment for vault address"
-        // );
+        // no revert expected
+        require(
+            vault.claimableAssetsOf(address(vault)) == 0,
+            "runDeploymentValuesTest: Claimable assets should be 0 during deployment"
+        );
+        require(
+            vault.pendingAssetsOf(address(vault)) == 0,
+            "runDeploymentValuesTest: Claimable assets should be 0 during deployment"
+        );
 
-        // (
-        //     uint256 accountAssets,
-        //     uint256 accountInstantAssets,
-        //     uint256 accountShares,
-        //     uint256 accountInstantShares
-        // ) = vault.getBalances(address(vault));
-        // require(accountAssets == 0, "Account assets should be 0 after deployment for vault address");
-        // require(
-        //     accountInstantAssets == 0,
-        //     "Account instant assets should be 0 after deployment for vault address"
-        // );
-        // require(accountShares == 0, "Account shares should be 0 after deployment for vault address");
-        // require(
-        //     accountInstantShares == 0,
-        //     "Account instant shares should be 0 after deployment for vault address"
-        // );
+        (
+            uint256 accountAssets,
+            uint256 accountInstantAssets,
+            uint256 accountShares,
+            uint256 accountInstantShares
+        ) = vault.getBalances(address(vault));
+        require(
+            accountAssets != 0,
+            "runDeploymentValuesTest: vault getBalances.accountAssets should not be 0 during deployment"
+        );
+        require(
+            accountShares != 0,
+            "runDeploymentValuesTest: vault shares should not be 0 during deployment"
+        );
 
-        // MellowSymbioticVaultStorage view functions:
-        // require(
-        //     address(vault.symbioticVault()) != address(0)
-        //         && address(vault.symbioticVault()) == deployParams.initParams.symbioticVault,
-        //     "Symbiotic vault should be set correctly"
-        // );
+        // VaultControlStorage view functions:
+        require(vault.limit() != 0, "runDeploymentValuesTest: Limit should not be zero");
 
-        // require(
-        //     address(vault.symbioticCollateral()) != address(0)
-        //         && address(vault.symbioticCollateral()) == deployParams.initParams.symbioticCollateral,
-        //     "Symbiotic collateral should be set correctly"
-        // );
+        require(
+            vault.depositWhitelist() == false,
+            "runDeploymentValuesTest: Deposit whitelist should be set correctly"
+        );
+        require(
+            vault.isDepositorWhitelisted(address(vault)) == false,
+            "runDeploymentValuesTest: Vault should not be whitelisted as a depositor"
+        );
 
-        // require(
-        //     vault.asset() == vault.symbioticCollateral().asset()
-        //         && vault.asset() == vault.symbioticVault().collateral(),
-        //     "Asset should be set correctly"
-        // );
+        // ERC4626 view functions:
+        require(
+            vault.decimals() == 18,
+            "runDeploymentValuesTest: Decimals should be set to 18 during deployment"
+        );
 
-        // require(
-        //     address(vault.withdrawalQueue()) != address(0),
-        //     "Withdrawal queue should be set correctly"
-        // );
+        require(
+            vault.asset() != address(0),
+            "runDeploymentValuesTest: Asset should be set during deployment"
+        );
 
-        // uint256 farmCount = vault.symbioticFarmCount();
-        // if (farmCount == 0) {
-        //     require(
-        //         vault.symbioticFarmIds().length == 0,
-        //         "Symbiotic farm IDs should be empty after deployment"
-        //     );
+        require(
+            vault.asset() == vault.symbioticCollateral().asset(),
+            "runDeploymentValuesTest: Asset should be set to the symbiotic collateral asset"
+        );
 
-        //     try vault.symbioticFarmIdAt(0) {
-        //         revert("Should revert");
-        //     } catch {}
-
-        //     require(
-        //         vault.symbioticFarmsContains(0) == false,
-        //         "Symbiotic farms should not contain farm ID 0 after deployment"
-        //     );
-
-        //     require(
-        //         vault.symbioticFarm(0).rewardToken == address(0),
-        //         "Symbiotic farm reward token should be 0 after deployment"
-        //     );
-        // } else {
-        //     uint256[] memory farmIds = vault.symbioticFarmIds();
-        //     require(
-        //         farmIds.length == farmCount,
-        //         "Farm IDs length should match farm count after deployment"
-        //     );
-
-        //     for (uint256 i = 0; i < farmCount; i++) {
-        //         require(
-        //             vault.symbioticFarmIdAt(i) == farmIds[i],
-        //             "Farm ID at index should match farm ID"
-        //         );
-
-        //         require(
-        //             vault.symbioticFarmsContains(farmIds[i]) == true,
-        //             "Symbiotic farms should contain farm ID"
-        //         );
-
-        //         require(
-        //             vault.symbioticFarm(farmIds[i]).rewardToken != address(0),
-        //             "Symbiotic farm reward token should be set after deployment"
-        //         );
-        //     }
-        // }
-
-        // // ERC4626Vault view functions:
-
-        // uint256 assets_ = vault.totalAssets();
-        // uint256 shares_ = vault.totalSupply();
-
-        // require(
-        //     vault.maxDeposit(address(vault)) == deployParams.initParams.limit - assets_,
-        //     "Max deposit should be equal to the limit minus the total assets after deployment"
-        // );
-
-        // uint256 expectedMaxMint = Math.mulDiv(
-        //     deployParams.initParams.limit - assets_, shares_ + 1, assets_ + 1, Math.Rounding.Floor
-        // );
-        // require(
-        //     vault.maxMint(address(vault)) == expectedMaxMint,
-        //     string.concat(
-        //         "Max mint should be proportional to the max deposit after deployment ",
-        //         Strings.toString(expectedMaxMint)
-        //     )
-        // );
-
-        // require(
-        //     vault.maxWithdraw(address(vault)) == 0, "Max withdraw should be 0 during deployment"
-        // );
-        // require(vault.maxRedeem(address(vault)) == 0, "Max withdraw should be 0 during deployment");
-
-        // // ERC4626 view functions:
-        // require(vault.decimals() == 18, "Decimals should be set to 18 during deployment");
-        // require(vault.asset() != address(0), "Asset should be set during deployment");
-
-        // require(
-        //     vault.asset() == vault.symbioticCollateral().asset(),
-        //     "Asset should be set to the symbiotic collateral asset"
-        // );
-
-        // require(
-        //     vault.asset() == vault.symbioticVault().collateral(),
-        //     "Asset should be set to the symbiotic vault collateral"
-        // );
-
-        // uint256 D18 = 10 ** 18;
-
-        // require(
-        //     vault.convertToAssets(D18) == Math.mulDiv(D18, assets_ + 1, shares_ + 1),
-        //     "Convert to assets should be identity during deployment"
-        // );
-
-        // require(
-        //     vault.convertToShares(D18) == Math.mulDiv(D18, shares_ + 1, assets_ + 1),
-        //     "Convert to shares should be identity during deployment"
-        // );
-
-        // require(
-        //     vault.previewDeposit(D18) == Math.mulDiv(D18, shares_ + 1, assets_ + 1),
-        //     "Preview deposit should be identity during deployment"
-        // );
-
-        // require(
-        //     vault.previewMint(D18) == Math.mulDiv(D18, assets_ + 1, shares_ + 1, Math.Rounding.Ceil),
-        //     "Preview mint should be identity during deployment"
-        // );
-
-        // require(
-        //     vault.previewWithdraw(D18)
-        //         == Math.mulDiv(D18, shares_ + 1, assets_ + 1, Math.Rounding.Ceil),
-        //     "Preview withdraw should be identity during deployment"
-        // );
-
-        // require(
-        //     vault.previewRedeem(D18) == Math.mulDiv(D18, assets_ + 1, shares_ + 1),
-        //     "Preview redeem should be identity during deployment"
-        // );
+        require(
+            vault.asset() == vault.symbioticVault().collateral(),
+            "runDeploymentValuesTest: Asset should be set to the symbiotic vault collateral"
+        );
     }
 }
