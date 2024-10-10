@@ -42,25 +42,36 @@ contract AcceptanceMigrationTest is AcceptanceMigrationRunner, BaseTest {
         vm.startPrank(deployParams.vaultAdmin);
         bytes32 OPERATOR = keccak256("operator");
         bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
-        IAccessControlEnumerable(deployParams.defaultBondStrategy).grantRole(
-            ADMIN_DELEGATE_ROLE, address(deployParams.vaultAdmin)
-        );
+        if (
+            !IAccessControlEnumerable(deployParams.defaultBondStrategy).hasRole(
+                ADMIN_DELEGATE_ROLE, deployParams.vaultAdmin
+            )
+        ) {
+            IAccessControlEnumerable(deployParams.defaultBondStrategy).grantRole(
+                ADMIN_DELEGATE_ROLE, address(deployParams.vaultAdmin)
+            );
+        }
         IAccessControlEnumerable(deployParams.defaultBondStrategy).grantRole(
             OPERATOR, address(deployParams.migrator)
         );
         vm.stopPrank();
 
+        vm.startPrank(deployParams.migratorAdmin);
         MigrationDeploy.deployStage(deployParams);
+        vm.stopPrank();
 
-        vm.prank(deployParams.proxyAdminOwner);
+        vm.startPrank(deployParams.proxyAdminOwner);
         ProxyAdmin(deployParams.proxyAdmin).transferOwnership(address(deployParams.migrator));
-
         skip(deployParams.migratorDelay);
+        vm.stopPrank();
+
+        vm.startPrank(deployParams.migratorAdmin);
         (IMellowSymbioticVault vault,) = MigrationDeploy.deployCommit(deployParams);
+        vm.stopPrank();
 
         // ACCEPTANCE TEST:
         runAcceptance(
-            MellowSymbioticVault(address(vault)),
+            MellowVaultCompat(address(vault)),
             deployParams,
             AcceptanceMigrationRunner.TestParams({isDuringDeployment: true})
         );
