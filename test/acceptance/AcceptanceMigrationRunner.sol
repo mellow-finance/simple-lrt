@@ -397,6 +397,40 @@ contract AcceptanceMigrationRunner is CommonBase {
         // function limit() public view returns (uint256);
         // function depositWhitelist() public view returns (bool);
         // function isDepositorWhitelisted(address account) public view returns (bool);
+
+        if (testParams.isDuringDeployment) {
+            require(
+                vault.depositPause() == true,
+                "runVaultControlStorageTest: deposit pause should be set correctly"
+            );
+
+            require(
+                vault.withdrawalPause() == true,
+                "runVaultControlStorageTest: withdrawal pause should be set correctly"
+            );
+
+            require(
+                vault.depositWhitelist() == false,
+                "runVaultControlStorageTest: deposit whitelist should be set correctly"
+            );
+
+            require(
+                vault.isDepositorWhitelisted(address(vault)) == false,
+                "runVaultControlStorageTest: Vault should not be whitelisted as a depositor"
+            );
+
+            require(vault.limit() != 0, "runVaultControlStorageTest: limit should be set correctly");
+        } else {
+            // no reverts expected
+            vault.depositPause();
+            vault.withdrawalPause();
+            vault.limit();
+            vault.depositWhitelist();
+            require(
+                vault.isDepositorWhitelisted(address(vault)) == false,
+                "runVaultControlStorageTest: Vault should not be whitelisted as a depositor"
+            );
+        }
     }
 
     function runAccessControlEnumerableUpgradeableTest(
@@ -408,6 +442,43 @@ contract AcceptanceMigrationRunner is CommonBase {
         // function getRoleMemberCount(bytes32 role) public view virtual returns (uint256);
         // function hasRole(bytes32 role, address account) public view virtual returns (bool);
         // function getRoleAdmin(bytes32 role) public view virtual returns (bytes32);
+
+        bytes32[] memory roles = Permissions.roles();
+        for (uint256 i = 0; i < roles.length; i++) {
+            require(
+                vault.getRoleAdmin(roles[i]) == Permissions.DEFAULT_ADMIN_ROLE,
+                "runAccessControlEnumerableUpgradeableTest: role admin should be set correctly"
+            );
+
+            if (roles[i] == Permissions.DEFAULT_ADMIN_ROLE) {
+                require(
+                    vault.getRoleMemberCount(roles[i]) == 1,
+                    "runAccessControlEnumerableUpgradeableTest: default admin should be set"
+                );
+                require(
+                    vault.hasRole(roles[i], vault.getRoleMember(roles[i], 0)),
+                    "runAccessControlEnumerableUpgradeableTest: default admin should have default admin role"
+                );
+            } else {
+                if (testParams.isDuringDeployment) {
+                    require(
+                        vault.getRoleMemberCount(roles[i]) == 0,
+                        "runAccessControlEnumerableUpgradeableTest: role should not be set during deployment"
+                    );
+                } else {
+                    require(
+                        vault.getRoleMemberCount(roles[i]) <= 1,
+                        "runAccessControlEnumerableUpgradeableTest: role should not have more than 1 member"
+                    );
+                    if (vault.getRoleMemberCount(roles[i]) == 1) {
+                        require(
+                            vault.hasRole(roles[i], vault.getRoleMember(roles[i], 0)),
+                            "runAccessControlEnumerableUpgradeableTest: role member should have the role"
+                        );
+                    }
+                }
+            }
+        }
     }
 
     function runERC4626UpgradeableTest(
@@ -423,6 +494,51 @@ contract AcceptanceMigrationRunner is CommonBase {
         // function previewMint(uint256 shares) public view virtual returns (uint256);
         // function previewWithdraw(uint256 assets) public view virtual returns (uint256);
         // function previewRedeem(uint256 shares) public view virtual returns (uint256);
+
+        require(
+            vault.decimals() == 18, "runERC4626UpgradeableTest: Decimals should be set correctly"
+        );
+
+        require(
+            vault.asset() != address(0), "runERC4626UpgradeableTest: Asset should be set correctly"
+        );
+
+        uint256 totalAssets = vault.totalAssets();
+        uint256 totalSupply = vault.totalSupply();
+
+        uint256 amount = 1 ether;
+
+        require(
+            vault.convertToShares(amount) == Math.mulDiv(amount, totalSupply + 1, totalAssets + 1),
+            "runERC4626UpgradeableTest: convertToShares should be calculated correctly"
+        );
+
+        require(
+            vault.convertToAssets(amount) == Math.mulDiv(amount, totalAssets + 1, totalSupply + 1),
+            "runERC4626UpgradeableTest: convertToAssets should be calculated correctly"
+        );
+
+        require(
+            vault.previewDeposit(amount) == Math.mulDiv(amount, totalSupply + 1, totalAssets + 1),
+            "runERC4626UpgradeableTest: previewDeposit should be calculated correctly"
+        );
+
+        require(
+            vault.previewMint(amount)
+                == Math.mulDiv(amount, totalAssets + 1, totalSupply + 1, Math.Rounding.Ceil),
+            "runERC4626UpgradeableTest: previewMint should be calculated correctly"
+        );
+
+        require(
+            vault.previewWithdraw(amount)
+                == Math.mulDiv(amount, totalSupply + 1, totalAssets + 1, Math.Rounding.Ceil),
+            "runERC4626UpgradeableTest: previewWithdraw should be calculated correctly"
+        );
+
+        require(
+            vault.previewRedeem(amount) == Math.mulDiv(amount, totalAssets + 1, totalSupply + 1),
+            "runERC4626UpgradeableTest: previewRedeem should be calculated correctly"
+        );
     }
 
     function runPermissionsTest(
