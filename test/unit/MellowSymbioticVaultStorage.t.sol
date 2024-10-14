@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
@@ -46,7 +46,9 @@ contract Unit is BaseTest {
 
         vm.recordLogs();
         c.initializeMellowSymbioticVaultStorage(
-            address(wstethSymbioticCollateral), address(symbioticVault), mockWithdrawalQueue
+            address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
+            address(symbioticVault),
+            mockWithdrawalQueue
         );
         Vm.Log[] memory events = vm.getRecordedLogs();
 
@@ -66,7 +68,7 @@ contract Unit is BaseTest {
 
         assertEq(address(c.withdrawalQueue()), mockWithdrawalQueue);
         assertEq(address(c.symbioticVault()), address(symbioticVault));
-        assertEq(address(c.symbioticCollateral()), address(wstethSymbioticCollateral));
+        assertEq(address(c.symbioticCollateral()), address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()));
         assertEq(c.symbioticFarmIds().length, 0);
         assertEq(c.symbioticFarmCount(), 0);
 
@@ -81,7 +83,9 @@ contract Unit is BaseTest {
         address mockSymbioticVault = makeAddr("mockSymbioticVault");
         address mockWithdrawalQueue = makeAddr("mockWithdrawalQueue");
         c.initializeMellowSymbioticVaultStorage(
-            address(wstethSymbioticCollateral), mockSymbioticVault, mockWithdrawalQueue
+            address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
+            mockSymbioticVault,
+            mockWithdrawalQueue
         );
 
         address rewardToken1 = makeAddr("rewardToken1");
