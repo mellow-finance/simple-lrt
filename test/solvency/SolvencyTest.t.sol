@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
@@ -23,10 +23,10 @@ import {MockRewardToken} from "../mocks/MockRewardToken.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {NetworkRegistry} from "@symbiotic/core/contracts/NetworkRegistry.sol";
+import {INetworkRegistry} from "@symbiotic/core/interfaces/INetworkRegistry.sol";
 
-import {NetworkMiddlewareService} from
-    "@symbiotic/core/contracts/service/NetworkMiddlewareService.sol";
+import {INetworkMiddlewareService} from
+    "@symbiotic/core/interfaces/service/INetworkMiddlewareService.sol";
 import {DefaultStakerRewards} from
     "@symbiotic/rewards/contracts/defaultStakerRewards/DefaultStakerRewards.sol";
 import {IDefaultStakerRewards} from
@@ -212,8 +212,7 @@ contract SolvencyTest is BaseTest {
     // Helper mutable functions:
 
     function createDefaultStakerRewards() public returns (IDefaultStakerRewards) {
-        SymbioticHelper.SymbioticDeployment memory deployment =
-            symbioticHelper.getSymbioticDeployment();
+        Constants.SymbioticDeployment memory deployment = symbioticHelper.getSymbioticDeployment();
         DefaultStakerRewards defaultStakerRewards_ = new DefaultStakerRewards(
             deployment.vaultFactory, deployment.networkRegistry, deployment.networkMiddlewareService
         );
@@ -230,8 +229,8 @@ contract SolvencyTest is BaseTest {
         defaultStakerRewards_.initialize(params);
 
         vm.startPrank(network);
-        NetworkRegistry(deployment.networkRegistry).registerNetwork();
-        NetworkMiddlewareService(deployment.networkMiddlewareService).setMiddleware(network);
+        INetworkRegistry(deployment.networkRegistry).registerNetwork();
+        INetworkMiddlewareService(deployment.networkMiddlewareService).setMiddleware(network);
         vm.stopPrank();
 
         return defaultStakerRewards_;

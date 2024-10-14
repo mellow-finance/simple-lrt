@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";

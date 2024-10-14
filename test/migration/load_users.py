@@ -70,7 +70,7 @@ for vault in vaults:
         approvals_to_array = 'address[] public approvalsTo;'
     
     template = '''
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 conract Users_{} {{

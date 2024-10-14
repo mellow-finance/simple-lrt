@@ -1,27 +1,24 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import "./Imports.sol";
 import "./MockStakingRewards.sol";
 
-import {DelegatorFactory} from "@symbiotic/core/contracts/DelegatorFactory.sol";
-import {NetworkRegistry} from "@symbiotic/core/contracts/NetworkRegistry.sol";
-import {OperatorRegistry} from "@symbiotic/core/contracts/OperatorRegistry.sol";
-import {SlasherFactory} from "@symbiotic/core/contracts/SlasherFactory.sol";
-import {VaultConfigurator} from "@symbiotic/core/contracts/VaultConfigurator.sol";
-import {VaultFactory} from "@symbiotic/core/contracts/VaultFactory.sol";
+import {IDelegatorFactory} from "@symbiotic/core/interfaces/IDelegatorFactory.sol";
+import {INetworkRegistry} from "@symbiotic/core/interfaces/INetworkRegistry.sol";
+import {IOperatorRegistry} from "@symbiotic/core/interfaces/IOperatorRegistry.sol";
+import {ISlasherFactory} from "@symbiotic/core/interfaces/ISlasherFactory.sol";
+import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
+import {IVaultFactory} from "@symbiotic/core/interfaces/IVaultFactory.sol";
 import {
-    FullRestakeDelegator,
     IBaseDelegator,
     IFullRestakeDelegator
-} from "@symbiotic/core/contracts/delegator/FullRestakeDelegator.sol";
-
-import {NetworkMiddlewareService} from
-    "@symbiotic/core/contracts/service/NetworkMiddlewareService.sol";
-import {Slasher} from "@symbiotic/core/contracts/slasher/Slasher.sol";
-import {Vault} from "@symbiotic/core/contracts/vault/Vault.sol";
+} from "@symbiotic/core/interfaces/delegator/IFullRestakeDelegator.sol";
 
 import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
+import {INetworkMiddlewareService} from
+    "@symbiotic/core/interfaces/service/INetworkMiddlewareService.sol";
+import {ISlasher} from "@symbiotic/core/interfaces/slasher/ISlasher.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
 import {DefaultStakerRewards} from
@@ -29,19 +26,11 @@ import {DefaultStakerRewards} from
 import {IDefaultStakerRewards} from
     "@symbiotic/rewards/interfaces/defaultStakerRewards/IDefaultStakerRewards.sol";
 
-contract SymbioticHelper {
-    struct SymbioticDeployment {
-        address networkRegistry;
-        address operatorRegistry;
-        address vaultFactory;
-        address delegatorFactory;
-        address slasherFactory;
-        address vaultConfigurator;
-        address networkMiddlewareService;
-        address operatorVaultOptInService;
-        address operatorNetworkOptInService;
-    }
+import "./Constants.sol";
 
+import "forge-std/console2.sol";
+
+contract SymbioticHelper {
     struct CreationParams {
         address vaultOwner;
         address vaultAdmin;
@@ -61,59 +50,15 @@ contract SymbioticHelper {
         uint256 depositLimit;
     }
 
-    SymbioticDeployment private deployment;
+    Constants.SymbioticDeployment private deployment;
 
-    function getSymbioticDeployment() public view returns (SymbioticDeployment memory) {
+    function getSymbioticDeployment() public view returns (Constants.SymbioticDeployment memory) {
         return deployment;
     }
 
     function finalizeDeployment() private {
         address this_ = address(this);
-        deployment.networkRegistry = address(new NetworkRegistry());
-        deployment.operatorRegistry = address(new OperatorRegistry());
-        deployment.vaultFactory = address(new VaultFactory(this_));
-        deployment.delegatorFactory = address(new DelegatorFactory(this_));
-        deployment.slasherFactory = address(new SlasherFactory(this_));
-        deployment.vaultConfigurator = address(
-            new VaultConfigurator(
-                deployment.vaultFactory, deployment.delegatorFactory, deployment.slasherFactory
-            )
-        );
-
-        deployment.networkMiddlewareService =
-            address(new NetworkMiddlewareService(deployment.networkRegistry));
-
-        VaultFactory(deployment.vaultFactory).whitelist(
-            address(
-                new Vault(
-                    deployment.delegatorFactory, deployment.slasherFactory, deployment.vaultFactory
-                )
-            )
-        );
-
-        DelegatorFactory(deployment.delegatorFactory).whitelist(
-            address(
-                new FullRestakeDelegator(
-                    deployment.networkRegistry,
-                    deployment.vaultFactory,
-                    deployment.operatorVaultOptInService,
-                    deployment.operatorNetworkOptInService,
-                    deployment.delegatorFactory,
-                    uint64(0)
-                )
-            )
-        );
-
-        SlasherFactory(deployment.slasherFactory).whitelist(
-            address(
-                new Slasher(
-                    deployment.vaultFactory,
-                    deployment.networkMiddlewareService,
-                    deployment.slasherFactory,
-                    uint64(0)
-                )
-            )
-        );
+        deployment = Constants.symbioticDeployment();
     }
 
     constructor() {

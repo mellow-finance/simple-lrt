@@ -1,32 +1,32 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import "./FactoryDeploy.sol";
 import "forge-std/Script.sol";
 
-import {DelegatorFactory} from "@symbiotic/core/contracts/DelegatorFactory.sol";
-import {NetworkRegistry} from "@symbiotic/core/contracts/NetworkRegistry.sol";
-import {OperatorRegistry} from "@symbiotic/core/contracts/OperatorRegistry.sol";
-import {SlasherFactory} from "@symbiotic/core/contracts/SlasherFactory.sol";
-import {VaultConfigurator} from "@symbiotic/core/contracts/VaultConfigurator.sol";
-import {VaultFactory} from "@symbiotic/core/contracts/VaultFactory.sol";
+import {DelegatorFactory} from "@symbiotic/core/interfaces/DelegatorFactory.sol";
+import {NetworkRegistry} from "@symbiotic/core/interfaces/NetworkRegistry.sol";
+import {OperatorRegistry} from "@symbiotic/core/interfaces/OperatorRegistry.sol";
+import {SlasherFactory} from "@symbiotic/core/interfaces/SlasherFactory.sol";
+import {VaultConfigurator} from "@symbiotic/core/interfaces/VaultConfigurator.sol";
+import {VaultFactory} from "@symbiotic/core/interfaces/VaultFactory.sol";
 import {
     FullRestakeDelegator,
     IBaseDelegator,
     IFullRestakeDelegator
-} from "@symbiotic/core/contracts/delegator/FullRestakeDelegator.sol";
+} from "@symbiotic/core/interfaces/delegator/FullRestakeDelegator.sol";
 
 import {
     INetworkRestakeDelegator,
     NetworkRestakeDelegator
-} from "@symbiotic/core/contracts/delegator/NetworkRestakeDelegator.sol";
+} from "@symbiotic/core/interfaces/delegator/NetworkRestakeDelegator.sol";
 
 import {NetworkMiddlewareService} from
-    "@symbiotic/core/contracts/service/NetworkMiddlewareService.sol";
-import {Slasher} from "@symbiotic/core/contracts/slasher/Slasher.sol";
-import {IVetoSlasher, VetoSlasher} from "@symbiotic/core/contracts/slasher/VetoSlasher.sol";
+    "@symbiotic/core/interfaces/service/NetworkMiddlewareService.sol";
+import {Slasher} from "@symbiotic/core/interfaces/slasher/Slasher.sol";
+import {IVetoSlasher, VetoSlasher} from "@symbiotic/core/interfaces/slasher/VetoSlasher.sol";
 
-import {Vault} from "@symbiotic/core/contracts/vault/Vault.sol";
+import {Vault} from "@symbiotic/core/interfaces/vault/Vault.sol";
 
 import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";

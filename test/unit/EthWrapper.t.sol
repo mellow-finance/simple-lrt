@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
@@ -7,10 +7,10 @@ contract Unit is BaseTest {
     function testConstructor() external {
         {
             EthWrapper ethWrapper =
-                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
             assertEq(ethWrapper.WETH(), Constants.WETH());
             assertEq(ethWrapper.wstETH(), Constants.WSTETH());
-            assertEq(ethWrapper.stETH(), Constants.WSTETH());
+            assertEq(ethWrapper.stETH(), Constants.STETH());
         }
 
         // zero params
@@ -25,7 +25,7 @@ contract Unit is BaseTest {
     function testEthDeposit() external {
         {
             EthWrapper ethWrapper =
-                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
 
             address user = makeAddr("user");
 
@@ -76,7 +76,7 @@ contract Unit is BaseTest {
 
         {
             EthWrapper ethWrapper =
-                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
 
             address user = makeAddr("user");
 
@@ -111,7 +111,7 @@ contract Unit is BaseTest {
     function testWethDeposit() external {
         {
             EthWrapper ethWrapper =
-                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
 
             address user = makeAddr("user");
 
@@ -147,7 +147,7 @@ contract Unit is BaseTest {
 
         {
             EthWrapper ethWrapper =
-                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
 
             address user = makeAddr("user");
 
@@ -180,9 +180,9 @@ contract Unit is BaseTest {
 
         {
             EthWrapper oldWrapper =
-                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
             EthWrapper ethWrapper =
-                new EthWrapper(Constants.WETH(), address(oldWrapper), Constants.WSTETH());
+                new EthWrapper(Constants.WETH(), address(oldWrapper), Constants.STETH());
 
             address user = makeAddr("user");
 
@@ -249,7 +249,7 @@ contract Unit is BaseTest {
 
     function testWstethDeposit() external {
         EthWrapper ethWrapper =
-            new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
+            new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
 
         address user = makeAddr("user");
 
@@ -284,7 +284,7 @@ contract Unit is BaseTest {
     function testStethDeposit() external {
         {
             EthWrapper ethWrapper =
-                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.WSTETH());
+                new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
 
             address user = makeAddr("user");
 
@@ -308,10 +308,10 @@ contract Unit is BaseTest {
             uint256 amount = 0.1 ether;
             deal(user, amount);
 
-            ISTETH(Constants.WSTETH()).submit{value: amount}(address(0));
-            IERC20(Constants.WSTETH()).approve(address(address(ethWrapper)), amount);
+            ISTETH(Constants.STETH()).submit{value: amount}(address(0));
+            IERC20(Constants.STETH()).approve(address(address(ethWrapper)), amount);
 
-            ethWrapper.deposit(Constants.WSTETH(), amount, address(vault), user, address(0));
+            ethWrapper.deposit(Constants.STETH(), amount, address(vault), user, address(0));
 
             assertApproxEqAbs(
                 vault.balanceOf(user), IWSTETH(Constants.WSTETH()).getWstETHByStETH(amount), 1 wei
@@ -346,11 +346,11 @@ contract Unit is BaseTest {
             uint256 amount = 0.1 ether;
             deal(user, amount);
 
-            ISTETH(Constants.WSTETH()).submit{value: amount}(address(0));
-            IERC20(Constants.WSTETH()).approve(address(address(ethWrapper)), amount);
+            ISTETH(Constants.STETH()).submit{value: amount}(address(0));
+            IERC20(Constants.STETH()).approve(address(address(ethWrapper)), amount);
 
             vm.expectRevert();
-            ethWrapper.deposit(Constants.WSTETH(), amount, address(vault), user, address(0));
+            ethWrapper.deposit(Constants.STETH(), amount, address(vault), user, address(0));
 
             vm.stopPrank();
         }

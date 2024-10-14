@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 contract Users_0x49cd586dd9BA227Be9654C735A659a1dB08232a9 {
