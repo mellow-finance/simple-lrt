@@ -21,9 +21,12 @@ contract Deploy is Script {
     address public constant MAINNET_WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant MAINNET_WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public constant MAINNET_STETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
+    address public constant MAINNET_DEPLOYER = 0x188858AC61a74350116d1CB6958fBc509FD6afA1;
 
     function run() external {
-        vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
+        uint256 pk = uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER")));
+        vm.startBroadcast(pk);
+        require(vm.addr(pk) == MAINNET_DEPLOYER, "Deployer key mismatch");
 
         /*
             1. MellowSymbioticVault Singleton
@@ -33,29 +36,36 @@ contract Deploy is Script {
             5. EthWrapper
         */
 
-        MellowSymbioticVault mellowSymbioticVaultSingleton =
-            new MellowSymbioticVault(STORAGE_NAME, STORAGE_VERSION);
+        bytes32 mellowSymbioticVaultSingletonSalt = bytes32(uint256(63161073));
+        MellowSymbioticVault mellowSymbioticVault = new MellowSymbioticVault{
+            salt: mellowSymbioticVaultSingletonSalt
+        }(STORAGE_NAME, STORAGE_VERSION);
 
-        MellowVaultCompat mellowVaultCompatSingleton =
-            new MellowVaultCompat(STORAGE_NAME, STORAGE_VERSION);
+        bytes32 mellowVaultCompatSingletonSalt = bytes32(uint256(149034706));
+        MellowVaultCompat mellowVaultCompat = new MellowVaultCompat{
+            salt: mellowVaultCompatSingletonSalt
+        }(STORAGE_NAME, STORAGE_VERSION);
 
-        Migrator migrator = new Migrator(
-            address(mellowVaultCompatSingleton), MAINNET_MIGRATOR_ADMIN, MAINNET_MIGRATOR_DELAY
+        bytes32 migratorSalt = bytes32(uint256(119546776));
+        Migrator migrator = new Migrator{salt: migratorSalt}(
+            address(mellowVaultCompat), MAINNET_MIGRATOR_ADMIN, MAINNET_MIGRATOR_DELAY
         );
 
-        MellowSymbioticVaultFactory mellowSymbioticVaultFactory =
-            new MellowSymbioticVaultFactory(address(mellowSymbioticVaultSingleton));
+        bytes32 mellowSymbioticVaultFactorySalt = bytes32(uint256(135218323));
+        MellowSymbioticVaultFactory mellowSymbioticVaultFactory = new MellowSymbioticVaultFactory{
+            salt: mellowSymbioticVaultFactorySalt
+        }(address(mellowSymbioticVault));
 
-        EthWrapper ethWrapper = new EthWrapper(MAINNET_WETH, MAINNET_WSTETH, MAINNET_STETH);
+        bytes32 ethWrapperSalt = bytes32(uint256(21476937));
+        EthWrapper ethWrapper =
+            new EthWrapper{salt: ethWrapperSalt}(MAINNET_WETH, MAINNET_WSTETH, MAINNET_STETH);
 
-        console2.log("MellowSymbioticVault Singleton: ", address(mellowSymbioticVaultSingleton));
-        console2.log("MellowVaultCompat Singleton: ", address(mellowVaultCompatSingleton));
+        console2.log("MellowSymbioticVault Singleton: ", address(mellowSymbioticVault));
+        console2.log("MellowVaultCompat Singleton: ", address(mellowVaultCompat));
         console2.log("Migrator: ", address(migrator));
         console2.log("MellowSymbioticVaultFactory: ", address(mellowSymbioticVaultFactory));
         console2.log("EthWrapper: ", address(ethWrapper));
 
         vm.stopBroadcast();
-
-        revert("Success");
     }
 }
