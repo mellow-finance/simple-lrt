@@ -57,7 +57,6 @@ contract SymbioticHelper {
     }
 
     function finalizeDeployment() private {
-        address this_ = address(this);
         deployment = Constants.symbioticDeployment();
     }
 

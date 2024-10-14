@@ -36,27 +36,27 @@ contract Deploy is Script {
             5. EthWrapper
         */
 
-        bytes32 mellowSymbioticVaultSingletonSalt = bytes32(uint256(63161073));
+        bytes32 mellowSymbioticVaultSingletonSalt = bytes32(uint256(2062721857));
         MellowSymbioticVault mellowSymbioticVault = new MellowSymbioticVault{
             salt: mellowSymbioticVaultSingletonSalt
         }(STORAGE_NAME, STORAGE_VERSION);
 
-        bytes32 mellowVaultCompatSingletonSalt = bytes32(uint256(149034706));
+        bytes32 mellowVaultCompatSingletonSalt = bytes32(uint256(2085530596));
         MellowVaultCompat mellowVaultCompat = new MellowVaultCompat{
             salt: mellowVaultCompatSingletonSalt
         }(STORAGE_NAME, STORAGE_VERSION);
 
-        bytes32 migratorSalt = bytes32(uint256(119546776));
+        bytes32 migratorSalt = bytes32(uint256(2118899716));
         Migrator migrator = new Migrator{salt: migratorSalt}(
             address(mellowVaultCompat), MAINNET_MIGRATOR_ADMIN, MAINNET_MIGRATOR_DELAY
         );
 
-        bytes32 mellowSymbioticVaultFactorySalt = bytes32(uint256(135218323));
+        bytes32 mellowSymbioticVaultFactorySalt = bytes32(uint256(2266276778));
         MellowSymbioticVaultFactory mellowSymbioticVaultFactory = new MellowSymbioticVaultFactory{
             salt: mellowSymbioticVaultFactorySalt
         }(address(mellowSymbioticVault));
 
-        bytes32 ethWrapperSalt = bytes32(uint256(21476937));
+        bytes32 ethWrapperSalt = bytes32(uint256(2072166189));
         EthWrapper ethWrapper =
             new EthWrapper{salt: ethWrapperSalt}(MAINNET_WETH, MAINNET_WSTETH, MAINNET_STETH);
 
@@ -67,5 +67,6 @@ contract Deploy is Script {
         console2.log("EthWrapper: ", address(ethWrapper));
 
         vm.stopBroadcast();
+        revert("Deployment complete");
     }
 }
