@@ -213,9 +213,8 @@ contract SolvencyTest is BaseTest {
 
     function createDefaultStakerRewards() public returns (IDefaultStakerRewards) {
         Constants.SymbioticDeployment memory deployment = symbioticHelper.getSymbioticDeployment();
-        DefaultStakerRewards defaultStakerRewards_ = new DefaultStakerRewards(
-            deployment.vaultFactory, deployment.networkRegistry, deployment.networkMiddlewareService
-        );
+        DefaultStakerRewards defaultStakerRewards_ =
+            new DefaultStakerRewards(deployment.vaultFactory, deployment.networkMiddlewareService);
         IDefaultStakerRewards.InitParams memory params = IDefaultStakerRewards.InitParams({
             vault: address(symbioticVault),
             adminFee: 0,
