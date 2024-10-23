@@ -112,6 +112,48 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         emit WithdrawalRequested(account, epoch, amount);
     }
 
+    function transferPendingAssets(address from, address to, uint256 amount) external {
+        require(msg.sender == from, "SymbioticWithdrawalQueue: forbidden");
+        if (amount == 0) {
+            return;
+        }
+
+        uint256 epoch = getCurrentEpoch();
+        AccountData storage fromData = _accountData[from];
+        AccountData storage toData = _accountData[to];
+        _handlePendingEpochs(fromData, epoch);
+        _handlePendingEpochs(toData, epoch);
+
+        uint256 nextSharesToClaim = fromData.sharesToClaim[epoch + 1];
+        uint256 nextPending = _withdrawalsOf(epoch, nextSharesToClaim);
+        if (nextPending >= amount) {
+            uint256 shares = Math.mulDiv(nextSharesToClaim, amount, nextPending);
+            fromData.sharesToClaim[epoch + 1] -= shares;
+            toData.sharesToClaim[epoch + 1] += shares;
+            toData.claimEpoch = epoch + 1;
+            return;
+        }
+
+        uint256 currentPending = _withdrawalsOf(epoch, fromData.sharesToClaim[epoch]);
+        require(
+            nextPending + currentPending >= amount,
+            "SymbioticWithdrawalQueue: limit overflow on transfer"
+        );
+
+        if (nextSharesToClaim != 0) {
+            toData.sharesToClaim[epoch + 1] += nextSharesToClaim;
+            delete fromData.sharesToClaim[epoch + 1];
+        }
+        {
+            uint256 leftover = amount - nextPending;
+            uint256 shares = Math.mulDiv(fromData.sharesToClaim[epoch], leftover, currentPending);
+
+            fromData.sharesToClaim[epoch] -= shares;
+            toData.sharesToClaim[epoch] += shares;
+            toData.claimEpoch = epoch + 1;
+        }
+    }
+
     /// @inheritdoc ISymbioticWithdrawalQueue
     function pull(uint256 epoch) public {
         require(

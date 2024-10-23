@@ -80,4 +80,6 @@ interface IWithdrawalQueue {
     function claim(address account, address recipient, uint256 maxAmount)
         external
         returns (uint256 amount);
+
+    function transferPendingAssets(address from, address to, uint256 assets) external;
 }
