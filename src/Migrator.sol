@@ -90,7 +90,7 @@ contract Migrator is IMigrator {
             limit: 0, // Will be set during the migration process
             symbioticCollateral: params.bond,
             symbioticVault: symbioticVault,
-            withdrawalQueue: address(new SymbioticWithdrawalQueue(vault, symbioticVault)),
+            withdrawalQueue: address(new SymbioticWithdrawalQueue(vault, symbioticVault, address(0))),
             admin: vaultAdmin,
             depositPause: true, // Pauses deposits initially
             withdrawalPause: true, // Pauses withdrawals initially

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "../utils/IWithdrawalQueue.sol";
+import {IWithdrawalQueue} from "../utils/IWithdrawalQueue.sol";
 
 interface IQueuedVault {
     function withdrawalQueue() external view returns (IWithdrawalQueue);
@@ -13,6 +13,8 @@ interface IQueuedVault {
     function claim(address account, address recipient, uint256 maxAmount)
         external
         returns (uint256);
+
+    function transferPendingAssets(address account, address recipient, uint256 amount) external;
 
     function getBalances(address account)
         external

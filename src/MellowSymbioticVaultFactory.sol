@@ -40,8 +40,10 @@ contract MellowSymbioticVaultFactory is IMellowSymbioticVaultFactory {
                 new TransparentUpgradeableProxy{salt: salt}(singleton, initParams.proxyAdmin, "")
             )
         );
-        withdrawalQueue =
-            new SymbioticWithdrawalQueue{salt: salt}(address(vault), initParams.symbioticVault);
+        // TODO: get correct address for claimer contract!
+        withdrawalQueue = new SymbioticWithdrawalQueue{salt: salt}(
+            address(vault), initParams.symbioticVault, address(0)
+        );
         vault.initialize(
             IMellowSymbioticVault.InitParams({
                 limit: initParams.limit,

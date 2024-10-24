@@ -11,21 +11,22 @@ contract DefaultDepositStrategy is IBaseDepositStrategy {
         external
         view
         override
-        returns (Data[] memory subvaultsData)
+        returns (Data[] memory data)
     {
         MetaVault metaVault = MetaVault(metaVault_);
         uint256 subvaultsCount = metaVault.subvaultsCount();
-        subvaultsData = new Data[](subvaultsCount);
+        data = new Data[](subvaultsCount);
         for (uint256 i = 0; i < subvaultsCount; i++) {
-            subvaultsData[i].subvaultIndex = i;
+            data[i].subvaultIndex = i;
             uint256 maxDeposit =
                 IERC4626Vault(metaVault.subvaultAt(i)).maxDeposit(address(metaVault));
-            subvaultsData[i].depositAmount = Math.min(maxDeposit, amount);
-            amount -= subvaultsData[i].depositAmount;
-            if (amount == 0 && i + 1 < subvaultsCount) {
+            data[i].depositAmount = Math.min(maxDeposit, amount);
+            amount -= data[i].depositAmount;
+            if (amount == 0) {
                 assembly {
-                    mstore(subvaultsData, add(i, 1))
+                    mstore(data, add(i, 1))
                 }
+                break;
             }
         }
     }

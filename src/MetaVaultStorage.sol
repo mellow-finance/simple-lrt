@@ -1,23 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {
+    EnumerableSet,
+    IMetaVaultStorage,
+    Initializable
+} from "./interfaces/vaults/IMetaVaultStorage.sol";
 
-import "./interfaces/vaults/IMellowSymbioticVaultStorage.sol";
-
-abstract contract MetaVaultStorage is Initializable {
+abstract contract MetaVaultStorage is IMetaVaultStorage, Initializable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    struct MetaStorage {
-        address depositStrategy;
-        address withdrawalStrategy;
-        address rebalanceStrategy;
-        bytes32 subvaultsHash;
-        EnumerableSet.AddressSet subvaults;
-    }
-
-    uint256 public constant MAX_SUBVAULTS = 10;
-    bytes32 public immutable storageSlotRef;
+    /// @inheritdoc IMetaVaultStorage
+    uint256 public constant MAX_SUBVAULTS = 16;
+    bytes32 private immutable storageSlotRef;
 
     constructor(bytes32 name_, uint256 version_) {
         storageSlotRef = keccak256(
@@ -33,6 +28,54 @@ abstract contract MetaVaultStorage is Initializable {
         ) & ~bytes32(uint256(0xff));
     }
 
+    // ------------------------------- EXTERNAL FUNCTIONS -------------------------------
+
+    /// @inheritdoc IMetaVaultStorage
+    function subvaults() public view returns (address[] memory) {
+        return _metaStorage().subvaults.values();
+    }
+
+    /// @inheritdoc IMetaVaultStorage
+    function subvaultAt(uint256 index) public view returns (address) {
+        MetaStorage storage m = _metaStorage();
+        if (m.subvaults.length() <= index) {
+            revert("MetaVaultStorage: subvault index out of bounds");
+        }
+        return _metaStorage().subvaults.at(index);
+    }
+
+    /// @inheritdoc IMetaVaultStorage
+    function hasSubvault(address subvault) public view returns (bool) {
+        return _metaStorage().subvaults.contains(subvault);
+    }
+
+    /// @inheritdoc IMetaVaultStorage
+    function subvaultsCount() public view returns (uint256) {
+        return _metaStorage().subvaults.length();
+    }
+
+    /// @inheritdoc IMetaVaultStorage
+    function depositStrategy() public view returns (address) {
+        return _metaStorage().depositStrategy;
+    }
+
+    /// @inheritdoc IMetaVaultStorage
+    function withdrawalStrategy() public view returns (address) {
+        return _metaStorage().withdrawalStrategy;
+    }
+
+    /// @inheritdoc IMetaVaultStorage
+    function rebalanceStrategy() public view returns (address) {
+        return _metaStorage().rebalanceStrategy;
+    }
+
+    /// @inheritdoc IMetaVaultStorage
+    function subvaultsHash() public view returns (bytes32) {
+        return _metaStorage().subvaultsHash;
+    }
+
+    // ------------------------------- INTERNAL FUNCTIONS -------------------------------
+
     function __initializeMetaVaultStorage(
         address depositStrategy_,
         address withdrawalStrategy_,
@@ -43,6 +86,7 @@ abstract contract MetaVaultStorage is Initializable {
         _setWithdrawalStrategy(withdrawalStrategy_);
         _setRebalanceStrategy(rebalanceStrategy_);
         _addSubvault(idleVault_);
+        emit MetaVaultStorageInitialized(tx.origin, idleVault_);
     }
 
     function _setDepositStrategy(address newDepositStrategy) internal {
@@ -50,6 +94,7 @@ abstract contract MetaVaultStorage is Initializable {
             revert("MetaVaultStorage: deposit strategy is zero address");
         }
         _metaStorage().depositStrategy = newDepositStrategy;
+        emit DepositStrategySet(newDepositStrategy);
     }
 
     function _setWithdrawalStrategy(address newWithdrawalStrategy) internal {
@@ -57,6 +102,7 @@ abstract contract MetaVaultStorage is Initializable {
             revert("MetaVaultStorage: withdrawal strategy is zero address");
         }
         _metaStorage().withdrawalStrategy = newWithdrawalStrategy;
+        emit WithdrawalStrategySet(newWithdrawalStrategy);
     }
 
     function _setRebalanceStrategy(address newRebalanceStrategy) internal {
@@ -64,38 +110,7 @@ abstract contract MetaVaultStorage is Initializable {
             revert("MetaVaultStorage: rebalance strategy is zero address");
         }
         _metaStorage().rebalanceStrategy = newRebalanceStrategy;
-    }
-
-    function subvaults() public view returns (address[] memory) {
-        return _metaStorage().subvaults.values();
-    }
-
-    function subvaultAt(uint256 index) public view returns (address) {
-        MetaStorage storage m = _metaStorage();
-        if (m.subvaults.length() <= index) {
-            revert("MetaVaultStorage: subvault index out of bounds");
-        }
-        return _metaStorage().subvaults.at(index);
-    }
-
-    function hasSubvault(address subvault) public view returns (bool) {
-        return _metaStorage().subvaults.contains(subvault);
-    }
-
-    function subvaultsCount() public view returns (uint256) {
-        return _metaStorage().subvaults.length();
-    }
-
-    function depositStrategy() public view returns (address) {
-        return _metaStorage().depositStrategy;
-    }
-
-    function withdrawalStrategy() public view returns (address) {
-        return _metaStorage().withdrawalStrategy;
-    }
-
-    function rebalanceStrategy() public view returns (address) {
-        return _metaStorage().rebalanceStrategy;
+        emit RebalanceStrategySet(newRebalanceStrategy);
     }
 
     function _addSubvault(address subvault) internal {
@@ -107,14 +122,19 @@ abstract contract MetaVaultStorage is Initializable {
             revert("MetaVaultStorage: subvault already exists");
         }
         m.subvaultsHash = keccak256(abi.encodePacked(m.subvaults.values()));
+        emit SubvaultAdded(subvault);
     }
 
     function _removeSubvault(address subvault) internal {
         MetaStorage storage m = _metaStorage();
+        if (m.subvaults.at(0) == subvault) {
+            revert("MetaVaultStorage: cannot remove idle vault");
+        }
         if (!m.subvaults.remove(subvault)) {
             revert("MetaVaultStorage: subvault not found");
         }
         m.subvaultsHash = keccak256(abi.encodePacked(m.subvaults.values()));
+        emit SubvaultRemoved(subvault);
     }
 
     function _metaStorage() private view returns (MetaStorage storage s) {

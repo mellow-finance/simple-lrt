@@ -9,6 +9,10 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
 
     /// @inheritdoc ISymbioticWithdrawalQueue
     address public immutable vault;
+
+    /// @inheritdoc IWithdrawalQueue
+    address public immutable claimer;
+
     /// @inheritdoc ISymbioticWithdrawalQueue
     ISymbioticVault public immutable symbioticVault;
     /// @inheritdoc ISymbioticWithdrawalQueue
@@ -19,10 +23,11 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     ///@notice Mapping contains claim `AccountData` for accounts.
     mapping(address account => AccountData data) private _accountData;
 
-    constructor(address _vault, address _symbioticVault) {
+    constructor(address _vault, address _symbioticVault, address claimer_) {
         vault = _vault;
         symbioticVault = ISymbioticVault(_symbioticVault);
         collateral = symbioticVault.collateral();
+        claimer = claimer_;
     }
 
     /// @inheritdoc ISymbioticWithdrawalQueue
@@ -169,7 +174,10 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         returns (uint256 amount)
     {
         address sender = msg.sender;
-        require(sender == account || sender == vault, "SymbioticWithdrawalQueue: forbidden");
+        require(
+            sender == account || sender == vault || sender == claimer,
+            "SymbioticWithdrawalQueue: forbidden"
+        );
         AccountData storage accountData = _accountData[account];
         _handlePendingEpochs(accountData, getCurrentEpoch());
         amount = accountData.claimableAssets;

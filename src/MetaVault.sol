@@ -2,132 +2,40 @@
 pragma solidity 0.8.25;
 
 import {ERC4626Vault} from "./ERC4626Vault.sol";
-
-import "./MetaVaultStorage.sol";
+import {MetaVaultStorage} from "./MetaVaultStorage.sol";
 import {VaultControlStorage} from "./VaultControlStorage.sol";
+
 import "./interfaces/vaults/IMetaVault.sol";
 
 contract MetaVault is IMetaVault, ERC4626Vault, MetaVaultStorage {
     using SafeERC20 for IERC20;
 
-    bytes32 public constant REBALANCE_ROLE = keccak256("REBALANCE_ROLE");
+    bytes32 private constant REBALANCE_ROLE = keccak256("REBALANCE_ROLE");
+    bytes32 private constant SET_DEPOSIT_STRATEGY = keccak256("SET_DEPOSIT_STRATEGY");
+    bytes32 private constant SET_WITHDRAWAL_STRATEGY = keccak256("SET_WITHDRAWAL_STRATEGY");
+    bytes32 private constant SET_REBALANCE_STRATEGY = keccak256("SET_REBALANCE_STRATEGY");
+    bytes32 private constant ADD_SUBVAULT = keccak256("ADD_SUBVAULT");
+    bytes32 private constant REMOVE_SUBVAULT = keccak256("REMOVE_SUBVAULT");
 
     constructor(bytes32 name_, uint256 version_)
         MetaVaultStorage(name_, version_)
         VaultControlStorage(name_, version_)
     {}
 
+    // ------------------------------- EXTERNAL FUNCTIONS -------------------------------
+
+    /// @inheritdoc IMetaVault
     function initialize(InitParams memory initParams) public virtual initializer {
         __initialize(initParams);
     }
 
-    function __initialize(InitParams memory initParams) internal virtual onlyInitializing {
-        __initializeMetaVaultStorage(
-            initParams.depositStrategy,
-            initParams.withdrawalStrategy,
-            initParams.rebalanceStrategy,
-            initParams.idleVault
-        );
-        __initializeERC4626(
-            initParams.admin,
-            initParams.limit,
-            initParams.depositPause,
-            initParams.withdrawalPause,
-            initParams.depositWhitelist,
-            initParams.asset,
-            initParams.name,
-            initParams.symbol
-        );
-    }
-
-    function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
-        internal
-        virtual
-        override
-    {
-        super._deposit(caller, receiver, assets, shares);
-
-        IBaseDepositStrategy.Data[] memory data =
-            IBaseDepositStrategy(depositStrategy()).calculateDepositAmounts(address(this), assets);
-
-        address asset_ = asset();
-        address this_ = address(this);
-
-        for (uint256 i = 0; i < data.length; i++) {
-            address subvault = subvaultAt(data[i].subvaultIndex);
-            uint256 assets_ = data[i].depositAmount;
-            if (assets_ == 0) {
-                continue;
-            }
-            require(assets >= assets_, "MetaVault: deposit amount exceeds available balance");
-            IERC20(asset_).safeIncreaseAllowance(address(subvault), assets_);
-            IERC4626(subvault).deposit(assets_, this_);
-            assets -= assets_;
-        }
-        require(assets == 0, "MetaVault: deposited assets are not fully distributed");
-    }
-
-    function _withdraw(
-        address caller,
-        address receiver,
-        address owner,
-        uint256 assets,
-        uint256 shares
-    ) internal virtual override {
-        IBaseWithdrawalStrategy.Data[] memory data = IBaseWithdrawalStrategy(withdrawalStrategy())
-            .calculateWithdrawalAmounts(address(this), assets);
-
-        address asset_ = asset();
-        address this_ = address(this);
-        for (uint256 i = 0; i < data.length; i++) {
-            address subvault = subvaultAt(data[i].subvaultIndex);
-            // withdrawal of claimable assets
-
-            if (data[i].claimAmount != 0) {
-                uint256 claimAmount = data[i].claimAmount;
-                require(claimAmount <= assets, "MetaVault: claim amount exceeds available balance");
-                claimAmount = IQueuedVault(subvault).claim(this_, receiver, claimAmount);
-                assets -= claimAmount;
-            }
-
-            // withdrawal of pending due to rebalance logic assets
-            if (data[i].withdrawalTransferPendingAmount != 0) {
-                uint256 withdrawalTransferPendingAmount = data[i].withdrawalTransferPendingAmount;
-                require(
-                    withdrawalTransferPendingAmount <= assets,
-                    "MetaVault: withdrawal transfer pending amount exceeds available balance"
-                );
-                // or direct call to the subvault?
-                IWithdrawalQueue withdrawalQueue = IQueuedVault(subvault).withdrawalQueue();
-                withdrawalQueue.transferPendingAssets(
-                    this_, receiver, withdrawalTransferPendingAmount
-                );
-                assets -= withdrawalTransferPendingAmount;
-            }
-
-            // regular withdrawal
-            if (data[i].withdrawalRequestAmount != 0) {
-                uint256 withdrawalRequestAmount = data[i].withdrawalRequestAmount;
-                require(
-                    withdrawalRequestAmount <= assets,
-                    "MetaVault: withdrawal request amount exceeds available balance"
-                );
-                IERC4626(subvault).withdraw(withdrawalRequestAmount, receiver, this_);
-                assets -= withdrawalRequestAmount;
-            }
-        }
-
-        if (assets != 0) {
-            revert("MetaVault: wrong withdrawal amount");
-        }
-    }
-
+    /// @inheritdoc IMetaVault
     function rebalance() external onlyRole(REBALANCE_ROLE) {
-        IBaseRebalanceStrategy.Data[] memory data =
-            IBaseRebalanceStrategy(rebalanceStrategy()).calculateRebalaneAmounts(address(this));
-
         address asset_ = asset();
         address this_ = address(this);
+
+        IBaseRebalanceStrategy.Data[] memory data =
+            IBaseRebalanceStrategy(rebalanceStrategy()).calculateRebalaneAmounts(this_);
         for (uint256 i = 0; i < data.length; i++) {
             address subvault = subvaultAt(data[i].subvaultIndex);
 
@@ -160,5 +68,147 @@ contract MetaVault is IMetaVault, ERC4626Vault, MetaVaultStorage {
         }
 
         require(assets == 0, "MetaVault: non-zero asset balance after rebalance");
+
+        emit Rebalance(msg.sender, block.timestamp, data);
+    }
+
+    /// @inheritdoc IMetaVault
+    function setDepositStrategy(address newDepositStrategy)
+        external
+        onlyRole(SET_DEPOSIT_STRATEGY)
+    {
+        _setDepositStrategy(newDepositStrategy);
+    }
+
+    /// @inheritdoc IMetaVault
+    function setWithdrawalStrategy(address newWithdrawalStrategy)
+        external
+        onlyRole(SET_WITHDRAWAL_STRATEGY)
+    {
+        _setWithdrawalStrategy(newWithdrawalStrategy);
+    }
+
+    /// @inheritdoc IMetaVault
+    function setRebalanceStrategy(address newRebalanceStrategy)
+        external
+        onlyRole(SET_REBALANCE_STRATEGY)
+    {
+        _setRebalanceStrategy(newRebalanceStrategy);
+    }
+
+    /// @inheritdoc IMetaVault
+    function addSubvault(address subvault) external onlyRole(ADD_SUBVAULT) {
+        _addSubvault(subvault);
+    }
+
+    /// @inheritdoc IMetaVault
+    function removeSubvault(address subvault) external onlyRole(REMOVE_SUBVAULT) {
+        _removeSubvault(subvault);
+    }
+
+    /// ------------------------------- INTERNAL FUNCTIONS -------------------------------
+
+    function __initialize(InitParams memory initParams) internal virtual onlyInitializing {
+        __initializeMetaVaultStorage(
+            initParams.depositStrategy,
+            initParams.withdrawalStrategy,
+            initParams.rebalanceStrategy,
+            initParams.idleVault
+        );
+        __initializeERC4626(
+            initParams.admin,
+            initParams.limit,
+            initParams.depositPause,
+            initParams.withdrawalPause,
+            initParams.depositWhitelist,
+            initParams.asset,
+            initParams.name,
+            initParams.symbol
+        );
+    }
+
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
+        internal
+        virtual
+        override
+    {
+        super._deposit(caller, receiver, assets, shares);
+
+        address asset_ = asset();
+        address this_ = address(this);
+
+        IBaseDepositStrategy.Data[] memory data =
+            IBaseDepositStrategy(depositStrategy()).calculateDepositAmounts(this_, assets);
+
+        for (uint256 i = 0; i < data.length; i++) {
+            address subvault = subvaultAt(data[i].subvaultIndex);
+            uint256 assets_ = data[i].depositAmount;
+            if (assets_ == 0) {
+                continue;
+            }
+            require(assets >= assets_, "MetaVault: deposit amount exceeds available balance");
+            IERC20(asset_).safeIncreaseAllowance(address(subvault), assets_);
+            IERC4626(subvault).deposit(assets_, this_);
+            assets -= assets_;
+        }
+        require(assets == 0, "MetaVault: deposited assets are not fully distributed");
+    }
+
+    function _withdraw(
+        address caller,
+        address receiver,
+        address owner,
+        uint256 assets,
+        uint256 shares
+    ) internal virtual override {
+        if (caller != owner) {
+            _spendAllowance(owner, caller, shares);
+        }
+        _burn(owner, shares);
+
+        address this_ = address(this);
+        IBaseWithdrawalStrategy.Data[] memory data =
+            IBaseWithdrawalStrategy(withdrawalStrategy()).calculateWithdrawalAmounts(this_, assets);
+
+        for (uint256 i = 0; i < data.length; i++) {
+            address subvault = subvaultAt(data[i].subvaultIndex);
+            // withdrawal of claimable assets
+
+            if (data[i].claimAmount != 0) {
+                uint256 claimAmount = data[i].claimAmount;
+                require(claimAmount <= assets, "MetaVault: claim amount exceeds available balance");
+                claimAmount = IQueuedVault(subvault).claim(this_, receiver, claimAmount);
+                assets -= claimAmount;
+            }
+
+            // withdrawal of pending due to rebalance logic assets
+            if (data[i].withdrawalTransferPendingAmount != 0) {
+                uint256 withdrawalTransferPendingAmount = data[i].withdrawalTransferPendingAmount;
+                require(
+                    withdrawalTransferPendingAmount <= assets,
+                    "MetaVault: withdrawal transfer pending amount exceeds available balance"
+                );
+                IQueuedVault(subvault).transferPendingAssets(
+                    this_, receiver, withdrawalTransferPendingAmount
+                );
+                assets -= withdrawalTransferPendingAmount;
+            }
+
+            // regular withdrawal
+            if (data[i].withdrawalRequestAmount != 0) {
+                uint256 withdrawalRequestAmount = data[i].withdrawalRequestAmount;
+                require(
+                    withdrawalRequestAmount <= assets,
+                    "MetaVault: withdrawal request amount exceeds available balance"
+                );
+                IERC4626(subvault).withdraw(withdrawalRequestAmount, receiver, this_);
+                assets -= withdrawalRequestAmount;
+            }
+        }
+
+        if (assets != 0) {
+            revert("MetaVault: wrong withdrawal amount");
+        }
+        emit Withdraw(caller, receiver, owner, assets, shares);
     }
 }

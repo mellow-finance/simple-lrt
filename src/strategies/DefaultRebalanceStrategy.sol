@@ -8,9 +8,9 @@ contract DefaultRebalanceStrategy is IBaseRebalanceStrategy {
         external
         pure
         override
-        returns (Data[] memory subvaultsData)
+        returns (Data[] memory data)
     {
         // no rebalance logic here
-        return subvaultsData;
+        return data;
     }
 }

@@ -147,6 +147,16 @@ contract MellowSymbioticVault is
         return withdrawalQueue().claim(account, recipient, maxAmount);
     }
 
+    // / @inheritdoc IMellowSymbioticVault
+    function transferPendingAssets(address account, address recipient, uint256 amount)
+        external
+        virtual
+        nonReentrant
+    {
+        require(account == _msgSender(), "Vault: forbidden");
+        withdrawalQueue().transferPendingAssets(account, recipient, amount);
+    }
+
     /**
      * @notice Calculates the remaining deposit capacity in the Symbiotic Vault.
      * @param vault The Symbiotic Vault to check.

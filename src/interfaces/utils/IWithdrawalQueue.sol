@@ -81,5 +81,7 @@ interface IWithdrawalQueue {
         external
         returns (uint256 amount);
 
-    function transferPendingAssets(address from, address to, uint256 assets) external;
+    function transferPendingAssets(address account, address recipient, uint256 assets) external;
+
+    function claimer() external view returns (address);
 }
