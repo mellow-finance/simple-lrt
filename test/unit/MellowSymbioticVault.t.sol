@@ -47,7 +47,9 @@ contract Unit is BaseTest {
 
         IMellowSymbioticVault.InitParams memory initParams = IMellowSymbioticVault.InitParams({
             withdrawalQueue: address(
-                new SymbioticWithdrawalQueue(address(mellowSymbioticVault), address(symbioticVault))
+                new SymbioticWithdrawalQueue(
+                    address(mellowSymbioticVault), address(symbioticVault), address(0)
+                )
             ),
             limit: vaultLimit,
             symbioticCollateral: Constants.WSTETH_SYMBIOTIC_COLLATERAL(),
@@ -82,7 +84,9 @@ contract Unit is BaseTest {
 
         IMellowSymbioticVault.InitParams memory initParams = IMellowSymbioticVault.InitParams({
             withdrawalQueue: address(
-                new SymbioticWithdrawalQueue(address(mellowSymbioticVault), address(symbioticVault))
+                new SymbioticWithdrawalQueue(
+                    address(mellowSymbioticVault), address(symbioticVault), address(0)
+                )
             ),
             limit: vaultLimit,
             symbioticCollateral: Constants.WSTETH_SYMBIOTIC_COLLATERAL(),

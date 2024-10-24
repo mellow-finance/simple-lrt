@@ -66,8 +66,9 @@ contract Integration is BaseTest {
                 })
             )
         );
-        SymbioticWithdrawalQueue withdrawalQueue =
-            new SymbioticWithdrawalQueue(address(mellowSymbioticVault), address(symbioticVault));
+        SymbioticWithdrawalQueue withdrawalQueue = new SymbioticWithdrawalQueue(
+            address(mellowSymbioticVault), address(symbioticVault), address(0)
+        );
 
         mellowSymbioticVault.initialize(
             IMellowSymbioticVault.InitParams({

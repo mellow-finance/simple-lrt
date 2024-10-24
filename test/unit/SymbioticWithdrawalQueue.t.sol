@@ -21,7 +21,7 @@ contract Unit is BaseTest {
 
     function testConstructor() external {
         vm.expectRevert();
-        new SymbioticWithdrawalQueue(address(0), address(0));
+        new SymbioticWithdrawalQueue(address(0), address(0), address(0));
     }
 
     function testWithdrawalQueue() external {
