@@ -11,6 +11,7 @@ interface IMetaVaultStorage {
         address rebalanceStrategy;
         bytes32 subvaultsHash;
         EnumerableSet.AddressSet subvaults;
+        mapping(address subvault => bool isQueuedVault) isQueuedVault;
     }
 
     function MAX_SUBVAULTS() external view returns (uint256);
@@ -31,10 +32,12 @@ interface IMetaVaultStorage {
 
     function subvaultsHash() external view returns (bytes32);
 
+    function isQueuedVault(address subvault) external view returns (bool);
+
     event MetaVaultStorageInitialized(address indexed origin, address indexed idleVault);
     event DepositStrategySet(address indexed depositStrategy);
     event WithdrawalStrategySet(address indexed withdrawalStrategy);
     event RebalanceStrategySet(address indexed rebalanceStrategy);
-    event SubvaultAdded(address indexed subvault);
+    event SubvaultAdded(address indexed subvault, bool indexed isQueuedVault);
     event SubvaultRemoved(address indexed subvault);
 }

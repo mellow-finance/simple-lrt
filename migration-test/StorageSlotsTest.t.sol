@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "../BaseTest.sol";
+import "../test/BaseTest.sol";
 
 import "./Users_0x49cd586dd9BA227Be9654C735A659a1dB08232a9.sol";
 import "./Users_0x4f3Cc6359364004b245ad5bE36E6ad4e805dC961.sol";

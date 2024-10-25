@@ -14,7 +14,10 @@ import "../src/MellowSymbioticVault.sol";
 import "../src/MellowSymbioticVaultFactory.sol";
 import "../src/MellowSymbioticVaultStorage.sol";
 import "../src/MellowVaultCompat.sol";
+import "../src/MetaVault.sol";
+import "../src/MetaVaultStorage.sol";
 
+import "../src/Claimer.sol";
 import "../src/Migrator.sol";
 
 import "../src/SymbioticWithdrawalQueue.sol";

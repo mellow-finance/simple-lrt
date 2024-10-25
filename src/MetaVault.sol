@@ -38,9 +38,8 @@ contract MetaVault is IMetaVault, ERC4626Vault, MetaVaultStorage {
             IBaseRebalanceStrategy(rebalanceStrategy()).calculateRebalaneAmounts(this_);
         for (uint256 i = 0; i < data.length; i++) {
             address subvault = subvaultAt(data[i].subvaultIndex);
-
             // claimable assets
-            if (data[i].claimAmount != 0) {
+            if (data[i].claimAmount != 0 && isQueuedVault(subvault)) {
                 uint256 claimAmount = data[i].claimAmount;
                 IQueuedVault(subvault).claim(this_, this_, claimAmount);
             }
@@ -97,13 +96,103 @@ contract MetaVault is IMetaVault, ERC4626Vault, MetaVaultStorage {
     }
 
     /// @inheritdoc IMetaVault
-    function addSubvault(address subvault) external onlyRole(ADD_SUBVAULT) {
-        _addSubvault(subvault);
+    function addSubvault(address subvault, bool isQueuedVault) external onlyRole(ADD_SUBVAULT) {
+        _addSubvault(subvault, isQueuedVault);
     }
 
     /// @inheritdoc IMetaVault
     function removeSubvault(address subvault) external onlyRole(REMOVE_SUBVAULT) {
         _removeSubvault(subvault);
+    }
+
+    /// @inheritdoc IERC4626
+    function maxDeposit(address account)
+        public
+        view
+        virtual
+        override(IERC4626, ERC4626Vault)
+        returns (uint256)
+    {
+        uint256 maxDeposit_ = ERC4626Vault.maxDeposit(account);
+        if (maxDeposit_ == 0) {
+            return 0;
+        }
+        uint256 subvaultsDepositLimit_ = 0;
+        address this_ = address(this);
+        address[] memory subvaults_ = subvaults();
+        uint256 inf = type(uint256).max;
+        for (uint256 i = 0; i < subvaults_.length && subvaultsDepositLimit_ < maxDeposit_; i++) {
+            address subvault = subvaults_[i];
+            uint256 subvaultDepositLimit_ = IERC4626(subvault).maxDeposit(this_);
+            if (inf - subvaultDepositLimit_ <= subvaultsDepositLimit_) {
+                return maxDeposit_;
+            }
+            subvaultsDepositLimit_ += subvaultDepositLimit_;
+        }
+        return Math.min(subvaultsDepositLimit_, maxDeposit_);
+    }
+
+    /// @inheritdoc IERC4626
+    function maxWithdraw(address account)
+        public
+        view
+        virtual
+        override(IERC4626, ERC4626Vault)
+        returns (uint256)
+    {
+        uint256 maxWithdraw_ = ERC4626Vault.maxWithdraw(account);
+        if (maxWithdraw_ == 0) {
+            return 0;
+        }
+        uint256 subvaultsWithdrawLimit_ = 0;
+        address this_ = address(this);
+        address[] memory subvaults_ = subvaults();
+        uint256 inf = type(uint256).max;
+        for (uint256 i = 0; i < subvaults_.length && subvaultsWithdrawLimit_ < maxWithdraw_; i++) {
+            address subvault = subvaults_[i];
+            uint256 subvaultWithdrawLimit_ = IERC4626(subvault).maxWithdraw(this_);
+            if (inf - subvaultWithdrawLimit_ <= subvaultsWithdrawLimit_) {
+                return maxWithdraw_;
+            }
+            subvaultsWithdrawLimit_ += subvaultWithdrawLimit_;
+
+            if (isQueuedVault(subvault)) {
+                uint256 claimableAssets = IQueuedVault(subvault).claimableAssetsOf(this_);
+                if (inf - claimableAssets <= subvaultWithdrawLimit_) {
+                    return maxWithdraw_;
+                }
+                subvaultWithdrawLimit_ += claimableAssets;
+
+                uint256 pendingAssets = IQueuedVault(subvault).pendingAssetsOf(this_);
+                if (inf - pendingAssets <= subvaultWithdrawLimit_) {
+                    return maxWithdraw_;
+                }
+                subvaultWithdrawLimit_ += pendingAssets;
+            }
+        }
+        return Math.min(subvaultsWithdrawLimit_, maxWithdraw_);
+    }
+
+    /// @inheritdoc IERC4626
+    function totalAssets()
+        public
+        view
+        virtual
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
+        uint256 totalAssets_;
+        address this_ = address(this);
+        address[] memory subvaults = subvaults();
+        for (uint256 i = 0; i < subvaults.length; i++) {
+            address subvault = subvaults[i];
+            totalAssets_ += IERC4626(subvault).maxWithdraw(this_);
+            if (isQueuedVault(subvault)) {
+                totalAssets_ += IQueuedVault(subvault).pendingAssetsOf(this_)
+                    + IQueuedVault(subvault).claimableAssetsOf(this_);
+            }
+        }
+        return totalAssets_;
     }
 
     /// ------------------------------- INTERNAL FUNCTIONS -------------------------------
@@ -172,8 +261,23 @@ contract MetaVault is IMetaVault, ERC4626Vault, MetaVaultStorage {
 
         for (uint256 i = 0; i < data.length; i++) {
             address subvault = subvaultAt(data[i].subvaultIndex);
-            // withdrawal of claimable assets
 
+            // regular withdrawal
+            if (data[i].withdrawalRequestAmount != 0) {
+                uint256 withdrawalRequestAmount = data[i].withdrawalRequestAmount;
+                require(
+                    withdrawalRequestAmount <= assets,
+                    "MetaVault: withdrawal request amount exceeds available balance"
+                );
+                IERC4626(subvault).withdraw(withdrawalRequestAmount, receiver, this_);
+                assets -= withdrawalRequestAmount;
+            }
+
+            if (!isQueuedVault(subvault)) {
+                continue;
+            }
+
+            // withdrawal of claimable assets
             if (data[i].claimAmount != 0) {
                 uint256 claimAmount = data[i].claimAmount;
                 require(claimAmount <= assets, "MetaVault: claim amount exceeds available balance");
@@ -192,17 +296,6 @@ contract MetaVault is IMetaVault, ERC4626Vault, MetaVaultStorage {
                     this_, receiver, withdrawalTransferPendingAmount
                 );
                 assets -= withdrawalTransferPendingAmount;
-            }
-
-            // regular withdrawal
-            if (data[i].withdrawalRequestAmount != 0) {
-                uint256 withdrawalRequestAmount = data[i].withdrawalRequestAmount;
-                require(
-                    withdrawalRequestAmount <= assets,
-                    "MetaVault: withdrawal request amount exceeds available balance"
-                );
-                IERC4626(subvault).withdraw(withdrawalRequestAmount, receiver, this_);
-                assets -= withdrawalRequestAmount;
             }
         }
 

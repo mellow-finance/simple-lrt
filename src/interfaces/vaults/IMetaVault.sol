@@ -13,6 +13,7 @@ import {ERC4626Upgradeable} from
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {Context, ERC20, IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 interface IMetaVault is IERC4626Vault {
     struct InitParams {
@@ -40,7 +41,7 @@ interface IMetaVault is IERC4626Vault {
 
     function setRebalanceStrategy(address newRebalanceStrategy) external;
 
-    function addSubvault(address subvault) external;
+    function addSubvault(address subvault, bool isQueuedVault) external;
 
     function removeSubvault(address subvault) external;
 

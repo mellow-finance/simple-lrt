@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "../BaseTest.sol";
+import "../test/BaseTest.sol";
 
 contract Integration is BaseTest {
     using SafeERC20 for IERC20;

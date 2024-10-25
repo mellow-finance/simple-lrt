@@ -37,11 +37,16 @@ abstract contract MetaVaultStorage is IMetaVaultStorage, Initializable {
 
     /// @inheritdoc IMetaVaultStorage
     function subvaultAt(uint256 index) public view returns (address) {
-        MetaStorage storage m = _metaStorage();
-        if (m.subvaults.length() <= index) {
+        MetaStorage storage $ = _metaStorage();
+        if ($.subvaults.length() <= index) {
             revert("MetaVaultStorage: subvault index out of bounds");
         }
-        return _metaStorage().subvaults.at(index);
+        return $.subvaults.at(index);
+    }
+
+    /// @inheritdoc IMetaVaultStorage
+    function isQueuedVault(address subvault) public view returns (bool) {
+        return _metaStorage().isQueuedVault[subvault];
     }
 
     /// @inheritdoc IMetaVaultStorage
@@ -85,7 +90,7 @@ abstract contract MetaVaultStorage is IMetaVaultStorage, Initializable {
         _setDepositStrategy(depositStrategy_);
         _setWithdrawalStrategy(withdrawalStrategy_);
         _setRebalanceStrategy(rebalanceStrategy_);
-        _addSubvault(idleVault_);
+        _addSubvault(idleVault_, false);
         emit MetaVaultStorageInitialized(tx.origin, idleVault_);
     }
 
@@ -113,34 +118,36 @@ abstract contract MetaVaultStorage is IMetaVaultStorage, Initializable {
         emit RebalanceStrategySet(newRebalanceStrategy);
     }
 
-    function _addSubvault(address subvault) internal {
-        MetaStorage storage m = _metaStorage();
-        if (m.subvaults.length() + 1 > MAX_SUBVAULTS) {
+    function _addSubvault(address subvault, bool isQueuedVault) internal {
+        MetaStorage storage $ = _metaStorage();
+        if ($.subvaults.length() + 1 > MAX_SUBVAULTS) {
             revert("MetaVaultStorage: subvaults limit reached");
         }
-        if (!m.subvaults.add(subvault)) {
+        if (!$.subvaults.add(subvault)) {
             revert("MetaVaultStorage: subvault already exists");
         }
-        m.subvaultsHash = keccak256(abi.encodePacked(m.subvaults.values()));
-        emit SubvaultAdded(subvault);
+        $.subvaultsHash = keccak256(abi.encodePacked($.subvaults.values()));
+        $.isQueuedVault[subvault] = isQueuedVault;
+        emit SubvaultAdded(subvault, isQueuedVault);
     }
 
     function _removeSubvault(address subvault) internal {
-        MetaStorage storage m = _metaStorage();
-        if (m.subvaults.at(0) == subvault) {
+        MetaStorage storage $ = _metaStorage();
+        if ($.subvaults.at(0) == subvault) {
             revert("MetaVaultStorage: cannot remove idle vault");
         }
-        if (!m.subvaults.remove(subvault)) {
+        if (!$.subvaults.remove(subvault)) {
             revert("MetaVaultStorage: subvault not found");
         }
-        m.subvaultsHash = keccak256(abi.encodePacked(m.subvaults.values()));
+        $.subvaultsHash = keccak256(abi.encodePacked($.subvaults.values()));
+        delete $.isQueuedVault[subvault];
         emit SubvaultRemoved(subvault);
     }
 
-    function _metaStorage() private view returns (MetaStorage storage s) {
+    function _metaStorage() private view returns (MetaStorage storage $) {
         bytes32 slot = storageSlotRef;
         assembly {
-            s.slot := slot
+            $.slot := slot
         }
     }
 }
