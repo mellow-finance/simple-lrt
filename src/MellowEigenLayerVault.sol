@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "forge-std/Test.sol";
-
-import "./ERC1271.sol";
 import {ERC4626Vault} from "./ERC4626Vault.sol";
 import {VaultControl, VaultControlStorage} from "./VaultControl.sol";
 
@@ -15,8 +12,7 @@ import "./interfaces/vaults/IMellowEigenLayerVault.sol";
 contract MellowEigenLayerVault is
     IMellowEigenLayerVault,
     MellowEigenLayerVaultStorage,
-    ERC4626Vault,
-    ERC1271
+    ERC4626Vault
 {
     using SafeERC20 for IERC20;
     using Math for uint256;
@@ -28,6 +24,23 @@ contract MellowEigenLayerVault is
 
     function initialize(InitParams memory initParams) public virtual initializer {
         __initialize(initParams);
+    }
+
+    function isValidSignature(bytes32 hash_, bytes memory signature)
+        external
+        view
+        returns (bytes4 magicValue)
+    {
+        if (_signedHashes[hash_]) {
+            bytes32 signatureHash = abi.decode(signature, (bytes32));
+            require(
+                signatureHash == keccak256(abi.encode(address(this), block.timestamp, hash_)),
+                "ERC1271: wrong signature"
+            );
+            return bytes4(keccak256("isValidSignature(bytes32,bytes)"));
+        } else {
+            return 0xffffffff;
+        }
     }
 
     function __initialize(InitParams memory initParams) internal virtual onlyInitializing {
@@ -52,26 +65,29 @@ contract MellowEigenLayerVault is
             initParams.symbol
         );
 
-        uint256 nonce = eigenLayerDelegationManager().stakerNonce(address(this));
+        address this_ = address(this);
+        uint256 timestamp = block.timestamp;
+
+        uint256 nonce = eigenLayerDelegationManager().stakerNonce(this_);
 
         bytes32 stakerDigestHash = IDelegationManager(eigenLayerParam.delegationManager)
             .calculateStakerDelegationDigestHash(
-            address(this), nonce, eigenLayerParam.operator, eigenLayerParam.expiry + block.timestamp
+            this_, nonce, eigenLayerParam.operator, eigenLayerParam.expiry + timestamp
         );
 
         _setHashAsSigned(stakerDigestHash);
         eigenLayerParam.delegationSignature =
-            abi.encode(keccak256(abi.encode(address(this), block.timestamp, stakerDigestHash)));
+            abi.encode(keccak256(abi.encode(this_, timestamp, stakerDigestHash)));
 
         ISignatureUtils.SignatureWithExpiry memory stakerSignatureAndExpiry = ISignatureUtils
             .SignatureWithExpiry(
-            eigenLayerParam.delegationSignature, eigenLayerParam.expiry + block.timestamp
+            eigenLayerParam.delegationSignature, eigenLayerParam.expiry + timestamp
         );
 
         ISignatureUtils.SignatureWithExpiry memory approverSignatureAndExpiry =
             ISignatureUtils.SignatureWithExpiry(abi.encode(0), 0);
         eigenLayerDelegationManager().delegateToBySignature(
-            address(this),
+            this_,
             eigenLayerParam.operator,
             stakerSignatureAndExpiry,
             approverSignatureAndExpiry,
