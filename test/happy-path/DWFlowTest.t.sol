@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
@@ -36,13 +36,15 @@ contract Integration is BaseTest {
                 })
             )
         );
-        SymbioticWithdrawalQueue withdrawalQueue =
-            new SymbioticWithdrawalQueue(address(mellowSymbioticVault), address(symbioticVault));
+        SymbioticWithdrawalQueue withdrawalQueue = new SymbioticWithdrawalQueue(
+            address(mellowSymbioticVault), address(symbioticVault), address(0)
+        );
 
         mellowSymbioticVault.initialize(
             IMellowSymbioticVault.InitParams({
                 name: "MellowSymbioticVault",
                 symbol: "MSV",
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 withdrawalQueue: address(withdrawalQueue),
                 admin: admin,

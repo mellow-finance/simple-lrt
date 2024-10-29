@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
@@ -47,8 +47,6 @@ contract Integration is BaseTest {
     address vaultOwner = makeAddr("vaultOwner");
     address vaultAdmin = makeAddr("vaultAdmin");
     uint48 epochDuration = 604800;
-    address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
-
     uint256 symbioticLimit = 1000 ether;
 
     function testSlashing() external {
@@ -62,19 +60,21 @@ contract Integration is BaseTest {
                     vaultOwner: vaultOwner,
                     vaultAdmin: vaultAdmin,
                     epochDuration: epochDuration,
-                    asset: wsteth,
+                    asset: Constants.WSTETH(),
                     isDepositLimit: false,
                     depositLimit: symbioticLimit
                 })
             )
         );
-        SymbioticWithdrawalQueue withdrawalQueue =
-            new SymbioticWithdrawalQueue(address(mellowSymbioticVault), address(symbioticVault));
+        SymbioticWithdrawalQueue withdrawalQueue = new SymbioticWithdrawalQueue(
+            address(mellowSymbioticVault), address(symbioticVault), address(0)
+        );
 
         mellowSymbioticVault.initialize(
             IMellowSymbioticVault.InitParams({
                 name: "MellowSymbioticVault",
                 symbol: "MSV",
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 withdrawalQueue: address(withdrawalQueue),
                 admin: admin,
@@ -86,25 +86,25 @@ contract Integration is BaseTest {
         );
 
         address token = withdrawalQueue.symbioticVault().collateral();
-        assertEq(token, wsteth);
+        assertEq(token, Constants.WSTETH());
         {
             vm.startPrank(user);
-            deal(wsteth, user, 10 ether);
-            IERC20(wsteth).approve(address(mellowSymbioticVault), 10 ether);
+            deal(Constants.WSTETH(), user, 10 ether);
+            IERC20(Constants.WSTETH()).approve(address(mellowSymbioticVault), 10 ether);
             uint256 lpAmount = mellowSymbioticVault.deposit(10 ether, user);
             assertEq(lpAmount, 10 ether);
             vm.stopPrank();
         }
 
-        assertEq(IERC20(wsteth).balanceOf(address(mellowSymbioticVault)), 0);
+        assertEq(IERC20(Constants.WSTETH()).balanceOf(address(mellowSymbioticVault)), 0);
         // assertEq(IERC20(collateral).balanceOf(address(mellowSymbioticVault)), 0);
-        assertEq(IERC20(address(symbioticVault)).balanceOf(address(mellowSymbioticVault)), 10 ether);
+        assertEq(symbioticVault.slashableBalanceOf(address(mellowSymbioticVault)), 10 ether);
 
         /*
             slashing
         */
 
-        IVetoSlasher slasher = IVetoSlasher(symbioticVault.slasher());
+        // IVetoSlasher slasher = IVetoSlasher(symbioticVault.slasher());
 
         // slasher.requestSlash(
         //     subnetwork,

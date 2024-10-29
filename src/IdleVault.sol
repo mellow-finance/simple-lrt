@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import {ERC4626Vault} from "./ERC4626Vault.sol";
@@ -8,6 +8,7 @@ import "./interfaces/vaults/IIdleVault.sol";
 contract IdleVault is IIdleVault, ERC4626Vault {
     constructor() VaultControlStorage("IdleVault", 1) {}
 
+    /// @inheritdoc IIdleVault
     function initialize(InitParams memory initParams) external initializer {
         __initializeERC4626(
             initParams.admin,

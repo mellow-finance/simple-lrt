@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@symbiotic/rewards/interfaces/stakerRewards/IStakerRewards.sol";
 
 import "./Imports.sol";
-import "./SymbioticContracts.sol";
 
 contract MockStakingRewards is IStakerRewards {
     function test() external pure {}

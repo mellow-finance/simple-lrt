@@ -1,24 +1,9 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
 
-contract MockMellowSymbioticVaultStorage is MellowSymbioticVaultStorage {
-    constructor(bytes32 name, uint256 version) MellowSymbioticVaultStorage(name, version) {}
-
-    function initializeMellowSymbioticVaultStorage(
-        address _symbioticVault,
-        address _withdrawalQueue
-    ) external initializer {
-        __initializeMellowSymbioticVaultStorage(_symbioticVault, _withdrawalQueue);
-    }
-
-    function setFarm(uint256 farmId, FarmData memory farmData) external {
-        _setFarm(farmId, farmData);
-    }
-
-    function test() external pure {}
-}
+import "../mocks/MockMellowSymbioticVaultStorage.sol";
 
 contract Unit is BaseTest {
     address wsteth = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
@@ -60,12 +45,17 @@ contract Unit is BaseTest {
         address mockWithdrawalQueue = makeAddr("mockWithdrawalQueue");
 
         vm.recordLogs();
-        c.initializeMellowSymbioticVaultStorage(address(symbioticVault), mockWithdrawalQueue);
+        c.initializeMellowSymbioticVaultStorage(
+            address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
+            address(symbioticVault),
+            mockWithdrawalQueue
+        );
         Vm.Log[] memory events = vm.getRecordedLogs();
 
-        assertEq(events.length, 3);
+        assertEq(events.length, 4);
 
-        bytes32[3] memory expectedEvents = [
+        bytes32[4] memory expectedEvents = [
+            keccak256("SymbioticCollateralSet(address,uint256)"),
             keccak256("SymbioticVaultSet(address,uint256)"),
             keccak256("WithdrawalQueueSet(address,uint256)"),
             keccak256("Initialized(uint64)")
@@ -78,6 +68,7 @@ contract Unit is BaseTest {
 
         assertEq(address(c.withdrawalQueue()), mockWithdrawalQueue);
         assertEq(address(c.symbioticVault()), address(symbioticVault));
+        assertEq(address(c.symbioticCollateral()), address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()));
         assertEq(c.symbioticFarmIds().length, 0);
         assertEq(c.symbioticFarmCount(), 0);
 
@@ -91,7 +82,11 @@ contract Unit is BaseTest {
 
         address mockSymbioticVault = makeAddr("mockSymbioticVault");
         address mockWithdrawalQueue = makeAddr("mockWithdrawalQueue");
-        c.initializeMellowSymbioticVaultStorage(mockSymbioticVault, mockWithdrawalQueue);
+        c.initializeMellowSymbioticVaultStorage(
+            address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
+            mockSymbioticVault,
+            mockWithdrawalQueue
+        );
 
         address rewardToken1 = makeAddr("rewardToken1");
         address symbioticFarm1 = makeAddr("symbioticFarm1");

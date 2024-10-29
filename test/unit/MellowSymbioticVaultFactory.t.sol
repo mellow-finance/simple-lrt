@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
@@ -40,6 +40,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 100 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -65,6 +66,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 100 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -114,11 +116,11 @@ contract Unit is BaseTest {
         address proxyAdmin = makeAddr("proxyAdmin");
         // invalid singleton impl
         vm.expectRevert();
-        (IMellowSymbioticVault mellowSymbioticVault1, IWithdrawalQueue withdrawalQueue1) = factory
-            .create(
+        factory.create(
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: proxyAdmin,
                 limit: 100 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,

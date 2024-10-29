@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
@@ -21,7 +21,7 @@ contract Unit is BaseTest {
 
     function testConstructor() external {
         vm.expectRevert();
-        new SymbioticWithdrawalQueue(address(0), address(0));
+        new SymbioticWithdrawalQueue(address(0), address(0), address(0));
     }
 
     function testWithdrawalQueue() external {
@@ -48,6 +48,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 1000 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -148,6 +149,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 1000 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -244,6 +246,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 1000 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -296,6 +299,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 1000 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -360,6 +364,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 1000 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -437,6 +442,7 @@ contract Unit is BaseTest {
                 IMellowSymbioticVaultFactory.InitParams({
                     proxyAdmin: makeAddr("proxyAdmin"),
                     limit: 1000 ether,
+                    symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                     symbioticVault: address(symbioticVault),
                     admin: admin,
                     depositPause: false,
@@ -500,6 +506,7 @@ contract Unit is BaseTest {
                 IMellowSymbioticVaultFactory.InitParams({
                     proxyAdmin: makeAddr("proxyAdmin"),
                     limit: 1000 ether,
+                    symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                     symbioticVault: address(symbioticVault),
                     admin: admin,
                     depositPause: false,
@@ -584,6 +591,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 1000 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -665,6 +673,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 1000 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -728,6 +737,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 1000 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -795,6 +805,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 1000 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -829,7 +840,7 @@ contract Unit is BaseTest {
             withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, "stage 1: claimableAssetsOf"
         );
 
-        uint256 currentEpoch = withdrawalQueue.getCurrentEpoch();
+        // uint256 currentEpoch = withdrawalQueue.getCurrentEpoch();
 
         vm.expectRevert();
         withdrawalQueue.claim(user1, user1, amount1 / 2);
@@ -871,6 +882,7 @@ contract Unit is BaseTest {
             IMellowSymbioticVaultFactory.InitParams({
                 proxyAdmin: makeAddr("proxyAdmin"),
                 limit: 1000 ether,
+                symbioticCollateral: address(Constants.WSTETH_SYMBIOTIC_COLLATERAL()),
                 symbioticVault: address(symbioticVault),
                 admin: admin,
                 depositPause: false,
@@ -905,15 +917,17 @@ contract Unit is BaseTest {
         assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
 
         skip(epochDuration * 2);
+        uint256 epoch = withdrawalQueue.getCurrentEpoch() - 1;
+        assertFalse(withdrawalQueue.getEpochData(epoch).isClaimed);
 
         assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
         assertEq(
             withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, "stage 1: claimableAssetsOf"
         );
 
-        uint256 currentEpoch = withdrawalQueue.getCurrentEpoch();
-
         withdrawalQueue.handlePendingEpochs(user1);
+        assertTrue(withdrawalQueue.getEpochData(epoch).isClaimed);
+
         assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
         assertEq(
             withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, "stage 1: claimableAssetsOf"
