@@ -6,6 +6,7 @@ import "./interfaces/vaults/IMellowEigenLayerVaultStorage.sol";
 abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage, Initializable {
     using EnumerableSet for EnumerableSet.UintSet;
 
+    /// @notice The first slot of the storage.
     bytes32 private immutable storageSlotRef;
 
     constructor(bytes32 name_, uint256 version_) {
@@ -25,86 +26,79 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
     }
 
     function __initializeMellowEigenLayerVaultStorage(
-        IDelegationManager delegationManager,
-        IStrategyManager strategyManager,
-        IStrategy strategy,
-        address operator,
-        uint256 claimWithdrawalsMax
+        IDelegationManager delegationManager_,
+        IStrategyManager strategyManager_,
+        IStrategy strategy_,
+        address operator_,
+        uint256 maxWithdrawalRequests_,
+        address withdrawalQueue_
     ) internal onlyInitializing {
-        _setEigenLayerDelegationManager(delegationManager);
-        _setEigenLayerStrategyManager(strategyManager);
-        _setEigenLayerStrategy(strategy);
-        _setEigenLayerStrategyOperator(operator);
-        _setEigenLayerClaimWithdrawalsMax(claimWithdrawalsMax);
+        _setDelegationManager(delegationManager_);
+        _setStrategyManager(strategyManager_);
+        _setStrategy(strategy_);
+        _setStrategyOperator(operator_);
+        _setMaxWithdrawalRequests(maxWithdrawalRequests_);
+        _setWithdrawalQueue(withdrawalQueue_);
     }
 
-    function eigenLayerDelegationManager() public view returns (IDelegationManager) {
+    function withdrawalQueue() public view returns (address) {
+        return _eigenLayerStorage().withdrawalQueue;
+    }
+
+    function delegationManager() public view returns (IDelegationManager) {
         return _eigenLayerStorage().delegationManager;
     }
 
-    function eigenLayerStrategyManager() public view returns (IStrategyManager) {
+    function strategyManager() public view returns (IStrategyManager) {
         return _eigenLayerStorage().strategyManager;
     }
 
-    function eigenLayerStrategy() public view returns (IStrategy) {
+    function strategy() public view returns (IStrategy) {
         return _eigenLayerStorage().strategy;
     }
 
-    function eigenLayerStrategyOperator() public view returns (address) {
+    function strategyOperator() public view returns (address) {
         return _eigenLayerStorage().operator;
     }
 
-    function eigenLayerClaimWithdrawalsMax() public view returns (uint256) {
-        return _eigenLayerStorage().claimWithdrawalsMax;
+    function maxWithdrawalRequests() public view returns (uint256) {
+        return _eigenLayerStorage().maxWithdrawalRequests;
     }
 
-    function eigenLayerAccountWithdrawals(address account)
-        public
-        view
-        returns (IDelegationManager.Withdrawal[] memory)
-    {
-        mapping(address account => IDelegationManager.Withdrawal[]) storage s =
-            _getEigenLayerWithdrawalQueue();
-        return s[account];
-    }
-
-    function _setEigenLayerDelegationManager(IDelegationManager _delegationManager) internal {
+    function _setDelegationManager(IDelegationManager _delegationManager) internal {
         EigenLayerStorage storage s = _eigenLayerStorage();
         s.delegationManager = _delegationManager;
-        emit EigenLayerDelegationManagerSet(address(_delegationManager), block.timestamp);
+        // emit DelegationManagerSet(address(_delegationManager), block.timestamp);
     }
 
-    function _setEigenLayerStrategyManager(IStrategyManager _strategyManager) internal {
+    function _setWithdrawalQueue(address withdrawalQueue_) internal {
+        EigenLayerStorage storage s = _eigenLayerStorage();
+        s.withdrawalQueue = withdrawalQueue_;
+        // emit WithdrawalQueueSet(withdrawalQueue_, block.timestamp);
+    }
+
+    function _setStrategyManager(IStrategyManager _strategyManager) internal {
         EigenLayerStorage storage s = _eigenLayerStorage();
         s.strategyManager = _strategyManager;
-        emit EigenLayerStrategyManagerSet(address(_strategyManager), block.timestamp);
+        // emit StrategyManagerSet(address(_strategyManager), block.timestamp);
     }
 
-    function _setEigenLayerStrategy(IStrategy _strategy) internal {
+    function _setStrategy(IStrategy _strategy) internal {
         EigenLayerStorage storage s = _eigenLayerStorage();
         s.strategy = _strategy;
-        emit EigenLayerStrategySet(address(_strategy), block.timestamp);
+        // emit StrategySet(address(_strategy), block.timestamp);
     }
 
-    function _setEigenLayerStrategyOperator(address _operator) internal {
+    function _setStrategyOperator(address _operator) internal {
         EigenLayerStorage storage s = _eigenLayerStorage();
         s.operator = _operator;
-        emit EigenLayerStrategyOperatorSet(address(_operator), block.timestamp);
+        // emit StrategyOperatorSet(address(_operator), block.timestamp);
     }
 
-    function _setEigenLayerClaimWithdrawalsMax(uint256 _claimWithdrawalsMax) internal {
+    function _setMaxWithdrawalRequests(uint256 maxWithdrawalRequests_) internal {
         EigenLayerStorage storage s = _eigenLayerStorage();
-        s.claimWithdrawalsMax = _claimWithdrawalsMax;
-        emit EigenLayerClaimWithdrawalsMaxSet(_claimWithdrawalsMax, block.timestamp);
-    }
-
-    function _getEigenLayerWithdrawalQueue()
-        internal
-        view
-        returns (mapping(address account => IDelegationManager.Withdrawal[]) storage)
-    {
-        EigenLayerStorage storage s = _eigenLayerStorage();
-        return s.withdrawals;
+        s.maxWithdrawalRequests = maxWithdrawalRequests_;
+        // emit MaxWithdrawalPerClaimSet(maxWithdrawalsPerClaim_, block.timestamp);
     }
 
     function _eigenLayerStorage() private view returns (EigenLayerStorage storage $) {

@@ -2,12 +2,11 @@
 pragma solidity 0.8.25;
 
 import {ERC4626Vault} from "./ERC4626Vault.sol";
-import {VaultControl, VaultControlStorage} from "./VaultControl.sol";
-
-import {MellowSymbioticVaultStorage} from "./MellowSymbioticVaultStorage.sol";
-
-import "./MellowEigenLayerVaultStorage.sol";
+import {MellowEigenLayerVaultStorage} from "./MellowEigenLayerVaultStorage.sol";
+import {VaultControlStorage} from "./VaultControl.sol";
 import "./interfaces/vaults/IMellowEigenLayerVault.sol";
+
+import "./EigenLayerWithdrawalQueue.sol";
 
 contract MellowEigenLayerVault is
     IMellowEigenLayerVault,
@@ -17,42 +16,38 @@ contract MellowEigenLayerVault is
     using SafeERC20 for IERC20;
     using Math for uint256;
 
-    constructor(bytes32 contractName_, uint256 contractVersion_)
+    // in EigenLayer contracts equals to 1e3, but can be changed with a new version
+    uint256 public immutable SHARES_OFFSET;
+    // in EigenLayer contracts equals to 1e3, but can be changed with a new version
+    uint256 public immutable BALANCE_OFFSET;
+
+    constructor(
+        bytes32 contractName_,
+        uint256 contractVersion_,
+        uint256 sharesOffset,
+        uint256 balanceOffset
+    )
         MellowEigenLayerVaultStorage(contractName_, contractVersion_)
         VaultControlStorage(contractName_, contractVersion_)
-    {}
+    {
+        SHARES_OFFSET = sharesOffset;
+        BALANCE_OFFSET = balanceOffset;
+    }
 
     function initialize(InitParams memory initParams) public virtual initializer {
         __initialize(initParams);
     }
 
-    function isValidSignature(bytes32 hash_, bytes memory signature)
-        external
-        view
-        returns (bytes4 magicValue)
-    {
-        if (_signedHashes[hash_]) {
-            bytes32 signatureHash = abi.decode(signature, (bytes32));
-            require(
-                signatureHash == keccak256(abi.encode(address(this), block.timestamp, hash_)),
-                "ERC1271: wrong signature"
-            );
-            return bytes4(keccak256("isValidSignature(bytes32,bytes)"));
-        } else {
-            return 0xffffffff;
-        }
-    }
-
     function __initialize(InitParams memory initParams) internal virtual onlyInitializing {
-        EigenLayerParam memory eigenLayerParam = initParams.eigenLayerParam;
-
-        address underlyingToken = address(IStrategy(eigenLayerParam.strategy).underlyingToken());
+        EigenLayerParams memory params = initParams.eigenLayerParams;
+        address underlyingToken = address(IStrategy(params.strategy).underlyingToken());
         __initializeMellowEigenLayerVaultStorage(
-            eigenLayerParam.delegationManager,
-            eigenLayerParam.strategyManager,
-            eigenLayerParam.strategy,
-            eigenLayerParam.operator,
-            eigenLayerParam.claimWithdrawalsMax
+            params.delegationManager,
+            params.strategyManager,
+            params.strategy,
+            params.operator,
+            params.claimWithdrawalsMax,
+            initParams.withdrawalQueue
         );
         __initializeERC4626(
             initParams.admin,
@@ -65,38 +60,22 @@ contract MellowEigenLayerVault is
             initParams.symbol
         );
 
-        address this_ = address(this);
-        uint256 timestamp = block.timestamp;
-
-        uint256 nonce = eigenLayerDelegationManager().stakerNonce(this_);
-
-        bytes32 stakerDigestHash = IDelegationManager(eigenLayerParam.delegationManager)
-            .calculateStakerDelegationDigestHash(
-            this_, nonce, eigenLayerParam.operator, eigenLayerParam.expiry + timestamp
+        IDelegationManager(params.delegationManager).delegateTo(
+            params.operator, params.approverSignature, params.salt
         );
-
-        _setHashAsSigned(stakerDigestHash);
-        eigenLayerParam.delegationSignature =
-            abi.encode(keccak256(abi.encode(this_, timestamp, stakerDigestHash)));
-
-        ISignatureUtils.SignatureWithExpiry memory stakerSignatureAndExpiry = ISignatureUtils
-            .SignatureWithExpiry(
-            eigenLayerParam.delegationSignature, eigenLayerParam.expiry + timestamp
-        );
-
-        ISignatureUtils.SignatureWithExpiry memory approverSignatureAndExpiry =
-            ISignatureUtils.SignatureWithExpiry(abi.encode(0), 0);
-        eigenLayerDelegationManager().delegateToBySignature(
-            this_,
-            eigenLayerParam.operator,
-            stakerSignatureAndExpiry,
-            approverSignatureAndExpiry,
-            eigenLayerParam.salt
-        );
-        _revokeHash(stakerDigestHash);
     }
 
-    // ERC4626 overrides
+    /*  
+        TODO:
+            1. add rewards logic
+            2. add maxMint, maxDeposit, maxRedeem, maxWithdraw function overrides
+            3. finalize EigenLayerWithdrawalQueue
+            4. finalize Claimer contract by adding ELWQ logic for transferred pending assets 
+    */
+
+    /// ------------------ ERC4626 overrides ------------------
+
+    /// @inheritdoc IERC4626
     function totalAssets()
         public
         view
@@ -104,8 +83,33 @@ contract MellowEigenLayerVault is
         override(ERC4626Upgradeable, IERC4626)
         returns (uint256)
     {
-        return IERC20(asset()).balanceOf(address(this))
-            + eigenLayerStrategy().userUnderlyingView(address(this));
+        return strategy().userUnderlyingView(address(this));
+    }
+
+    function _convertToShares(uint256 assets, Math.Rounding rounding)
+        internal
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        IStrategy strategy_ = strategy();
+        uint256 virtualTokenBalance = IERC20(asset()).balanceOf(address(strategy_)) + BALANCE_OFFSET;
+        uint256 virtualShareAmount = strategy_.totalShares() + SHARES_OFFSET;
+        return assets.mulDiv(virtualShareAmount, virtualTokenBalance, rounding);
+    }
+
+    function _convertToAssets(uint256 shares, Math.Rounding rounding)
+        internal
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        IStrategy strategy_ = strategy();
+        uint256 virtualTokenBalance = IERC20(asset()).balanceOf(address(strategy_)) + BALANCE_OFFSET;
+        uint256 virtualShareAmount = strategy_.totalShares() + SHARES_OFFSET;
+        return shares.mulDiv(virtualTokenBalance, virtualShareAmount, rounding);
     }
 
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
@@ -114,16 +118,10 @@ contract MellowEigenLayerVault is
         override
     {
         super._deposit(caller, receiver, assets, shares);
-
-        IERC20(asset()).safeIncreaseAllowance(address(eigenLayerStrategyManager()), assets);
-
-        uint256 actualShares = eigenLayerStrategyManager().depositIntoStrategy(
-            eigenLayerStrategy(), IERC20(asset()), assets
-        );
-
-        require(actualShares >= shares, "Vault: insufficient shares");
-
-        emit EigenLayerDeposited(caller, assets);
+        address asset_ = asset();
+        IStrategyManager strategyManager_ = strategyManager();
+        IERC20(asset_).safeIncreaseAllowance(address(strategyManager_), assets);
+        strategyManager_.depositIntoStrategy(strategy(), IERC20(asset_), assets);
     }
 
     function _withdraw(
@@ -133,191 +131,59 @@ contract MellowEigenLayerVault is
         uint256 assets,
         uint256 shares
     ) internal virtual override {
-        uint256 liquid = IERC20(asset()).balanceOf(address(this));
-        if (liquid >= assets) {
-            return super._withdraw(caller, receiver, owner, assets, shares);
+        if (caller != owner) {
+            _spendAllowance(owner, caller, shares);
         }
-
-        uint256 stakedShares = previewWithdraw(assets - liquid);
-        if (stakedShares > 0) {
-            _pushToWithdrawalQueue(receiver, stakedShares);
-
-            if (caller != owner) {
-                _spendAllowance(owner, caller, stakedShares);
-            }
-        }
-
         _burn(owner, shares);
-        if (liquid != 0) {
-            IERC20(asset()).safeTransfer(receiver, liquid);
-        }
-
-        // emitting event with transfered + new pending assets
+        EigenLayerWithdrawalQueue(withdrawalQueue()).request(receiver, assets, receiver == owner);
+        // emitting event with new pending assets
         emit Withdraw(caller, receiver, owner, assets, shares);
     }
 
-    function _pushToWithdrawalQueue(address account, uint256 stakedShares) internal {
-        IStrategy[] memory strategies = new IStrategy[](1);
-        uint256[] memory shares = new uint256[](1);
-        strategies[0] = eigenLayerStrategy();
-        shares[0] = stakedShares;
+    // ------ proxy calls from EigenLayerWithdrawalQueue ---------
 
-        IDelegationManager.QueuedWithdrawalParams[] memory queuedWithdrawalParams =
+    function proxyRequestWithdrawals(IDelegationManager.QueuedWithdrawalParams calldata request)
+        external
+        returns (bytes32[] memory)
+    {
+        require(_msgSender() == withdrawalQueue(), "Vault: forbidden");
+        IDelegationManager.QueuedWithdrawalParams[] memory requests =
             new IDelegationManager.QueuedWithdrawalParams[](1);
-        queuedWithdrawalParams[0] = IDelegationManager.QueuedWithdrawalParams({
-            strategies: strategies,
-            shares: shares,
-            withdrawer: address(this)
-        });
-
-        uint256 nonce = eigenLayerDelegationManager().cumulativeWithdrawalsQueued(address(this));
-        bytes32[] memory withdrawalRoots =
-            eigenLayerDelegationManager().queueWithdrawals(queuedWithdrawalParams);
-
-        IDelegationManager.Withdrawal memory withdrawalData = IDelegationManager.Withdrawal({
-            staker: address(this),
-            delegatedTo: eigenLayerStrategyOperator(),
-            withdrawer: address(this),
-            nonce: nonce,
-            startBlock: uint32(block.number),
-            strategies: strategies,
-            shares: shares
-        });
-
-        bytes32 withdrawalRoot =
-            eigenLayerDelegationManager().calculateWithdrawalRoot(withdrawalData);
-        require(withdrawalRoots[0] == withdrawalRoot, "Vault: withdrawalRoot mismatch");
-
-        mapping(address account => IDelegationManager.Withdrawal[]) storage withdrawals =
-            _getEigenLayerWithdrawalQueue();
-
-        require(
-            withdrawals[account].length < eigenLayerClaimWithdrawalsMax(),
-            "Vault: withdrawal queue size limit is reached"
-        );
-        withdrawals[account].push(withdrawalData);
+        requests[0] = request;
+        return delegationManager().queueWithdrawals(requests);
     }
 
-    function claim(address account, address recipient)
+    function proxyClaimWithdrawals(IDelegationManager.Withdrawal calldata data)
+        external
+        returns (uint256 assets)
+    {
+        address withdrawalQueue_ = withdrawalQueue();
+        require(_msgSender() == withdrawalQueue_, "Vault: forbidden");
+        IERC20 asset_ = IERC20(asset());
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = asset_;
+        delegationManager().completeQueuedWithdrawal(data, tokens, 0, true);
+        assets = asset_.balanceOf(address(this));
+        asset_.safeTransfer(withdrawalQueue_, assets);
+    }
+
+    // ----- proxy calls in EigenLayerWithdrawalQueue -------
+
+    function claim(address account, address recipient, uint256 maxAmount)
         external
         virtual
         nonReentrant
         returns (uint256 claimedAmount)
     {
-        address sender = msg.sender;
-        require(sender == account || sender == address(this), "Vault: forbidden");
-
-        mapping(address account => IDelegationManager.Withdrawal[]) storage withdrawals =
-            _getEigenLayerWithdrawalQueue();
-        IDelegationManager.Withdrawal[] storage withdrawalData = withdrawals[account];
-
-        require(withdrawalData.length > 0, "Vault: no active withdrawals");
-
-        IERC20[] memory tokens = new IERC20[](1);
-        tokens[0] = IERC20(asset());
-        uint256 minWithdrawalDelayBlocks = eigenLayerDelegationManager().minWithdrawalDelayBlocks();
-        uint256 claimed;
-
-        uint256 balanceBefore = IERC20(asset()).balanceOf(address(this));
-
-        for (uint256 i = 0; i < withdrawalData.length; i++) {
-            if (withdrawalData[i].startBlock + minWithdrawalDelayBlocks <= block.number) {
-                eigenLayerDelegationManager().completeQueuedWithdrawal(
-                    withdrawalData[i], tokens, 0, true
-                );
-                delete withdrawalData[i];
-                claimed += 1;
-            }
-        }
-        require(claimed > 0, "Vault: nothing to claim");
-        uint256 balanceAfter = IERC20(asset()).balanceOf(address(this));
-
-        if (claimed == withdrawalData.length) {
-            delete withdrawals[account];
-        }
-
-        claimedAmount = balanceAfter - balanceBefore;
-
-        if (claimedAmount > 0) {
-            IERC20(asset()).safeTransfer(recipient, claimedAmount);
-        }
-
-        emit Claimed(account, recipient, claimedAmount);
+        require(account == _msgSender(), "Vault: forbidden");
+        return EigenLayerWithdrawalQueue(withdrawalQueue()).claim(account, recipient, maxAmount);
     }
 
     function pendingAssetsOf(address account) public view returns (uint256 assets) {
-        return _assetsOf(account, true);
+        return EigenLayerWithdrawalQueue(withdrawalQueue()).pendingAssetsOf(account);
     }
 
     function claimableAssetsOf(address account) public view returns (uint256 assets) {
-        return _assetsOf(account, false);
-    }
-
-    function _assetsOf(address account, bool up) internal view returns (uint256 assets) {
-        mapping(address account => IDelegationManager.Withdrawal[]) storage withdrawals =
-            _getEigenLayerWithdrawalQueue();
-
-        uint256 _block = block.number - eigenLayerDelegationManager().minWithdrawalDelayBlocks();
-
-        IDelegationManager.Withdrawal memory withdrawal;
-        uint256 shares;
-
-        for (uint256 i = 0; i < withdrawals[account].length; i++) {
-            withdrawal = withdrawals[account][i];
-            if (up) {
-                if (withdrawal.startBlock > _block) {
-                    shares += withdrawal.shares[0];
-                }
-            } else {
-                if (withdrawal.startBlock <= _block) {
-                    shares += withdrawal.shares[0];
-                }
-            }
-        }
-
-        assets = eigenLayerStrategy().sharesToUnderlyingView(shares);
-    }
-
-    /**
-     * @dev Internal conversion function (from assets to shares) with support for rounding direction.
-     */
-    function _convertToShares(uint256 assets, Math.Rounding)
-        internal
-        view
-        override
-        returns (uint256 shares)
-    {
-        shares = eigenLayerStrategy().underlyingToSharesView(assets);
-    }
-
-    /**
-     * @dev Internal conversion function (from shares to assets) with support for rounding direction.
-     */
-    function _convertToAssets(uint256 shares, Math.Rounding)
-        internal
-        view
-        override
-        returns (uint256 assets)
-    {
-        assets = eigenLayerStrategy().sharesToUnderlyingView(shares);
-    }
-
-    // helper functions
-
-    function getBalances(address account)
-        public
-        view
-        returns (
-            uint256 accountAssets,
-            uint256 accountInstantAssets,
-            uint256 accountShares,
-            uint256 accountInstantShares
-        )
-    {
-        uint256 instantAssets = IERC20(asset()).balanceOf(address(this));
-        accountShares = balanceOf(account);
-        accountAssets = convertToAssets(accountShares);
-        accountInstantAssets = accountAssets.min(instantAssets);
-        accountInstantShares = convertToShares(accountInstantAssets);
+        return EigenLayerWithdrawalQueue(withdrawalQueue()).claimableAssetsOf(account);
     }
 }

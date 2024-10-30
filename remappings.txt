@@ -3,3 +3,4 @@
 @symbiotic/core/=lib/core/src/
 @symbiotic/core-test/=lib/core/test/
 @symbiotic/rewards/=lib/rewards/src/
+@eigenlayer-interfaces/=lib/eigenlayer-contracts/src/contracts/interfaces/

@@ -1,42 +1,30 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "../eigen/IDelegationManager.sol";
-import "../eigen/IStrategyManager.sol";
-
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@eigenlayer-interfaces/IDelegationManager.sol";
+import "@eigenlayer-interfaces/IStrategyManager.sol";
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 interface IMellowEigenLayerVaultStorage {
     struct EigenLayerStorage {
+        address withdrawalQueue;
         IStrategyManager strategyManager;
         IDelegationManager delegationManager;
         IStrategy strategy;
         address operator;
-        uint256 claimWithdrawalsMax;
+        uint256 maxWithdrawalRequests;
         mapping(address account => IDelegationManager.Withdrawal[]) withdrawals;
     }
 
-    function eigenLayerDelegationManager() external view returns (IDelegationManager);
+    function delegationManager() external view returns (IDelegationManager);
 
-    function eigenLayerStrategyManager() external view returns (IStrategyManager);
+    function strategyManager() external view returns (IStrategyManager);
 
-    function eigenLayerStrategy() external view returns (IStrategy);
+    function strategy() external view returns (IStrategy);
 
-    function eigenLayerStrategyOperator() external view returns (address);
+    function strategyOperator() external view returns (address);
 
-    function eigenLayerClaimWithdrawalsMax() external view returns (uint256);
-
-    event EigenLayerNonceIncreased(uint256 nonce, uint256 timestamp);
-
-    event EigenLayerDelegationManagerSet(address delegationManager, uint256 timestamp);
-
-    event EigenLayerStrategyManagerSet(address strategyManager, uint256 timestamp);
-
-    event EigenLayerStrategySet(address eigenLayerStrategy, uint256 timestamp);
-
-    event EigenLayerStrategyOperatorSet(address operator, uint256 timestamp);
-
-    event EigenLayerClaimWithdrawalsMaxSet(uint256 maxClaimWithdrawals, uint256 timestamp);
+    function maxWithdrawalRequests() external view returns (uint256);
 }
