@@ -7,10 +7,10 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
     using EnumerableSet for EnumerableSet.UintSet;
 
     /// @notice The first slot of the storage.
-    bytes32 private immutable storageSlotRef;
+    bytes32 private immutable _storageSlot;
 
     constructor(bytes32 name_, uint256 version_) {
-        storageSlotRef = keccak256(
+        _storageSlot = keccak256(
             abi.encode(
                 uint256(
                     keccak256(
@@ -38,10 +38,10 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
         _setStrategy(strategy_);
         _setStrategyOperator(operator_);
         _setMaxWithdrawalRequests(maxWithdrawalRequests_);
-        _setWithdrawalQueue(withdrawalQueue_);
+        _setWithdrawalQueue(IEigenLayerWithdrawalQueue(withdrawalQueue_));
     }
 
-    function withdrawalQueue() public view returns (address) {
+    function withdrawalQueue() public view returns (IEigenLayerWithdrawalQueue) {
         return _eigenLayerStorage().withdrawalQueue;
     }
 
@@ -71,7 +71,7 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
         // emit DelegationManagerSet(address(_delegationManager), block.timestamp);
     }
 
-    function _setWithdrawalQueue(address withdrawalQueue_) internal {
+    function _setWithdrawalQueue(IEigenLayerWithdrawalQueue withdrawalQueue_) internal {
         EigenLayerStorage storage s = _eigenLayerStorage();
         s.withdrawalQueue = withdrawalQueue_;
         // emit WithdrawalQueueSet(withdrawalQueue_, block.timestamp);
@@ -102,7 +102,7 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
     }
 
     function _eigenLayerStorage() private view returns (EigenLayerStorage storage $) {
-        bytes32 slot = bytes32(uint256(storageSlotRef));
+        bytes32 slot = _storageSlot;
         assembly {
             $.slot := slot
         }

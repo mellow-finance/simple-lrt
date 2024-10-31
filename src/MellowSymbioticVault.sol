@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import {ERC4626Vault} from "./ERC4626Vault.sol";
 import {MellowSymbioticVaultStorage} from "./MellowSymbioticVaultStorage.sol";
-import {VaultControl, VaultControlStorage} from "./VaultControl.sol";
+import {VaultControlStorage} from "./VaultControl.sol";
 import "./interfaces/vaults/IMellowSymbioticVault.sol";
 
 contract MellowSymbioticVault is
@@ -147,7 +147,6 @@ contract MellowSymbioticVault is
         return withdrawalQueue().claim(account, recipient, maxAmount);
     }
 
-    // / @inheritdoc IMellowSymbioticVault
     function transferPendingAssets(address account, address recipient, uint256 amount)
         external
         virtual

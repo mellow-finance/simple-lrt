@@ -17,7 +17,7 @@ import "../src/MellowVaultCompat.sol";
 import "../src/MetaVault.sol";
 import "../src/MetaVaultStorage.sol";
 
-import "../src/Claimer.sol";
+import {Claimer} from "../src/Claimer.sol";
 import "../src/Migrator.sol";
 
 import "../src/SymbioticWithdrawalQueue.sol";

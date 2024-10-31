@@ -4,6 +4,8 @@ pragma solidity 0.8.25;
 import {IERC4626Vault} from "./IERC4626Vault.sol";
 
 import "@eigenlayer-interfaces/IDelegationManager.sol";
+
+import "@eigenlayer-interfaces/IPausable.sol";
 import "@eigenlayer-interfaces/IStrategyManager.sol";
 
 import "./IMellowEigenLayerVaultStorage.sol";

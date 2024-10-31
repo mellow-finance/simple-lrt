@@ -1,29 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-
 import "./MellowEigenLayerVault.sol";
+import "./interfaces/utils/IEigenLayerWithdrawalQueue.sol";
 
-contract EigenLayerWithdrawalQueue {
+contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
-
-    struct WithdrawalData {
-        IDelegationManager.Withdrawal data;
-        bool isClaimed;
-        uint256 assets;
-        uint256 totalSupply;
-        mapping(address account => uint256) balanceOf;
-    }
-
-    struct AccountData {
-        uint256 claimableAssets;
-        EnumerableSet.UintSet withdrawalIndices;
-        EnumerableSet.UintSet transferedWithdrawalIndices;
-    }
 
     /*
         1. gas cost of each call `IDelegationManager::completeWithdrawal` is ~150-400k gas
@@ -51,39 +35,50 @@ contract EigenLayerWithdrawalQueue {
         return MellowEigenLayerVault(vault).strategy().sharesToUnderlyingView(pendingShares);
     }
 
-    function balanceOf(address account) public view returns (uint256 assets) {
+    function balancesOf(address account)
+        public
+        view
+        returns (bool[] memory isClaimed, bool[] memory isClaimable, uint256[] memory assets)
+    {
         AccountData storage accountData = _accountData[account];
-        assets = accountData.claimableAssets;
         uint256[] memory indices = accountData.withdrawalIndices.values();
+        isClaimed = new bool[](indices.length);
+        isClaimable = new bool[](indices.length);
+        assets = new uint256[](indices.length);
         for (uint256 i = 0; i < indices.length; i++) {
-            (,, uint256 assets_) = withdrawalAssetsOf(indices[i], account);
-            assets += assets_;
+            (isClaimed[i], isClaimable[i], assets[i],) = withdrawalAssetsOf(indices[i], account);
+        }
+    }
+
+    function balanceOf(address account) public view returns (uint256 assets) {
+        (,, uint256[] memory assets_) = balancesOf(account);
+        for (uint256 i = 0; i < assets_.length; i++) {
+            assets += assets_[i];
         }
     }
 
     function pendingAssetsOf(address account) public view returns (uint256 assets) {
-        AccountData storage accountData = _accountData[account];
-        uint256[] memory indices = accountData.withdrawalIndices.values();
-        for (uint256 i = 0; i < indices.length; i++) {
-            (bool isClaimed, bool isClaimable, uint256 assets_) =
-                withdrawalAssetsOf(indices[i], account);
-            if (!isClaimed && !isClaimable) {
-                assets += assets_;
+        (bool[] memory isClaimed, bool[] memory isClaimable, uint256[] memory assets_) =
+            balancesOf(account);
+        for (uint256 i = 0; i < assets_.length; i++) {
+            if (!isClaimed[i] && isClaimable[i]) {
+                assets += assets_[i];
             }
         }
     }
 
     function claimableAssetsOf(address account) public view returns (uint256 assets) {
-        AccountData storage accountData = _accountData[account];
-        assets = accountData.claimableAssets;
-        uint256[] memory indices = accountData.withdrawalIndices.values();
-        for (uint256 i = 0; i < indices.length; i++) {
-            (bool isClaimed, bool isClaimable, uint256 assets_) =
-                withdrawalAssetsOf(indices[i], account);
-            if (isClaimed || isClaimable) {
-                assets += assets_;
+        (bool[] memory isClaimed, bool[] memory isClaimable, uint256[] memory assets_) =
+            balancesOf(account);
+        for (uint256 i = 0; i < assets_.length; i++) {
+            if (isClaimed[i] || isClaimable[i]) {
+                assets += assets_[i];
             }
         }
+    }
+
+    function maxWithdrawalRequests() public view returns (uint256) {
+        return MAX_WITHDRAWAL_REQUESTS.min(MellowEigenLayerVault(vault).maxWithdrawalRequests());
     }
 
     function request(address account, uint256 assets, bool isSelfRequested) external {
@@ -124,9 +119,7 @@ contract EigenLayerWithdrawalQueue {
         withdrawal.totalSupply = assets;
         AccountData storage accountData = _accountData[account];
         if (isSelfRequested) {
-            uint256 maxWithdrawalRequests =
-                MAX_WITHDRAWAL_REQUESTS.min(vault_.maxWithdrawalRequests());
-            if (accountData.withdrawalIndices.length() + 1 >= maxWithdrawalRequests) {
+            if (accountData.withdrawalIndices.length() + 1 >= maxWithdrawalRequests()) {
                 revert("EigenLayerWithdrawalQueue: max withdrawal requests reached");
             }
             accountData.withdrawalIndices.add(withdrawalIndex);
@@ -139,83 +132,121 @@ contract EigenLayerWithdrawalQueue {
     function withdrawalAssets(uint256 withdrawalIndex)
         public
         view
-        returns (bool isClaimed, bool isClaimable, uint256 assets)
+        returns (bool isClaimed, bool isClaimable, uint256 assets, uint256 shares)
     {
         WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
         if (withdrawal.isClaimed) {
-            return (true, false, withdrawal.assets);
+            return (true, false, withdrawal.assets, 0);
         }
         IDelegationManager delegationManager = MellowEigenLayerVault(vault).delegationManager();
         IStrategy strategy = MellowEigenLayerVault(vault).strategy();
         isClaimable = withdrawal.data.startBlock
             + delegationManager.getWithdrawalDelay(withdrawal.data.strategies) <= block.number;
-        assets = strategy.sharesToUnderlyingView(withdrawal.data.shares[0]);
+        shares = withdrawal.data.shares[0];
+        assets = strategy.sharesToUnderlyingView(shares);
     }
 
     function withdrawalAssetsOf(uint256 withdrawalIndex, address account)
         public
         view
-        returns (bool isClaimed, bool isClaimable, uint256 assets)
+        returns (bool isClaimed, bool isClaimable, uint256 assets, uint256 shares)
     {
-        (isClaimed, isClaimable, assets) = withdrawalAssets(withdrawalIndex);
+        (isClaimed, isClaimable, assets,) = withdrawalAssets(withdrawalIndex);
         WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
-        uint256 balance = withdrawal.balanceOf[account];
-        assets = balance == 0 ? 0 : assets.mulDiv(balance, withdrawal.totalSupply);
+        shares = withdrawal.balanceOf[account];
+        assets = shares == 0 ? 0 : assets.mulDiv(shares, withdrawal.totalSupply);
+    }
+
+    function acceptPendingAssets(address account, uint256[] calldata withdrawalIndices) external {
+        address sender = msg.sender;
+        require(sender == msg.sender || sender == claimer, "EigenLayerWithdrawalQueue: forbidden");
+        handleWithdrawals(account);
+        AccountData storage accountData_ = _accountData[account];
+        uint256 maxWithdrawalRequests_ = maxWithdrawalRequests();
+        uint256 pendingWithdrawals = accountData_.withdrawalIndices.length();
+        for (uint256 i = 0; i < withdrawalIndices.length; i++) {
+            uint256 withdrawalIndex = withdrawalIndices[i];
+            if (accountData_.transferedWithdrawalIndices.remove(withdrawalIndex)) {
+                require(
+                    pendingWithdrawals < maxWithdrawalRequests_,
+                    "EigenLayerWithdrawalQueue: max withdrawal requests reached"
+                );
+                accountData_.withdrawalIndices.add(withdrawalIndex);
+                pendingWithdrawals += 1;
+            }
+        }
     }
 
     function transferPendingAssets(address from, address to, uint256 amount) external {
-        // address sender = msg.sender;
-        // require(sender == from || sender == vault, "EigenLayerWithdrawalQueue: forbidden");
-        // handleWithdrawals(from);
-        // AccountData storage fromData = _accountData[from];
-        // uint256 pendingWithdrawals = fromData.withdrawalIndices.length();
-        // for (uint256 i = 0; i < pendingWithdrawals; i++) {
-        //     uint256 withdrawalIndex = fromData.withdrawalIndices.at(i);
-        //     (,, uint256 assets) = withdrawalAssetsOf(withdrawalIndex, from);
-        //     if (assets == 0) {
-        //         continue;
-        //     }
-        //     uint256 userShares = _withdrawals[withdrawalIndex].balanceOf[from];
-        //     uint256 assets_ = assets.min(amount);
-        //     uint256 shares = MellowEigenLayerVault(vault).strategy().underlyingToSharesView(assets_);
-        // }
+        address sender = msg.sender;
+        require(sender == from, "EigenLayerWithdrawalQueue: forbidden");
+        handleWithdrawals(from);
+        AccountData storage fromData = _accountData[from];
+        uint256 pendingWithdrawals = fromData.withdrawalIndices.length();
+        for (uint256 i = 0; i < pendingWithdrawals; i++) {
+            uint256 withdrawalIndex = fromData.withdrawalIndices.at(i);
+            (,, uint256 assets, uint256 shares) = withdrawalAssetsOf(withdrawalIndex, from);
+            if (assets == 0) {
+                continue;
+            }
+            uint256 assets_ = assets.min(amount);
+            uint256 shares_ = shares.mulDiv(assets_, assets);
+            amount -= assets_;
+            mapping(address => uint256) storage balances = _withdrawals[withdrawalIndex].balanceOf;
+            balances[from] -= shares_;
+            balances[to] += shares_;
+            _accountData[to].transferedWithdrawalIndices.add(withdrawalIndex);
+            if (shares_ == shares) {
+                fromData.withdrawalIndices.remove(withdrawalIndex);
+            } else {
+                break;
+            }
+        }
+        if (amount != 0) {
+            revert("EigenLayerWithdrawalQueue: insufficient pending assets");
+        }
     }
 
     function pull(uint256 withdrawalIndex) public {
-        WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
+        _pull(_withdrawals[withdrawalIndex]);
+    }
+
+    function _pull(WithdrawalData storage withdrawal) private returns (bool) {
         if (withdrawal.isClaimed) {
-            return;
+            return true;
         }
         IDelegationManager.Withdrawal memory data = withdrawal.data;
-        uint256 firstClaimableBlock = data.startBlock
-            + MellowEigenLayerVault(vault).delegationManager().getWithdrawalDelay(data.strategies);
-        if (firstClaimableBlock > block.number) {
-            return;
+        if (
+            data.startBlock
+                + MellowEigenLayerVault(vault).delegationManager().getWithdrawalDelay(data.strategies)
+                <= block.number
+        ) {
+            withdrawal.assets = MellowEigenLayerVault(vault).proxyClaimWithdrawals(data);
+            withdrawal.isClaimed = true;
+            return true;
         }
-        withdrawal.assets = MellowEigenLayerVault(vault).proxyClaimWithdrawals(data);
-        withdrawal.isClaimed = true;
+        return false;
     }
 
     function handleWithdrawals(address account) public {
         AccountData storage accountData_ = _accountData[account];
         uint256[] memory indices = accountData_.withdrawalIndices.values();
         for (uint256 i = 0; i < indices.length; i++) {
-            pull(indices[i]);
-            WithdrawalData storage withdrawalData_ = _withdrawals[indices[i]];
-            if (!withdrawalData_.isClaimed) {
+            WithdrawalData storage withdrawal = _withdrawals[indices[i]];
+            if (!_pull(withdrawal)) {
                 continue;
             }
-            uint256 balance = withdrawalData_.balanceOf[account];
+            uint256 balance = withdrawal.balanceOf[account];
             if (balance == 0) {
                 continue;
             }
-            uint256 assets = withdrawalData_.assets;
-            uint256 totalSupply = withdrawalData_.totalSupply;
+            uint256 assets = withdrawal.assets;
+            uint256 totalSupply = withdrawal.totalSupply;
             uint256 assets_ = assets.mulDiv(balance, totalSupply);
-            delete withdrawalData_.balanceOf[account];
+            delete withdrawal.balanceOf[account];
             accountData_.claimableAssets += assets_;
-            withdrawalData_.assets -= assets_;
-            withdrawalData_.totalSupply -= balance;
+            withdrawal.assets -= assets_;
+            withdrawal.totalSupply -= balance;
             accountData_.withdrawalIndices.remove(indices[i]);
             accountData_.transferedWithdrawalIndices.remove(indices[i]);
         }

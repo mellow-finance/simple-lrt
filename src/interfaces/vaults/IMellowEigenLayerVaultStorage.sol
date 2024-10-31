@@ -7,9 +7,19 @@ import "@eigenlayer-interfaces/IStrategyManager.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import {IEigenLayerWithdrawalQueue} from "../utils/IEigenLayerWithdrawalQueue.sol";
+
 interface IMellowEigenLayerVaultStorage {
+    struct FarmData {
+        address rewardToken;
+        address eigenLayerFarm;
+        address distributionFarm;
+        address curatorTreasury;
+        uint256 curatorFeeD6;
+    }
+
     struct EigenLayerStorage {
-        address withdrawalQueue;
+        IEigenLayerWithdrawalQueue withdrawalQueue;
         IStrategyManager strategyManager;
         IDelegationManager delegationManager;
         IStrategy strategy;

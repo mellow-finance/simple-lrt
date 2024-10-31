@@ -6,8 +6,6 @@ import {MellowEigenLayerVaultStorage} from "./MellowEigenLayerVaultStorage.sol";
 import {VaultControlStorage} from "./VaultControl.sol";
 import "./interfaces/vaults/IMellowEigenLayerVault.sol";
 
-import "./EigenLayerWithdrawalQueue.sol";
-
 contract MellowEigenLayerVault is
     IMellowEigenLayerVault,
     MellowEigenLayerVaultStorage,
@@ -20,6 +18,10 @@ contract MellowEigenLayerVault is
     uint256 public immutable SHARES_OFFSET;
     // in EigenLayer contracts equals to 1e3, but can be changed with a new version
     uint256 public immutable BALANCE_OFFSET;
+
+    // Eigen Layer constants
+    uint8 public constant PAUSED_DEPOSITS = 0;
+    uint8 public constant PAUSED_ENTER_WITHDRAWAL_QUEUE = 1;
 
     constructor(
         bytes32 contractName_,
@@ -68,10 +70,81 @@ contract MellowEigenLayerVault is
     /*  
         TODO:
             1. add rewards logic
-            2. add maxMint, maxDeposit, maxRedeem, maxWithdraw function overrides
-            3. finalize EigenLayerWithdrawalQueue
-            4. finalize Claimer contract by adding ELWQ logic for transferred pending assets 
+            2. finalize Claimer contract by adding ELWQ logic for transferred pending assets 
+            3. strategies
     */
+
+    /// @inheritdoc IERC4626
+    function maxDeposit(address account)
+        public
+        view
+        virtual
+        override(IERC4626, ERC4626Vault)
+        returns (uint256)
+    {
+        uint256 maxDeposit_ = super.maxDeposit(account);
+        if (maxDeposit_ == 0) {
+            return 0;
+        }
+        IStrategyManager strategyManager_ = strategyManager();
+        IStrategy strategy_ = strategy();
+        if (
+            IPausable(address(strategyManager_)).paused(PAUSED_DEPOSITS)
+                || IPausable(address(strategy_)).paused(PAUSED_DEPOSITS)
+                || !strategyManager_.strategyIsWhitelistedForDeposit(strategy_)
+        ) {
+            return 0;
+        }
+        (bool success, bytes memory data) =
+            address(strategy_).staticcall(abi.encodeWithSignature("maxTotalDeposits()"));
+        if (success) {
+            uint256 limit = abi.decode(data, (uint256));
+            uint256 balance = IERC20(asset()).balanceOf(address(strategy_));
+            if (balance >= limit) {
+                return 0;
+            }
+            maxDeposit_ = maxDeposit_.min(limit - balance);
+        }
+        return maxDeposit_;
+    }
+
+    /// @inheritdoc IERC4626
+    function maxRedeem(address account)
+        public
+        view
+        virtual
+        override(IERC4626, ERC4626Vault)
+        returns (uint256)
+    {
+        uint256 maxRedeem_ = super.maxRedeem(account);
+        if (maxRedeem_ == 0) {
+            return 0;
+        }
+        IDelegationManager delegationManager_ = delegationManager();
+        if (IPausable(address(delegationManager_)).paused(PAUSED_ENTER_WITHDRAWAL_QUEUE)) {
+            return 0;
+        }
+        return maxRedeem_;
+    }
+
+    /// @inheritdoc IERC4626
+    function maxWithdraw(address account)
+        public
+        view
+        virtual
+        override(IERC4626, ERC4626Vault)
+        returns (uint256)
+    {
+        uint256 maxWithdraw_ = super.maxWithdraw(account);
+        if (maxWithdraw_ == 0) {
+            return 0;
+        }
+        IDelegationManager delegationManager_ = delegationManager();
+        if (IPausable(address(delegationManager_)).paused(PAUSED_ENTER_WITHDRAWAL_QUEUE)) {
+            return 0;
+        }
+        return maxWithdraw_;
+    }
 
     /// ------------------ ERC4626 overrides ------------------
 
@@ -135,7 +208,7 @@ contract MellowEigenLayerVault is
             _spendAllowance(owner, caller, shares);
         }
         _burn(owner, shares);
-        EigenLayerWithdrawalQueue(withdrawalQueue()).request(receiver, assets, receiver == owner);
+        withdrawalQueue().request(receiver, assets, receiver == owner);
         // emitting event with new pending assets
         emit Withdraw(caller, receiver, owner, assets, shares);
     }
@@ -146,7 +219,7 @@ contract MellowEigenLayerVault is
         external
         returns (bytes32[] memory)
     {
-        require(_msgSender() == withdrawalQueue(), "Vault: forbidden");
+        require(_msgSender() == address(withdrawalQueue()), "Vault: forbidden");
         IDelegationManager.QueuedWithdrawalParams[] memory requests =
             new IDelegationManager.QueuedWithdrawalParams[](1);
         requests[0] = request;
@@ -157,14 +230,14 @@ contract MellowEigenLayerVault is
         external
         returns (uint256 assets)
     {
-        address withdrawalQueue_ = withdrawalQueue();
-        require(_msgSender() == withdrawalQueue_, "Vault: forbidden");
+        IEigenLayerWithdrawalQueue withdrawalQueue_ = withdrawalQueue();
+        require(_msgSender() == address(withdrawalQueue_), "Vault: forbidden");
         IERC20 asset_ = IERC20(asset());
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = asset_;
         delegationManager().completeQueuedWithdrawal(data, tokens, 0, true);
         assets = asset_.balanceOf(address(this));
-        asset_.safeTransfer(withdrawalQueue_, assets);
+        asset_.safeTransfer(address(withdrawalQueue_), assets);
     }
 
     // ----- proxy calls in EigenLayerWithdrawalQueue -------
@@ -173,17 +246,26 @@ contract MellowEigenLayerVault is
         external
         virtual
         nonReentrant
-        returns (uint256 claimedAmount)
+        returns (uint256)
     {
         require(account == _msgSender(), "Vault: forbidden");
-        return EigenLayerWithdrawalQueue(withdrawalQueue()).claim(account, recipient, maxAmount);
+        return withdrawalQueue().claim(account, recipient, maxAmount);
+    }
+
+    function transferPendingAssets(address account, address recipient, uint256 amount)
+        external
+        virtual
+        nonReentrant
+    {
+        require(account == _msgSender(), "Vault: forbidden");
+        withdrawalQueue().transferPendingAssets(account, recipient, amount);
     }
 
     function pendingAssetsOf(address account) public view returns (uint256 assets) {
-        return EigenLayerWithdrawalQueue(withdrawalQueue()).pendingAssetsOf(account);
+        return withdrawalQueue().pendingAssetsOf(account);
     }
 
     function claimableAssetsOf(address account) public view returns (uint256 assets) {
-        return EigenLayerWithdrawalQueue(withdrawalQueue()).claimableAssetsOf(account);
+        return withdrawalQueue().claimableAssetsOf(account);
     }
 }
