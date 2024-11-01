@@ -31,10 +31,10 @@ contract RatioDepositStrategy is IBaseDepositStrategy {
     function getRatio(address metaVault_)
         external
         view
-        returns (address[] memory, uint256[] memory)
+        returns (uint256[] memory, uint256[] memory)
     {
         RatioData storage data = _data[metaVault_];
-        return (data.subvaults, data.ratiosD18);
+        return (data.indices, data.ratiosD18);
     }
 
     function setVaultRatio(
@@ -58,7 +58,7 @@ contract RatioDepositStrategy is IBaseDepositStrategy {
             if (ratiosD18[i] > D18) {
                 revert("RatioDepositStrategy: Invalid ratio");
             }
-            if ((subvaultMask >> subvaultIndices[i]) & 1) {
+            if (((subvaultMask >> subvaultIndices[i]) & 1) == 1) {
                 revert("RatioDepositStrategy: Duplicate subvault index");
             }
             subvaultMask |= 1 << subvaultIndices[i];
@@ -96,16 +96,11 @@ contract RatioDepositStrategy is IBaseDepositStrategy {
         for (uint256 i = 0; i < subvaultsCount; i++) {
             uint256 maxDeposit_ = IERC4626Vault(metaVault.subvaultAt(ratioData.indices[i]))
                 .maxDeposit(address(metaVault));
-            uint256 amount_;
-            if (i + 1 == subvaultsCount) {
-                amount_ = amount - distributed;
-            } else {
-                amount_ = maxDeposit_.min(
-                    (amount - distributed).min(
-                        amount.mulDiv(ratioData.ratiosD18[i], D18, Math.Rounding.Ceil)
-                    )
-                );
-            }
+            uint256 amount_ = maxDeposit_.min(
+                (amount - distributed).min(
+                    amount.mulDiv(ratioData.ratiosD18[i], D18, Math.Rounding.Ceil)
+                )
+            );
             if (amount_ == 0) {
                 continue;
             }
