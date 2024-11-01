@@ -35,19 +35,25 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
         return MellowEigenLayerVault(vault).strategy().sharesToUnderlyingView(pendingShares);
     }
 
-    function balancesOf(address account)
+    function balancesOf(address account, uint256[] memory indices)
         public
         view
         returns (bool[] memory isClaimed, bool[] memory isClaimable, uint256[] memory assets)
     {
-        AccountData storage accountData = _accountData[account];
-        uint256[] memory indices = accountData.withdrawalIndices.values();
         isClaimed = new bool[](indices.length);
         isClaimable = new bool[](indices.length);
         assets = new uint256[](indices.length);
         for (uint256 i = 0; i < indices.length; i++) {
             (isClaimed[i], isClaimable[i], assets[i],) = withdrawalAssetsOf(indices[i], account);
         }
+    }
+
+    function balancesOf(address account)
+        public
+        view
+        returns (bool[] memory, bool[] memory, uint256[] memory)
+    {
+        return balancesOf(account, _accountData[account].withdrawalIndices.values());
     }
 
     function balanceOf(address account) public view returns (uint256 assets) {
@@ -79,6 +85,43 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
 
     function maxWithdrawalRequests() public view returns (uint256) {
         return MAX_WITHDRAWAL_REQUESTS.min(MellowEigenLayerVault(vault).maxWithdrawalRequests());
+    }
+
+    function _slice(EnumerableSet.UintSet storage set, uint256 limit, uint256 offset)
+        internal
+        view
+        returns (uint256[] memory values)
+    {
+        uint256 length = set.length();
+        length = (length <= offset ? 0 : length - offset).min(limit);
+        values = new uint256[](length);
+        for (uint256 i = 0; i < length; i++) {
+            values[i] = set.at(i + offset);
+        }
+    }
+
+    function transferedWithdrawalIndicesOf(address account, uint256 limit, uint256 offset)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return _slice(_accountData[account].transferedWithdrawalIndices, limit, offset);
+    }
+
+    function withdrawalIndicesOf(address account, uint256 limit, uint256 offset)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return _slice(_accountData[account].withdrawalIndices, limit, offset);
+    }
+
+    function transferedWithdrawalIndicesOf(address account) external view returns (uint256) {
+        return _accountData[account].withdrawalIndices.length();
+    }
+
+    function withdrawalsOf(address account) external view returns (uint256) {
+        return _accountData[account].withdrawalIndices.length();
     }
 
     function request(address account, uint256 assets, bool isSelfRequested) external {
@@ -157,24 +200,22 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
         assets = shares == 0 ? 0 : assets.mulDiv(shares, withdrawal.totalSupply);
     }
 
-    function acceptPendingAssets(address account, uint256[] calldata withdrawalIndices) external {
+    function acceptPendingAssets(address account, uint256[] calldata withdrawalIndices_) external {
         address sender = msg.sender;
         require(sender == msg.sender || sender == claimer, "EigenLayerWithdrawalQueue: forbidden");
-        handleWithdrawals(account);
-        AccountData storage accountData_ = _accountData[account];
-        uint256 maxWithdrawalRequests_ = maxWithdrawalRequests();
-        uint256 pendingWithdrawals = accountData_.withdrawalIndices.length();
-        for (uint256 i = 0; i < withdrawalIndices.length; i++) {
-            uint256 withdrawalIndex = withdrawalIndices[i];
-            if (accountData_.transferedWithdrawalIndices.remove(withdrawalIndex)) {
-                require(
-                    pendingWithdrawals < maxWithdrawalRequests_,
-                    "EigenLayerWithdrawalQueue: max withdrawal requests reached"
-                );
-                accountData_.withdrawalIndices.add(withdrawalIndex);
-                pendingWithdrawals += 1;
+        EnumerableSet.UintSet storage transferedWithdrawalIndices =
+            _accountData[account].transferedWithdrawalIndices;
+        EnumerableSet.UintSet storage withdrawalIndices = _accountData[account].withdrawalIndices;
+        for (uint256 i = 0; i < withdrawalIndices_.length; i++) {
+            if (transferedWithdrawalIndices.remove(withdrawalIndices_[i])) {
+                withdrawalIndices.add(withdrawalIndices_[i]);
             }
         }
+        handleWithdrawals(account);
+        require(
+            withdrawalIndices.length() <= maxWithdrawalRequests(),
+            "EigenLayerWithdrawalQueue: max withdrawal requests reached"
+        );
     }
 
     function transferPendingAssets(address from, address to, uint256 amount) external {

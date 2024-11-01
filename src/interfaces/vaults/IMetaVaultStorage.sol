@@ -34,7 +34,7 @@ interface IMetaVaultStorage {
 
     function isQueuedVault(address subvault) external view returns (bool);
 
-    event MetaVaultStorageInitialized(address indexed origin, address indexed idleVault);
+    event MetaVaultStorageInitialized(address indexed sender, address indexed idleVault);
     event DepositStrategySet(address indexed depositStrategy);
     event WithdrawalStrategySet(address indexed withdrawalStrategy);
     event RebalanceStrategySet(address indexed rebalanceStrategy);

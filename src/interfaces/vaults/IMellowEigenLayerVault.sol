@@ -6,6 +6,7 @@ import {IERC4626Vault} from "./IERC4626Vault.sol";
 import "@eigenlayer-interfaces/IDelegationManager.sol";
 
 import "@eigenlayer-interfaces/IPausable.sol";
+import "@eigenlayer-interfaces/IRewardsCoordinator.sol";
 import "@eigenlayer-interfaces/IStrategyManager.sol";
 
 import "./IMellowEigenLayerVaultStorage.sol";
@@ -20,6 +21,7 @@ interface IMellowEigenLayerVault is IERC4626Vault {
     struct EigenLayerParams {
         IStrategyManager strategyManager;
         IDelegationManager delegationManager;
+        IRewardsCoordinator rewardsCoordinator;
         IStrategy strategy;
         address operator;
         uint256 claimWithdrawalsMax;

@@ -28,6 +28,7 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
     function __initializeMellowEigenLayerVaultStorage(
         IDelegationManager delegationManager_,
         IStrategyManager strategyManager_,
+        IRewardsCoordinator rewardsCoordinator_,
         IStrategy strategy_,
         address operator_,
         uint256 maxWithdrawalRequests_,
@@ -35,6 +36,7 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
     ) internal onlyInitializing {
         _setDelegationManager(delegationManager_);
         _setStrategyManager(strategyManager_);
+        _setRewardsCoordinator(rewardsCoordinator_);
         _setStrategy(strategy_);
         _setStrategyOperator(operator_);
         _setMaxWithdrawalRequests(maxWithdrawalRequests_);
@@ -61,14 +63,44 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
         return _eigenLayerStorage().operator;
     }
 
+    function rewardsCoordinator() public view returns (IRewardsCoordinator) {
+        return _eigenLayerStorage().rewardsCoordinator;
+    }
+
     function maxWithdrawalRequests() public view returns (uint256) {
         return _eigenLayerStorage().maxWithdrawalRequests;
+    }
+
+    function eigenLayerFarmIds() public view returns (uint256[] memory) {
+        return _eigenLayerStorage().farmIds.values();
+    }
+
+    function eigenLayerFarmCount() public view returns (uint256) {
+        return _eigenLayerStorage().farmIds.length();
+    }
+
+    function eigenLayerFarmIdAt(uint256 index) public view returns (uint256) {
+        return _eigenLayerStorage().farmIds.at(index);
+    }
+
+    function eigenLayerContains(uint256 farmId) public view returns (bool) {
+        return _eigenLayerStorage().farmIds.contains(farmId);
+    }
+
+    function eigenLayerFarm(uint256 farmId) public view returns (FarmData memory) {
+        return _eigenLayerStorage().farms[farmId];
     }
 
     function _setDelegationManager(IDelegationManager _delegationManager) internal {
         EigenLayerStorage storage s = _eigenLayerStorage();
         s.delegationManager = _delegationManager;
         // emit DelegationManagerSet(address(_delegationManager), block.timestamp);
+    }
+
+    function _setRewardsCoordinator(IRewardsCoordinator _rewardsCoordinator) internal {
+        EigenLayerStorage storage s = _eigenLayerStorage();
+        s.rewardsCoordinator = _rewardsCoordinator;
+        // emit RewardsCoordinatorSet(address(_rewardsCoordinator), block.timestamp);
     }
 
     function _setWithdrawalQueue(IEigenLayerWithdrawalQueue withdrawalQueue_) internal {
@@ -99,6 +131,17 @@ abstract contract MellowEigenLayerVaultStorage is IMellowEigenLayerVaultStorage,
         EigenLayerStorage storage s = _eigenLayerStorage();
         s.maxWithdrawalRequests = maxWithdrawalRequests_;
         // emit MaxWithdrawalPerClaimSet(maxWithdrawalsPerClaim_, block.timestamp);
+    }
+
+    function _setFarm(uint256 farmId, FarmData memory farmData) internal {
+        EigenLayerStorage storage s = _eigenLayerStorage();
+        s.farms[farmId] = farmData;
+        if (farmData.rewardToken != address(0)) {
+            s.farmIds.add(farmId);
+        } else {
+            s.farmIds.remove(farmId);
+        }
+        // emit FarmSet(farmId, farmData, block.timestamp);
     }
 
     function _eigenLayerStorage() private view returns (EigenLayerStorage storage $) {

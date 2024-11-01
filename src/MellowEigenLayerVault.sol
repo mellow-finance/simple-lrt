@@ -23,6 +23,8 @@ contract MellowEigenLayerVault is
     uint8 public constant PAUSED_DEPOSITS = 0;
     uint8 public constant PAUSED_ENTER_WITHDRAWAL_QUEUE = 1;
 
+    uint256 private constant D6 = 1e6;
+
     constructor(
         bytes32 contractName_,
         uint256 contractVersion_,
@@ -46,6 +48,7 @@ contract MellowEigenLayerVault is
         __initializeMellowEigenLayerVaultStorage(
             params.delegationManager,
             params.strategyManager,
+            params.rewardsCoordinator,
             params.strategy,
             params.operator,
             params.claimWithdrawalsMax,
@@ -66,13 +69,6 @@ contract MellowEigenLayerVault is
             params.operator, params.approverSignature, params.salt
         );
     }
-
-    /*  
-        TODO:
-            1. add rewards logic
-            2. finalize Claimer contract by adding ELWQ logic for transferred pending assets 
-            3. strategies
-    */
 
     /// @inheritdoc IERC4626
     function maxDeposit(address account)
@@ -211,6 +207,40 @@ contract MellowEigenLayerVault is
         withdrawalQueue().request(receiver, assets, receiver == owner);
         // emitting event with new pending assets
         emit Withdraw(caller, receiver, owner, assets, shares);
+    }
+
+    // ------ rewards logic -------
+
+    function pushRewards(uint256 farmId, IRewardsCoordinator.RewardsMerkleClaim calldata claimData)
+        external
+        nonReentrant
+    {
+        FarmData memory data = eigenLayerFarm(farmId);
+        if (data.rewardToken == address(0)) {
+            revert("Vault: invalid farmId");
+        }
+        require(
+            claimData.tokenLeaves.length == 1
+                && address(claimData.tokenLeaves[0].token) == data.rewardToken,
+            "Vault: invalid claim"
+        );
+        IERC20 rewardToken = IERC20(data.rewardToken);
+        address this_ = address(this);
+        uint256 balanceBefore = rewardToken.balanceOf(this_);
+        rewardsCoordinator().processClaim(claimData, this_);
+        uint256 rewardAmount = rewardToken.balanceOf(this_) - balanceBefore;
+
+        uint256 curatorFee = rewardAmount.mulDiv(data.curatorFeeD6, D6);
+        if (curatorFee != 0) {
+            rewardToken.safeTransfer(data.curatorTreasury, curatorFee);
+        }
+        // Guranteed to be >= 0 since data.curatorFeeD6 <= D6
+        // TODO: mb replace with: rewardToken.balanceOf(this_) - balanceBefore
+        rewardAmount = rewardAmount - curatorFee;
+        if (rewardAmount != 0) {
+            rewardToken.safeTransfer(data.distributionFarm, rewardAmount);
+        }
+        // emit RewardsPushed(farmId, rewardAmount, curatorFee, block.timestamp);
     }
 
     // ------ proxy calls from EigenLayerWithdrawalQueue ---------

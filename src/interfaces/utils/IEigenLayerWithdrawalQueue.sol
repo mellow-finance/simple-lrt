@@ -25,6 +25,10 @@ interface IEigenLayerWithdrawalQueue {
 
     function MAX_WITHDRAWAL_REQUESTS() external view returns (uint256);
 
+    function transferedWithdrawalIndicesOf(address account, uint256 limit, uint256 offset)
+        external
+        view
+        returns (uint256[] memory);
     function vault() external view returns (address);
     function claimer() external view returns (address);
     function collateral() external view returns (address);

@@ -91,7 +91,7 @@ abstract contract MetaVaultStorage is IMetaVaultStorage, Initializable {
         _setWithdrawalStrategy(withdrawalStrategy_);
         _setRebalanceStrategy(rebalanceStrategy_);
         _addSubvault(idleVault_, false);
-        emit MetaVaultStorageInitialized(tx.origin, idleVault_);
+        emit MetaVaultStorageInitialized(msg.sender, idleVault_);
     }
 
     function _setDepositStrategy(address newDepositStrategy) internal {
