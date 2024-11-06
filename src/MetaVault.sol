@@ -181,8 +181,8 @@ contract MetaVault is IMetaVault, ERC4626Vault, MetaVaultStorage {
         override(ERC4626Upgradeable, IERC4626)
         returns (uint256)
     {
-        uint256 totalAssets_;
         address this_ = address(this);
+        uint256 totalAssets_ = IERC20(asset()).balanceOf(this_);
         address[] memory subvaults = subvaults();
         for (uint256 i = 0; i < subvaults.length; i++) {
             address subvault = subvaults[i];
@@ -265,11 +265,11 @@ contract MetaVault is IMetaVault, ERC4626Vault, MetaVaultStorage {
             // regular withdrawal
             if (data[i].withdrawalRequestAmount != 0) {
                 uint256 withdrawalRequestAmount = data[i].withdrawalRequestAmount;
+                IERC4626(subvault).withdraw(withdrawalRequestAmount, receiver, this_);
                 require(
                     withdrawalRequestAmount <= assets,
                     "MetaVault: withdrawal request amount exceeds available balance"
                 );
-                IERC4626(subvault).withdraw(withdrawalRequestAmount, receiver, this_);
                 assets -= withdrawalRequestAmount;
             }
 
@@ -280,20 +280,20 @@ contract MetaVault is IMetaVault, ERC4626Vault, MetaVaultStorage {
             // withdrawal of claimable assets
             if (data[i].claimAmount != 0) {
                 uint256 claimAmount = data[i].claimAmount;
-                require(claimAmount <= assets, "MetaVault: claim amount exceeds available balance");
                 claimAmount = IQueuedVault(subvault).claim(this_, receiver, claimAmount);
+                require(claimAmount <= assets, "MetaVault: claim amount exceeds available balance");
                 assets -= claimAmount;
             }
 
             // withdrawal of pending due to rebalance logic assets
             if (data[i].withdrawalTransferPendingAmount != 0) {
                 uint256 withdrawalTransferPendingAmount = data[i].withdrawalTransferPendingAmount;
+                IQueuedVault(subvault).transferPendingAssets(
+                    this_, receiver, withdrawalTransferPendingAmount
+                );
                 require(
                     withdrawalTransferPendingAmount <= assets,
                     "MetaVault: withdrawal transfer pending amount exceeds available balance"
-                );
-                IQueuedVault(subvault).transferPendingAssets(
-                    this_, receiver, withdrawalTransferPendingAmount
                 );
                 assets -= withdrawalTransferPendingAmount;
             }

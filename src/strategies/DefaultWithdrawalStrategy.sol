@@ -33,7 +33,11 @@ contract DefaultWithdrawalStrategy is IBaseWithdrawalStrategy {
                 return data;
             }
         }
+
         for (uint256 i = 0; i < subvaults.length; i++) {
+            if (!IMetaVaultStorage(metaVault).isQueuedVault(subvaults[i])) {
+                continue;
+            }
             uint256 pendingAssets = IQueuedVault(subvaults[i]).pendingAssetsOf(metaVault);
             if (pendingAssets == 0) {
                 continue;
@@ -41,13 +45,13 @@ contract DefaultWithdrawalStrategy is IBaseWithdrawalStrategy {
             data[i].withdrawalTransferPendingAmount = Math.min(pendingAssets, amount);
             amount -= data[i].withdrawalTransferPendingAmount;
             if (amount == 0) {
-                assembly {
-                    mstore(data, add(i, 1))
-                }
                 return data;
             }
         }
         for (uint256 i = 0; i < subvaults.length; i++) {
+            if (!IMetaVaultStorage(metaVault).isQueuedVault(subvaults[i])) {
+                continue;
+            }
             uint256 claimableAssets = IQueuedVault(subvaults[i]).claimableAssetsOf(metaVault);
             if (claimableAssets == 0) {
                 continue;
@@ -55,9 +59,6 @@ contract DefaultWithdrawalStrategy is IBaseWithdrawalStrategy {
             data[i].claimAmount = Math.min(claimableAssets, amount);
             amount -= data[i].claimAmount;
             if (amount == 0) {
-                assembly {
-                    mstore(data, add(i, 1))
-                }
                 return data;
             }
         }
