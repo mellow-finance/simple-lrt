@@ -137,6 +137,58 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         _addSubvault(subvault, withdrawalQueue, subvaultType);
     }
 
+    function removeSubvault(address subvault) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _removeSubvault(subvault);
+    }
+
+    function setDepositStrategy(address newDepositStrategy) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setDepositStrategy(newDepositStrategy);
+    }
+
+    function setWithdrawalStrategy(address newWithdrawalStrategy)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _setWithdrawalStrategy(newWithdrawalStrategy);
+    }
+
+    function setRebalanceStrategy(address newRebalanceStrategy)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _setRebalanceStrategy(newRebalanceStrategy);
+    }
+
+    function setSymbioticDefaultCollateral(address newSymbioticDefaultCollateral)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _setSymbioticDefaultCollateral(newSymbioticDefaultCollateral);
+    }
+
+    function setEigenLayerStrategyManager(address newEigenLayerStrategyManager)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _setEigenLayerStrategyManager(newEigenLayerStrategyManager);
+    }
+
+    function setEigenLayerDelegationManager(address newEigenLayerDelegationManager)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _setEigenLayerDelegationManager(newEigenLayerDelegationManager);
+    }
+
+    function setEigenLayerRewardsCoordinator(address newEigenLayerRewardsCoordinator)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _setEigenLayerRewardsCoordinator(newEigenLayerRewardsCoordinator);
+    }
+
+    // ------------------------------- INTERNAL FUNCTIONS -------------------------------
+
     function _deposit(uint256 subvaultIndex, uint256 assets) private {
         if (assets == 0) {
             return;
