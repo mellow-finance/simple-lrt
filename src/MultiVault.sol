@@ -1,19 +1,22 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import {ERC4626Vault} from "./ERC4626Vault.sol";
-import {MetaVaultStorage} from "./MetaVaultStorage.sol";
-import {VaultControlStorage} from "./VaultControlStorage.sol";
+import "./MultiVaultStorage.sol";
 
-import "./MellowEigenLayerVault.sol";
-import "./MellowSymbioticVault.sol";
-import "./interfaces/vaults/IMetaVault.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
-
-contract MultiVault is ERC4626Vault {
+contract MultiVault is ERC4626Vault, MultiVaultStorage {
     using SafeERC20 for IERC20;
     using SafeERC20 for address;
     using Math for uint256;
+
+    struct InitParams {
+        address depositStrategy;
+        address withdrawalStrategy;
+        address rebalanceStrategy;
+        address symbioticDefaultCollateral;
+        address eigenLayerStrategyManager;
+        address eigenLayerDelegationManager;
+        address eigenLayerRewardsCoordinator;
+    }
 
     // MUST be non-zero
     // and at least 1000 in case if we are expecting to have some number of EigenLayer strategies
@@ -22,6 +25,7 @@ contract MultiVault is ERC4626Vault {
 
     constructor(bytes32 name_, uint256 version_, uint256 sharesOffset_, uint256 assetsOffset_)
         VaultControlStorage(name_, version_)
+        MultiVaultStorage(name_, version_)
     {
         if (sharesOffset_ == 0) {
             revert("MultiVault: sharesOffset is 0");
@@ -31,54 +35,6 @@ contract MultiVault is ERC4626Vault {
         }
         sharesOffset = sharesOffset_;
         assetsOffset = assetsOffset_;
-    }
-
-    enum SubvaultType {
-        SYMBIOTIC,
-        EIGEN_LAYER,
-        ERC4626
-    }
-
-    struct Subvault {
-        SubvaultType subvaultType;
-        address vault;
-        address withdrawalQueue;
-    }
-
-    struct MultiVaultStorage {
-        address depositStrategy;
-        address withdrawalStrategy;
-        address rebalanceStrategy;
-        address symbioticDefaultCollateral;
-        address eigenLayerStrategyManager;
-        address eigenLayerDelegationManager;
-        address eigenLayerRewardsCoordinator;
-        Subvault[] subvaults;
-    }
-
-    MultiVaultStorage private _multiStorage;
-
-    function subvaultsCount() public view returns (uint256) {
-        return _multiStorage.subvaults.length;
-    }
-
-    function subvaultAt(uint256 index) public view returns (Subvault memory) {
-        return _multiStorage.subvaults[index];
-    }
-
-    function setStorage(MultiVaultStorage memory s) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _multiStorage.depositStrategy = s.depositStrategy;
-        _multiStorage.withdrawalStrategy = s.withdrawalStrategy;
-        _multiStorage.rebalanceStrategy = s.rebalanceStrategy;
-        _multiStorage.symbioticDefaultCollateral = s.symbioticDefaultCollateral;
-        _multiStorage.eigenLayerStrategyManager = s.eigenLayerStrategyManager;
-        _multiStorage.eigenLayerDelegationManager = s.eigenLayerDelegationManager;
-        _multiStorage.eigenLayerRewardsCoordinator = s.eigenLayerRewardsCoordinator;
-
-        delete _multiStorage.subvaults;
-        for (uint256 i = 0; i < s.subvaults.length; i++) {
-            _multiStorage.subvaults.push(s.subvaults[i]);
-        }
     }
 
     // ------------------------------- EXTERNAL FUNCTIONS -------------------------------
@@ -91,7 +47,8 @@ contract MultiVault is ERC4626Vault {
         bool _depositWhitelist,
         address _asset,
         string memory _name,
-        string memory _symbol
+        string memory _symbol,
+        InitParams memory initParams
     ) public virtual initializer {
         __initializeERC4626(
             _admin,
@@ -103,38 +60,19 @@ contract MultiVault is ERC4626Vault {
             _name,
             _symbol
         );
-    }
-
-    function symbioticDefaultCollateral() public view returns (address) {
-        return _multiStorage.symbioticDefaultCollateral;
-    }
-
-    function eigenLayerStrategyManager() public view returns (address) {
-        return _multiStorage.eigenLayerStrategyManager;
-    }
-
-    function eigenLayerDelegationManager() public view returns (address) {
-        return _multiStorage.eigenLayerDelegationManager;
-    }
-
-    function eigenLayerRewardsCoordinator() public view returns (address) {
-        return _multiStorage.eigenLayerRewardsCoordinator;
-    }
-
-    function depositStrategy() public view returns (address) {
-        return _multiStorage.depositStrategy;
-    }
-
-    function withdrawalStrategy() public view returns (address) {
-        return _multiStorage.withdrawalStrategy;
-    }
-
-    function rebalanceStrategy() public view returns (address) {
-        return _multiStorage.rebalanceStrategy;
+        __initializeMultiVaultStorage(
+            initParams.depositStrategy,
+            initParams.withdrawalStrategy,
+            initParams.rebalanceStrategy,
+            initParams.symbioticDefaultCollateral,
+            initParams.eigenLayerStrategyManager,
+            initParams.eigenLayerDelegationManager,
+            initParams.eigenLayerRewardsCoordinator
+        );
     }
 
     function maxDeposit(uint256 subvaultIndex) public view returns (uint256) {
-        Subvault memory subvault = _multiStorage.subvaults[subvaultIndex];
+        Subvault memory subvault = subvaultAt(subvaultIndex);
         if (subvault.subvaultType == SubvaultType.SYMBIOTIC) {
             ISymbioticVault symbioticVault = ISymbioticVault(subvault.vault);
             if (!symbioticVault.isDepositLimit()) {
@@ -158,7 +96,7 @@ contract MultiVault is ERC4626Vault {
         returns (uint256 claimable, uint256 pending, uint256 staked)
     {
         address this_ = address(this);
-        Subvault memory subvault = _multiStorage.subvaults[subvaultIndex];
+        Subvault memory subvault = subvaultAt(subvaultIndex);
         if (subvault.subvaultType == SubvaultType.SYMBIOTIC) {
             staked = ISymbioticVault(subvault.vault).activeBalanceOf(this_);
         } else if (subvault.subvaultType == SubvaultType.EIGEN_LAYER) {
@@ -192,7 +130,17 @@ contract MultiVault is ERC4626Vault {
         }
     }
 
+    function addSubvault(address subvault, address withdrawalQueue, SubvaultType subvaultType)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _addSubvault(subvault, withdrawalQueue, subvaultType);
+    }
+
     function _deposit(uint256 subvaultIndex, uint256 assets) private {
+        if (assets == 0) {
+            return;
+        }
         Subvault memory subvault = subvaultAt(subvaultIndex);
         address this_ = address(this);
         IERC20 asset_ = IERC20(asset());
@@ -221,6 +169,7 @@ contract MultiVault is ERC4626Vault {
         if (request != 0) {
             if (subvault.subvaultType == SubvaultType.SYMBIOTIC) {
                 ISymbioticVault(subvault.vault).withdraw(this_, request);
+                IWithdrawalQueue(subvault.withdrawalQueue).request(receiver, request);
             } else if (subvault.subvaultType == SubvaultType.EIGEN_LAYER) {
                 IEigenLayerWithdrawalQueue(subvault.withdrawalQueue).request(
                     receiver, request, owner == receiver
@@ -243,13 +192,17 @@ contract MultiVault is ERC4626Vault {
         IDefaultCollateral collateral = IDefaultCollateral(symbioticDefaultCollateral());
         uint256 limit_ = collateral.limit();
         uint256 supply_ = collateral.totalSupply();
-        if (supply_ < limit_) {
-            address this_ = address(this);
-            IERC20 asset_ = IERC20(asset());
-            uint256 amount = Math.min(limit_ - supply_, asset_.balanceOf(this_));
-            asset_.safeIncreaseAllowance(address(collateral), amount);
-            collateral.deposit(this_, amount);
+        if (supply_ >= limit_) {
+            return;
         }
+        address this_ = address(this);
+        IERC20 asset_ = IERC20(asset());
+        uint256 amount = Math.min(limit_ - supply_, asset_.balanceOf(this_));
+        if (amount == 0) {
+            return;
+        }
+        asset_.safeIncreaseAllowance(address(collateral), amount);
+        collateral.deposit(this_, amount);
     }
 
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
@@ -258,10 +211,9 @@ contract MultiVault is ERC4626Vault {
         override
     {
         super._deposit(caller, receiver, assets, shares);
-        MultiVaultStorage memory s = _multiStorage;
         address this_ = address(this);
         IBaseDepositStrategy.Data[] memory data =
-            IBaseDepositStrategy(s.depositStrategy).calculateDepositAmounts(this_, assets);
+            IBaseDepositStrategy(depositStrategy()).calculateDepositAmounts(this_, assets);
         for (uint256 i = 0; i < data.length; i++) {
             IBaseDepositStrategy.Data memory d = data[i];
             if (d.depositAmount == 0) {

@@ -9,6 +9,7 @@ import "../../src/strategies/DefaultRebalanceStrategy.sol";
 import "../../src/strategies/DefaultWithdrawalStrategy.sol";
 
 import {MultiVault} from "../../src/MultiVault.sol";
+import {MultiVaultStorage} from "../../src/MultiVaultStorage.sol";
 import {MultiDepositStrategy} from "../../src/strategies/MultiDepositStrategy.sol";
 import {MultiWithdrawalStrategy} from "../../src/strategies/MultiWithdrawalStrategy.sol";
 
@@ -151,14 +152,29 @@ contract Unit is BaseTest {
         rebalanceStrategy = new DefaultRebalanceStrategy();
 
         multiVault.initialize(
-            admin, type(uint256).max, false, false, false, wsteth, "MultiVault", "MV"
+            admin,
+            type(uint256).max,
+            false,
+            false,
+            false,
+            wsteth,
+            "MultiVault",
+            "MV",
+            MultiVault.InitParams({
+                depositStrategy: address(multiDepositStrategy),
+                withdrawalStrategy: address(multiWithdrawalStrategy),
+                rebalanceStrategy: address(rebalanceStrategy),
+                symbioticDefaultCollateral: Constants.HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL,
+                eigenLayerStrategyManager: address(0),
+                eigenLayerDelegationManager: address(0),
+                eigenLayerRewardsCoordinator: address(0)
+            })
         );
 
         Claimer claimer = new Claimer();
 
-        MultiVault.MultiVaultStorage memory mvStorage;
         uint256 symbioticSubvaults = 12;
-        mvStorage.subvaults = new MultiVault.Subvault[](symbioticSubvaults);
+
         for (uint256 i = 0; i < symbioticSubvaults; i++) {
             address symbioticVault = symbioticHelper.createNewSymbioticVault(
                 SymbioticHelper.CreationParams({
@@ -174,20 +190,11 @@ contract Unit is BaseTest {
                 new SymbioticWithdrawalQueue(address(multiVault), symbioticVault, address(claimer))
             );
 
-            mvStorage.subvaults[i] = MultiVault.Subvault({
-                vault: symbioticVault,
-                withdrawalQueue: withdrawalQueue,
-                subvaultType: MultiVault.SubvaultType.SYMBIOTIC
-            });
+            vm.prank(admin);
+            multiVault.addSubvault(
+                symbioticVault, withdrawalQueue, MultiVaultStorage.SubvaultType.SYMBIOTIC
+            );
         }
-
-        mvStorage.symbioticDefaultCollateral = Constants.HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL;
-        mvStorage.depositStrategy = address(multiDepositStrategy);
-        mvStorage.withdrawalStrategy = address(multiWithdrawalStrategy);
-
-        vm.startPrank(admin);
-        multiVault.setStorage(mvStorage);
-        vm.stopPrank();
 
         address user = address(1234213);
         uint256 amount = 1 gwei;
@@ -209,7 +216,7 @@ contract Unit is BaseTest {
     }
 
     function testMultiVsMetaVault() external {
-        for (uint256 seed = 1; seed <= 1; seed++) {
+        for (uint256 seed = 1; seed <= 5; seed++) {
             _seed = seed;
             _testMetaVault();
             _seed = seed;
