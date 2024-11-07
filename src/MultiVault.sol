@@ -12,6 +12,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract MultiVault is ERC4626Vault {
     using SafeERC20 for IERC20;
+    using SafeERC20 for address;
     using Math for uint256;
 
     // MUST be non-zero
@@ -34,7 +35,8 @@ contract MultiVault is ERC4626Vault {
 
     enum SubvaultType {
         SYMBIOTIC,
-        EIGEN_LAYER
+        EIGEN_LAYER,
+        ERC4626
     }
 
     struct Subvault {
@@ -58,6 +60,10 @@ contract MultiVault is ERC4626Vault {
 
     function subvaultsCount() public view returns (uint256) {
         return _multiStorage.subvaults.length;
+    }
+
+    function subvaultAt(uint256 index) public view returns (Subvault memory) {
+        return _multiStorage.subvaults[index];
     }
 
     function setStorage(MultiVaultStorage memory s) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -103,6 +109,30 @@ contract MultiVault is ERC4626Vault {
         return _multiStorage.symbioticDefaultCollateral;
     }
 
+    function eigenLayerStrategyManager() public view returns (address) {
+        return _multiStorage.eigenLayerStrategyManager;
+    }
+
+    function eigenLayerDelegationManager() public view returns (address) {
+        return _multiStorage.eigenLayerDelegationManager;
+    }
+
+    function eigenLayerRewardsCoordinator() public view returns (address) {
+        return _multiStorage.eigenLayerRewardsCoordinator;
+    }
+
+    function depositStrategy() public view returns (address) {
+        return _multiStorage.depositStrategy;
+    }
+
+    function withdrawalStrategy() public view returns (address) {
+        return _multiStorage.withdrawalStrategy;
+    }
+
+    function rebalanceStrategy() public view returns (address) {
+        return _multiStorage.rebalanceStrategy;
+    }
+
     function maxDeposit(uint256 subvaultIndex) public view returns (uint256) {
         Subvault memory subvault = _multiStorage.subvaults[subvaultIndex];
         if (subvault.subvaultType == SubvaultType.SYMBIOTIC) {
@@ -113,8 +143,12 @@ contract MultiVault is ERC4626Vault {
             uint256 stake = symbioticVault.activeStake();
             uint256 limit = symbioticVault.depositLimit();
             return limit <= stake ? 0 : limit - stake;
-        } else {
+        } else if (subvault.subvaultType == SubvaultType.EIGEN_LAYER) {
             return type(uint256).max; // dont care for eigen layer strategy limits atm
+        } else if (subvault.subvaultType == SubvaultType.ERC4626) {
+            return IERC4626(subvault.vault).maxDeposit(address(this));
+        } else {
+            revert("MultiVault: unknown subvault type");
         }
     }
 
@@ -127,8 +161,11 @@ contract MultiVault is ERC4626Vault {
         Subvault memory subvault = _multiStorage.subvaults[subvaultIndex];
         if (subvault.subvaultType == SubvaultType.SYMBIOTIC) {
             staked = ISymbioticVault(subvault.vault).activeBalanceOf(this_);
-        } else {
+        } else if (subvault.subvaultType == SubvaultType.EIGEN_LAYER) {
             staked = IStrategy(subvault.vault).userUnderlyingView(this_);
+        } else if (subvault.subvaultType == SubvaultType.ERC4626) {
+            staked = IERC4626(subvault.vault).maxWithdraw(this_);
+            return (0, 0, staked); // no claimable or pending for ERC4626
         }
         claimable = IWithdrawalQueue(subvault.withdrawalQueue).claimableAssetsOf(this_);
         pending = IWithdrawalQueue(subvault.withdrawalQueue).pendingAssetsOf(this_);
@@ -155,6 +192,66 @@ contract MultiVault is ERC4626Vault {
         }
     }
 
+    function _deposit(uint256 subvaultIndex, uint256 assets) private {
+        Subvault memory subvault = subvaultAt(subvaultIndex);
+        address this_ = address(this);
+        IERC20 asset_ = IERC20(asset());
+        asset_.safeIncreaseAllowance(subvault.vault, assets);
+        if (subvault.subvaultType == SubvaultType.SYMBIOTIC) {
+            ISymbioticVault(subvault.vault).deposit(this_, assets);
+        } else if (subvault.subvaultType == SubvaultType.EIGEN_LAYER) {
+            IStrategyManager(eigenLayerStrategyManager()).depositIntoStrategy(
+                IStrategy(subvault.vault), asset_, assets
+            );
+        } else if (subvault.subvaultType == SubvaultType.ERC4626) {
+            IERC4626(subvault.vault).deposit(assets, this_);
+        }
+    }
+
+    function _withdraw(
+        uint256 subvaultIndex,
+        uint256 request,
+        uint256 pending,
+        uint256 claimable,
+        address owner,
+        address receiver
+    ) private {
+        Subvault memory subvault = subvaultAt(subvaultIndex);
+        address this_ = address(this);
+        if (request != 0) {
+            if (subvault.subvaultType == SubvaultType.SYMBIOTIC) {
+                ISymbioticVault(subvault.vault).withdraw(this_, request);
+            } else if (subvault.subvaultType == SubvaultType.EIGEN_LAYER) {
+                IEigenLayerWithdrawalQueue(subvault.withdrawalQueue).request(
+                    receiver, request, owner == receiver
+                );
+            } else if (subvault.subvaultType == SubvaultType.ERC4626) {
+                IERC4626(subvault.vault).withdraw(request, this_, receiver);
+            }
+        }
+        if (pending != 0) {
+            IWithdrawalQueue(subvault.withdrawalQueue).transferPendingAssets(
+                this_, receiver, pending
+            );
+        }
+        if (claimable != 0) {
+            IWithdrawalQueue(subvault.withdrawalQueue).claim(this_, receiver, claimable);
+        }
+    }
+
+    function _depositIntoCollateral() private {
+        IDefaultCollateral collateral = IDefaultCollateral(symbioticDefaultCollateral());
+        uint256 limit_ = collateral.limit();
+        uint256 supply_ = collateral.totalSupply();
+        if (supply_ < limit_) {
+            address this_ = address(this);
+            IERC20 asset_ = IERC20(asset());
+            uint256 amount = Math.min(limit_ - supply_, asset_.balanceOf(this_));
+            asset_.safeIncreaseAllowance(address(collateral), amount);
+            collateral.deposit(this_, amount);
+        }
+    }
+
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
         internal
         virtual
@@ -165,35 +262,16 @@ contract MultiVault is ERC4626Vault {
         address this_ = address(this);
         IBaseDepositStrategy.Data[] memory data =
             IBaseDepositStrategy(s.depositStrategy).calculateDepositAmounts(this_, assets);
-
-        IERC20 asset_ = IERC20(asset());
         for (uint256 i = 0; i < data.length; i++) {
             IBaseDepositStrategy.Data memory d = data[i];
-            Subvault memory subvault = s.subvaults[d.subvaultIndex];
             if (d.depositAmount == 0) {
                 continue;
             }
-            asset_.safeIncreaseAllowance(subvault.vault, d.depositAmount);
-            if (subvault.subvaultType == SubvaultType.SYMBIOTIC) {
-                ISymbioticVault(subvault.vault).deposit(this_, d.depositAmount);
-            } else if (subvault.subvaultType == SubvaultType.EIGEN_LAYER) {
-                IStrategyManager(s.eigenLayerStrategyManager).depositIntoStrategy(
-                    IStrategy(subvault.vault), asset_, d.depositAmount
-                );
-            }
+            _deposit(d.subvaultIndex, d.depositAmount);
             assets -= d.depositAmount;
         }
 
-        if (assets != 0) {
-            IDefaultCollateral collateral = IDefaultCollateral(s.symbioticDefaultCollateral);
-            uint256 limit_ = collateral.limit();
-            uint256 supply_ = collateral.totalSupply();
-            if (supply_ < limit_) {
-                uint256 amount = Math.min(limit_ - supply_, assets);
-                asset_.safeIncreaseAllowance(address(collateral), amount);
-                collateral.deposit(this_, amount);
-            }
-        }
+        _depositIntoCollateral();
     }
 
     function _withdraw(
@@ -205,41 +283,25 @@ contract MultiVault is ERC4626Vault {
     ) internal virtual override {
         address this_ = address(this);
 
-        MultiVaultStorage memory s = _multiStorage;
         IBaseWithdrawalStrategy.Data[] memory data =
-            IBaseWithdrawalStrategy(s.withdrawalStrategy).calculateWithdrawalAmounts(this_, assets);
+            IBaseWithdrawalStrategy(withdrawalStrategy()).calculateWithdrawalAmounts(this_, assets);
 
         _burn(owner, shares);
 
         uint256 liquidAsset = assets;
         IBaseWithdrawalStrategy.Data memory d;
-        Subvault memory subvault;
         for (uint256 i = 0; i < data.length; i++) {
             d = data[i];
-            subvault = s.subvaults[d.subvaultIndex];
-            if (d.withdrawalRequestAmount != 0) {
-                if (subvault.subvaultType == SubvaultType.SYMBIOTIC) {
-                    ISymbioticVault(subvault.vault).withdraw(this_, d.withdrawalRequestAmount);
-                } else if (subvault.subvaultType == SubvaultType.EIGEN_LAYER) {
-                    IEigenLayerWithdrawalQueue(subvault.withdrawalQueue).request(
-                        receiver, d.withdrawalRequestAmount, receiver == owner
-                    );
-                }
-                liquidAsset -= d.withdrawalRequestAmount;
-            }
-            uint256 transferPending = d.withdrawalTransferPendingAmount;
-            if (transferPending != 0) {
-                IWithdrawalQueue(subvault.withdrawalQueue).transferPendingAssets(
-                    this_, receiver, transferPending
-                );
-                liquidAsset -= transferPending;
-            }
-
-            uint256 claimAmount = d.claimAmount;
-            if (claimAmount != 0) {
-                IWithdrawalQueue(subvault.withdrawalQueue).claim(owner, receiver, claimAmount);
-                liquidAsset -= claimAmount;
-            }
+            _withdraw(
+                d.subvaultIndex,
+                d.withdrawalRequestAmount,
+                d.withdrawalTransferPendingAmount,
+                d.claimAmount,
+                owner,
+                receiver
+            );
+            liquidAsset -=
+                d.withdrawalRequestAmount + d.withdrawalTransferPendingAmount + d.claimAmount;
         }
 
         if (liquidAsset != 0) {
@@ -251,7 +313,7 @@ contract MultiVault is ERC4626Vault {
                 liquidAsset -= assetBalance;
             }
 
-            IERC20(s.symbioticDefaultCollateral).safeTransfer(receiver, liquidAsset);
+            IDefaultCollateral(symbioticDefaultCollateral()).withdraw(receiver, liquidAsset);
         }
 
         if (caller != owner) {
@@ -262,7 +324,21 @@ contract MultiVault is ERC4626Vault {
         emit Withdraw(caller, receiver, owner, assets, shares);
     }
 
-    function rebalance() external {}
+    function rebalance() external {
+        address this_ = address(this);
+        IBaseRebalanceStrategy.Data[] memory data =
+            IBaseRebalanceStrategy(rebalanceStrategy()).calculateRebalaneAmounts(this_);
+        IBaseRebalanceStrategy.Data memory d;
+        for (uint256 i = 0; i < data.length; i++) {
+            d = data[i];
+            _withdraw(d.subvaultIndex, d.withdrawalRequestAmount, 0, d.claimAmount, this_, this_);
+        }
+        for (uint256 i = 0; i < data.length; i++) {
+            d = data[i];
+            _deposit(d.subvaultIndex, d.depositAmount);
+        }
+        _depositIntoCollateral();
+    }
 
     function _convertToShares(uint256 assets, Math.Rounding rounding)
         internal
