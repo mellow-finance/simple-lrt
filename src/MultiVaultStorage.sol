@@ -88,8 +88,8 @@ contract MultiVaultStorage is Initializable {
         return _multiStorage().indexOfSubvault[subvault];
     }
 
-    function symbioticDefaultCollateral() public view returns (address) {
-        return _multiStorage().symbioticDefaultCollateral;
+    function symbioticDefaultCollateral() public view returns (IDefaultCollateral) {
+        return IDefaultCollateral(_multiStorage().symbioticDefaultCollateral);
     }
 
     function eigenLayerStrategyManager() public view returns (address) {

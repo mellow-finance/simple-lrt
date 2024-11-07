@@ -118,7 +118,7 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
     {
         address this_ = address(this);
         assets_ = IERC20(asset()).balanceOf(this_);
-        IDefaultCollateral collateral = IDefaultCollateral(symbioticDefaultCollateral());
+        IDefaultCollateral collateral = symbioticDefaultCollateral();
         if (address(collateral) != address(0)) {
             assets_ += collateral.balanceOf(this_);
         }
@@ -189,7 +189,10 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
     }
 
     function _depositIntoCollateral() private {
-        IDefaultCollateral collateral = IDefaultCollateral(symbioticDefaultCollateral());
+        IDefaultCollateral collateral = symbioticDefaultCollateral();
+        if (address(collateral) == address(0)) {
+            return;
+        }
         uint256 limit_ = collateral.limit();
         uint256 supply_ = collateral.totalSupply();
         if (supply_ >= limit_) {
@@ -265,7 +268,7 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
                 liquidAsset -= assetBalance;
             }
 
-            IDefaultCollateral(symbioticDefaultCollateral()).withdraw(receiver, liquidAsset);
+            symbioticDefaultCollateral().withdraw(receiver, liquidAsset);
         }
 
         if (caller != owner) {
@@ -281,9 +284,15 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         IBaseRebalanceStrategy.Data[] memory data =
             IBaseRebalanceStrategy(rebalanceStrategy()).calculateRebalaneAmounts(this_);
         IBaseRebalanceStrategy.Data memory d;
+        uint256 depositAmount = 0;
         for (uint256 i = 0; i < data.length; i++) {
             d = data[i];
             _withdraw(d.subvaultIndex, d.withdrawalRequestAmount, 0, d.claimAmount, this_, this_);
+            depositAmount += d.depositAmount;
+        }
+        uint256 assets_ = IERC20(asset()).balanceOf(this_);
+        if (assets_ < depositAmount) {
+            symbioticDefaultCollateral().withdraw(this_, depositAmount - assets_);
         }
         for (uint256 i = 0; i < data.length; i++) {
             d = data[i];
