@@ -56,11 +56,7 @@ contract MultiVault is ERC4626Vault {
 
     MultiVaultStorage private _multiStorage;
 
-    function multiStorage() external view returns (MultiVaultStorage memory) {
-        return _multiStorage;
-    }
-
-    function subvaultsCount() external view returns (uint256) {
+    function subvaultsCount() public view returns (uint256) {
         return _multiStorage.subvaults.length;
     }
 
@@ -147,21 +143,15 @@ contract MultiVault is ERC4626Vault {
     {
         address this_ = address(this);
         assets_ = IERC20(asset()).balanceOf(this_);
-        MultiVaultStorage memory s = _multiStorage;
-
-        if (s.symbioticDefaultCollateral != address(0)) {
-            assets_ += IERC20(s.symbioticDefaultCollateral).balanceOf(this_);
+        IDefaultCollateral collateral = IDefaultCollateral(symbioticDefaultCollateral());
+        if (address(collateral) != address(0)) {
+            assets_ += collateral.balanceOf(this_);
         }
 
-        for (uint256 i = 0; i < s.subvaults.length; i++) {
-            Subvault memory subvault = s.subvaults[i];
-            if (subvault.subvaultType == SubvaultType.SYMBIOTIC) {
-                assets_ += ISymbioticVault(subvault.vault).activeBalanceOf(this_);
-                assets_ += IWithdrawalQueue(subvault.withdrawalQueue).balanceOf(this_);
-            } else if (subvault.subvaultType == SubvaultType.EIGEN_LAYER) {
-                assets_ += IStrategy(subvault.vault).userUnderlyingView(this_);
-                assets_ += IWithdrawalQueue(subvault.withdrawalQueue).balanceOf(this_);
-            }
+        uint256 length = subvaultsCount();
+        for (uint256 i = 0; i < length; i++) {
+            (uint256 claimable, uint256 pending, uint256 staked) = maxWithdraw(i);
+            assets_ += claimable + pending + staked;
         }
     }
 
@@ -200,7 +190,7 @@ contract MultiVault is ERC4626Vault {
             uint256 supply_ = collateral.totalSupply();
             if (supply_ < limit_) {
                 uint256 amount = Math.min(limit_ - supply_, assets);
-                asset_.safeIncreaseAllowance(s.symbioticDefaultCollateral, amount);
+                asset_.safeIncreaseAllowance(address(collateral), amount);
                 collateral.deposit(this_, amount);
             }
         }

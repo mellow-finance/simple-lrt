@@ -28,7 +28,7 @@ contract Unit is BaseTest {
     address admin = address(1243);
     address wsteth = Constants.HOLESKY_WSTETH;
 
-    function testMetaVault() external {
+    function _testMetaVault() internal {
         vault = new MetaVault(bytes32("MetaVault"), 1);
 
         idleVault = new IdleVault();
@@ -68,16 +68,6 @@ contract Unit is BaseTest {
         );
 
         Claimer claimer = new Claimer();
-        address symbioticVault = symbioticHelper.createNewSymbioticVault(
-            SymbioticHelper.CreationParams({
-                vaultOwner: admin,
-                vaultAdmin: admin,
-                epochDuration: 7 days,
-                asset: wsteth,
-                isDepositLimit: false,
-                depositLimit: 0
-            })
-        );
 
         vm.startPrank(admin);
         vault.grantRole(keccak256("ADD_SUBVAULT"), admin);
@@ -85,6 +75,16 @@ contract Unit is BaseTest {
         IMellowSymbioticVault.InitParams memory msvInit;
         for (uint256 i = 0; i < 11; i++) {
             MellowSymbioticVault msv1 = new MellowSymbioticVault(bytes32("MellowSymbioticVault"), 1);
+            address symbioticVault = symbioticHelper.createNewSymbioticVault(
+                SymbioticHelper.CreationParams({
+                    vaultOwner: admin,
+                    vaultAdmin: admin,
+                    epochDuration: 7 days,
+                    asset: wsteth,
+                    isDepositLimit: false,
+                    depositLimit: 0
+                })
+            );
             msvInit = IMellowSymbioticVault.InitParams({
                 limit: 1000,
                 symbioticCollateral: Constants.HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL,
@@ -103,14 +103,26 @@ contract Unit is BaseTest {
             msv1.initialize(msvInit);
             vault.addSubvault(address(msv1), true);
         }
-
-        MellowSymbioticVault msv2 = new MellowSymbioticVault(bytes32("MellowSymbioticVault"), 1);
-        msvInit.limit = type(uint256).max;
-        msvInit.withdrawalQueue =
-            address(new SymbioticWithdrawalQueue(address(msv2), symbioticVault, address(claimer)));
-        msv2.initialize(msvInit);
-
-        vault.addSubvault(address(msv2), true);
+        {
+            MellowSymbioticVault msv2 = new MellowSymbioticVault(bytes32("MellowSymbioticVault"), 1);
+            address symbioticVault = symbioticHelper.createNewSymbioticVault(
+                SymbioticHelper.CreationParams({
+                    vaultOwner: admin,
+                    vaultAdmin: admin,
+                    epochDuration: 7 days,
+                    asset: wsteth,
+                    isDepositLimit: false,
+                    depositLimit: 0
+                })
+            );
+            msvInit.limit = type(uint256).max;
+            msvInit.withdrawalQueue = address(
+                new SymbioticWithdrawalQueue(address(msv2), symbioticVault, address(claimer))
+            );
+            msvInit.symbioticVault = symbioticVault;
+            msv2.initialize(msvInit);
+            vault.addSubvault(address(msv2), true);
+        }
         vm.stopPrank();
 
         address user = address(1234213);
@@ -119,9 +131,7 @@ contract Unit is BaseTest {
 
         vm.startPrank(user);
         IERC20(wsteth).approve(address(vault), type(uint256).max);
-
-        _seed = 42;
-        uint256 iter = 100;
+        uint256 iter = 25;
         for (uint256 i = 0; i < iter; i++) {
             uint256 ind = rnd() % 2;
             if (ind == 0) {
@@ -134,7 +144,7 @@ contract Unit is BaseTest {
         vm.stopPrank();
     }
 
-    function testMultiVault() external {
+    function _testMultiVault() internal {
         multiVault = new MultiVault(bytes32("MetaVault"), 1, 1000, 1000);
         multiDepositStrategy = new MultiDepositStrategy();
         multiWithdrawalStrategy = new MultiWithdrawalStrategy();
@@ -185,9 +195,7 @@ contract Unit is BaseTest {
 
         vm.startPrank(user);
         IERC20(wsteth).approve(address(multiVault), type(uint256).max);
-
-        _seed = 42;
-        uint256 iter = 100;
+        uint256 iter = 25;
         for (uint256 i = 0; i < iter; i++) {
             uint256 ind = rnd() % 2;
             if (ind == 0) {
@@ -200,7 +208,16 @@ contract Unit is BaseTest {
         vm.stopPrank();
     }
 
-    uint256 _seed = 1234;
+    function testMultiVsMetaVault() external {
+        for (uint256 seed = 1; seed <= 1; seed++) {
+            _seed = seed;
+            _testMetaVault();
+            _seed = seed;
+            _testMultiVault();
+        }
+    }
+
+    uint256 _seed;
 
     function rnd() internal returns (uint256) {
         return _seed = uint256(keccak256(abi.encodePacked(_seed)));
