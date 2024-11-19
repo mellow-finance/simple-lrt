@@ -14,28 +14,13 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         address rebalanceStrategy;
         address symbioticDefaultCollateral;
         address eigenLayerStrategyManager;
-        address eigenLayerDelegationManager;
         address eigenLayerRewardsCoordinator;
     }
 
-    // MUST be non-zero
-    // and at least 1000 in case if we are expecting to have some number of EigenLayer strategies
-    uint256 public immutable sharesOffset;
-    uint256 public immutable assetsOffset;
-
-    constructor(bytes32 name_, uint256 version_, uint256 sharesOffset_, uint256 assetsOffset_)
+    constructor(bytes32 name_, uint256 version_)
         VaultControlStorage(name_, version_)
         MultiVaultStorage(name_, version_)
-    {
-        if (sharesOffset_ == 0) {
-            revert("MultiVault: sharesOffset is 0");
-        }
-        if (assetsOffset_ == 0) {
-            revert("MultiVault: assetsOffset is 0");
-        }
-        sharesOffset = sharesOffset_;
-        assetsOffset = assetsOffset_;
-    }
+    {}
 
     // ------------------------------- EXTERNAL FUNCTIONS -------------------------------
 
@@ -66,7 +51,6 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
             initParams.rebalanceStrategy,
             initParams.symbioticDefaultCollateral,
             initParams.eigenLayerStrategyManager,
-            initParams.eigenLayerDelegationManager,
             initParams.eigenLayerRewardsCoordinator
         );
     }
@@ -130,11 +114,33 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         }
     }
 
-    function addSubvault(address subvault, address withdrawalQueue, SubvaultType subvaultType)
+    function addSubvault(address vault, address withdrawalQueue, SubvaultType subvaultType)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        _addSubvault(subvault, withdrawalQueue, subvaultType);
+        address asset_;
+        if (subvaultType == SubvaultType.SYMBIOTIC) {
+            asset_ = ISymbioticVault(vault).collateral();
+        } else if (subvaultType == SubvaultType.EIGEN_LAYER) {
+            if (
+                IStrategyManager(eigenLayerStrategyManager()).strategyIsWhitelistedForDeposit(
+                    IStrategy(vault)
+                )
+            ) {
+                revert("MultiVault: strategy is not registered in the strategy manager");
+            }
+            asset_ = address(IStrategy(vault).underlyingToken());
+        } else if (subvaultType == SubvaultType.ERC4626) {
+            asset_ = IERC4626(vault).asset();
+        }
+        require(asset_ == asset(), "MultiVault: subvault asset does not match the vault asset");
+        bool hasWithdrawalQueue = withdrawalQueue != address(0);
+        bool isQueuedVault = subvaultType != SubvaultType.ERC4626;
+        require(
+            hasWithdrawalQueue == isQueuedVault,
+            "MultiVault: withdrawal queue required for symbiotic and eigen layer vaults only"
+        );
+        _addSubvault(vault, withdrawalQueue, subvaultType);
     }
 
     function removeSubvault(address subvault) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -171,13 +177,6 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         _setEigenLayerStrategyManager(newEigenLayerStrategyManager);
-    }
-
-    function setEigenLayerDelegationManager(address newEigenLayerDelegationManager)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        _setEigenLayerDelegationManager(newEigenLayerDelegationManager);
     }
 
     function setEigenLayerRewardsCoordinator(address newEigenLayerRewardsCoordinator)
@@ -252,7 +251,7 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         }
         address this_ = address(this);
         IERC20 asset_ = IERC20(asset());
-        uint256 amount = Math.min(limit_ - supply_, asset_.balanceOf(this_));
+        uint256 amount = asset_.balanceOf(this_).min(limit_ - supply_);
         if (amount == 0) {
             return;
         }
@@ -315,7 +314,7 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
             IERC20 asset_ = IERC20(asset());
             uint256 assetBalance = asset_.balanceOf(this_);
             if (assetBalance != 0) {
-                assetBalance = Math.min(assetBalance, liquidAsset);
+                assetBalance = assetBalance.min(liquidAsset);
                 asset_.safeTransfer(receiver, assetBalance);
                 liquidAsset -= assetBalance;
             }
@@ -353,23 +352,13 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         _depositIntoCollateral();
     }
 
-    function _convertToShares(uint256 assets, Math.Rounding rounding)
-        internal
-        view
-        virtual
-        override
-        returns (uint256)
-    {
-        return assets.mulDiv(totalSupply() + sharesOffset, totalAssets() + assetsOffset, rounding);
+    struct RewardData {
+        SubvaultType subvaultType;
+        address rewardIndex;
+        bytes data;
     }
 
-    function _convertToAssets(uint256 shares, Math.Rounding rounding)
-        internal
-        view
-        virtual
-        override
-        returns (uint256)
-    {
-        return shares.mulDiv(totalAssets() + assetsOffset, totalSupply() + sharesOffset, rounding);
-    }
+    mapping(uint256 id => RewardData) public farmData;
+
+    function pushRewards(uint256 farmId, bytes calldata data) external {}
 }

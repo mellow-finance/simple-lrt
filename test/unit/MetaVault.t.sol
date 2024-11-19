@@ -166,7 +166,6 @@ contract Unit is BaseTest {
                 rebalanceStrategy: address(rebalanceStrategy),
                 symbioticDefaultCollateral: Constants.HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL,
                 eigenLayerStrategyManager: address(0),
-                eigenLayerDelegationManager: address(0),
                 eigenLayerRewardsCoordinator: address(0)
             })
         );

@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import {ERC4626Vault} from "./ERC4626Vault.sol";
-import {MetaVaultStorage} from "./MetaVaultStorage.sol";
-import {VaultControlStorage} from "./VaultControlStorage.sol";
-
 import "./MellowEigenLayerVault.sol";
 import "./MellowSymbioticVault.sol";
 import "./interfaces/vaults/IMetaVault.sol";
@@ -29,7 +25,6 @@ contract MultiVaultStorage is Initializable {
         address rebalanceStrategy;
         address symbioticDefaultCollateral;
         address eigenLayerStrategyManager;
-        address eigenLayerDelegationManager;
         address eigenLayerRewardsCoordinator;
         Subvault[] subvaults;
         mapping(address subvault => uint256 index) indexOfSubvault;
@@ -57,7 +52,6 @@ contract MultiVaultStorage is Initializable {
         address rebalanceStrategy_,
         address symbioticDefaultCollateral_,
         address eigenLayerStrategyManager_,
-        address eigenLayerDelegationManager_,
         address eigenLayerRewardsCoordinator_
     ) internal onlyInitializing {
         _setDepositStrategy(depositStrategy_);
@@ -65,7 +59,6 @@ contract MultiVaultStorage is Initializable {
         _setRebalanceStrategy(rebalanceStrategy_);
         _setSymbioticDefaultCollateral(symbioticDefaultCollateral_);
         _setEigenLayerStrategyManager(eigenLayerStrategyManager_);
-        _setEigenLayerDelegationManager(eigenLayerDelegationManager_);
         _setEigenLayerRewardsCoordinator(eigenLayerRewardsCoordinator_);
     }
 
@@ -96,8 +89,8 @@ contract MultiVaultStorage is Initializable {
         return _multiStorage().eigenLayerStrategyManager;
     }
 
-    function eigenLayerDelegationManager() public view returns (address) {
-        return _multiStorage().eigenLayerDelegationManager;
+    function eigenLayerDelegationManager() public view returns (IDelegationManager) {
+        return IStrategyManager(_multiStorage().eigenLayerStrategyManager).delegation();
     }
 
     function eigenLayerRewardsCoordinator() public view returns (address) {
@@ -117,14 +110,23 @@ contract MultiVaultStorage is Initializable {
     }
 
     function _setDepositStrategy(address newDepositStrategy) internal {
+        if (newDepositStrategy == address(0)) {
+            revert("MultiVaultStorage: deposit strategy cannot be zero address");
+        }
         _multiStorage().depositStrategy = newDepositStrategy;
     }
 
     function _setWithdrawalStrategy(address newWithdrawalStrategy) internal {
+        if (newWithdrawalStrategy == address(0)) {
+            revert("MultiVaultStorage: withdrawal strategy cannot be zero address");
+        }
         _multiStorage().withdrawalStrategy = newWithdrawalStrategy;
     }
 
     function _setRebalanceStrategy(address newRebalanceStrategy) internal {
+        if (newRebalanceStrategy == address(0)) {
+            revert("MultiVaultStorage: rebalance strategy cannot be zero address");
+        }
         _multiStorage().rebalanceStrategy = newRebalanceStrategy;
     }
 
@@ -136,10 +138,6 @@ contract MultiVaultStorage is Initializable {
         _multiStorage().eigenLayerStrategyManager = newEigenLayerStrategyManager;
     }
 
-    function _setEigenLayerDelegationManager(address newEigenLayerDelegationManager) internal {
-        _multiStorage().eigenLayerDelegationManager = newEigenLayerDelegationManager;
-    }
-
     function _setEigenLayerRewardsCoordinator(address newEigenLayerRewardsCoordinator) internal {
         _multiStorage().eigenLayerRewardsCoordinator = newEigenLayerRewardsCoordinator;
     }
@@ -147,6 +145,9 @@ contract MultiVaultStorage is Initializable {
     function _addSubvault(address vault, address withdrawalQueue, SubvaultType subvaultType)
         internal
     {
+        if (subvaultType > type(SubvaultType).max) {
+            revert("MultiVaultStorage: invalid subvault type");
+        }
         MultiStorage storage $ = _multiStorage();
         require($.indexOfSubvault[vault] == 0, "MultiVaultStorage: subvault already exists");
         $.subvaults.push(Subvault(subvaultType, vault, withdrawalQueue));
