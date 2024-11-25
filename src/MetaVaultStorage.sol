@@ -118,7 +118,7 @@ abstract contract MetaVaultStorage is IMetaVaultStorage, Initializable {
         emit RebalanceStrategySet(newRebalanceStrategy);
     }
 
-    function _addSubvault(address subvault, bool isQueuedVault) internal {
+    function _addSubvault(address subvault, bool isQueuedVault_) internal {
         MetaStorage storage $ = _metaStorage();
         if ($.subvaults.length() + 1 > MAX_SUBVAULTS) {
             revert("MetaVaultStorage: subvaults limit reached");
@@ -127,8 +127,8 @@ abstract contract MetaVaultStorage is IMetaVaultStorage, Initializable {
             revert("MetaVaultStorage: subvault already exists");
         }
         $.subvaultsHash = keccak256(abi.encodePacked($.subvaults.values()));
-        $.isQueuedVault[subvault] = isQueuedVault;
-        emit SubvaultAdded(subvault, isQueuedVault);
+        $.isQueuedVault[subvault] = isQueuedVault_;
+        emit SubvaultAdded(subvault, isQueuedVault_);
     }
 
     function _removeSubvault(address subvault) internal {
