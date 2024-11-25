@@ -217,9 +217,9 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     /// @inheritdoc IMultiVault
     function rebalance() external {
         address this_ = address(this);
-        IBaseRebalanceStrategy.Data[] memory data =
-            IBaseRebalanceStrategy(rebalanceStrategy()).calculateRebalaneAmounts(this_);
-        IBaseRebalanceStrategy.Data memory d;
+        IRebalanceStrategy.RebalanceData[] memory data =
+            IRebalanceStrategy(rebalanceStrategy()).calculateRebalaneAmounts(this_);
+        IRebalanceStrategy.RebalanceData memory d;
         uint256 depositAmount = 0;
         for (uint256 i = 0; i < data.length; i++) {
             d = data[i];
@@ -366,10 +366,11 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     {
         super._deposit(caller, receiver, assets, shares);
         address this_ = address(this);
-        IBaseDepositStrategy.Data[] memory data =
-            IBaseDepositStrategy(depositStrategy()).calculateDepositAmounts(this_, assets);
+        IDepositStrategy.DepositData[] memory data =
+            IDepositStrategy(depositStrategy()).calculateDepositAmounts(this_, assets);
+        IDepositStrategy.DepositData memory d;
         for (uint256 i = 0; i < data.length; i++) {
-            IBaseDepositStrategy.Data memory d = data[i];
+            d = data[i];
             if (d.depositAmount == 0) {
                 continue;
             }
@@ -389,13 +390,13 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     ) internal virtual override {
         address this_ = address(this);
 
-        IBaseWithdrawalStrategy.Data[] memory data =
-            IBaseWithdrawalStrategy(withdrawalStrategy()).calculateWithdrawalAmounts(this_, assets);
+        IWithdrawalStrategy.WithdrawalData[] memory data =
+            IWithdrawalStrategy(withdrawalStrategy()).calculateWithdrawalAmounts(this_, assets);
 
         _burn(owner, shares);
 
         uint256 liquidAsset = assets;
-        IBaseWithdrawalStrategy.Data memory d;
+        IWithdrawalStrategy.WithdrawalData memory d;
         for (uint256 i = 0; i < data.length; i++) {
             d = data[i];
             _withdraw(

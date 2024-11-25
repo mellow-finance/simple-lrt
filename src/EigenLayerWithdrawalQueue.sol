@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "./MellowEigenLayerVault.sol";
 import "./interfaces/utils/IEigenLayerWithdrawalQueue.sol";
 
 contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
@@ -19,20 +18,22 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
     address public immutable vault;
     address public immutable claimer;
     address public immutable collateral;
+    address public immutable strategy;
 
     uint256 public claimableAssets;
     uint256 public pendingShares;
     WithdrawalData[] private _withdrawals;
     mapping(address account => AccountData) private _accountData;
 
-    constructor(address vault_, address asset_, address claimer_) {
+    constructor(address vault_, address asset_, address strategy_, address claimer_) {
         vault = vault_;
         collateral = asset_;
         claimer = claimer_;
+        strategy = strategy_;
     }
 
     function pendingAssets() public view returns (uint256) {
-        return MellowEigenLayerVault(vault).strategy().sharesToUnderlyingView(pendingShares);
+        return IStrategy(strategy).sharesToUnderlyingView(pendingShares);
     }
 
     function balancesOf(address account, uint256[] memory indices)
@@ -84,7 +85,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
     }
 
     function maxWithdrawalRequests() public view returns (uint256) {
-        return MAX_WITHDRAWAL_REQUESTS.min(MellowEigenLayerVault(vault).maxWithdrawalRequests());
+        // return MAX_WITHDRAWAL_REQUESTS.min(MellowEigenLayerVault(vault).maxWithdrawalRequests());
     }
 
     function _slice(EnumerableSet.UintSet storage set, uint256 limit, uint256 offset)
@@ -125,51 +126,51 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
     }
 
     function request(address account, uint256 assets, bool isSelfRequested) external {
-        require(msg.sender == vault, "EigenLayerWithdrawalQueue: forbidden");
-        handleWithdrawals(account);
-        MellowEigenLayerVault vault_ = MellowEigenLayerVault(vault);
-        IStrategy[] memory strategies = new IStrategy[](1);
-        uint256[] memory shares = new uint256[](1);
-        strategies[0] = vault_.strategy();
-        shares[0] = strategies[0].underlyingToSharesView(assets);
-        IDelegationManager delegationManager = vault_.delegationManager();
-        IDelegationManager.Withdrawal memory data = IDelegationManager.Withdrawal({
-            staker: vault,
-            delegatedTo: vault_.strategyOperator(),
-            withdrawer: vault,
-            nonce: delegationManager.cumulativeWithdrawalsQueued(vault),
-            startBlock: uint32(block.number),
-            strategies: strategies,
-            shares: shares
-        });
-        bytes32[] memory roots = vault_.proxyRequestWithdrawals(
-            IDelegationManager.QueuedWithdrawalParams({
-                strategies: strategies,
-                shares: shares,
-                withdrawer: vault
-            })
-        );
-        require(
-            roots.length == 1 && roots[0] == delegationManager.calculateWithdrawalRoot(data),
-            "EigenLayerWithdrawalQueue: withdrawalRoot mismatch"
-        );
+        // require(msg.sender == vault, "EigenLayerWithdrawalQueue: forbidden");
+        // handleWithdrawals(account);
+        // MellowEigenLayerVault vault_ = MellowEigenLayerVault(vault);
+        // IStrategy[] memory strategies = new IStrategy[](1);
+        // uint256[] memory shares = new uint256[](1);
+        // strategies[0] = vault_.strategy();
+        // shares[0] = strategies[0].underlyingToSharesView(assets);
+        // IDelegationManager delegationManager = vault_.delegationManager();
+        // IDelegationManager.Withdrawal memory data = IDelegationManager.Withdrawal({
+        //     staker: vault,
+        //     delegatedTo: vault_.strategyOperator(),
+        //     withdrawer: vault,
+        //     nonce: delegationManager.cumulativeWithdrawalsQueued(vault),
+        //     startBlock: uint32(block.number),
+        //     strategies: strategies,
+        //     shares: shares
+        // });
+        // bytes32[] memory roots = vault_.proxyRequestWithdrawals(
+        //     IDelegationManager.QueuedWithdrawalParams({
+        //         strategies: strategies,
+        //         shares: shares,
+        //         withdrawer: vault
+        //     })
+        // );
+        // require(
+        //     roots.length == 1 && roots[0] == delegationManager.calculateWithdrawalRoot(data),
+        //     "EigenLayerWithdrawalQueue: withdrawalRoot mismatch"
+        // );
 
-        pendingShares += shares[0];
+        // pendingShares += shares[0];
 
-        uint256 withdrawalIndex = _withdrawals.length;
-        WithdrawalData storage withdrawal = _withdrawals.push();
-        withdrawal.data = data;
-        withdrawal.totalSupply = assets;
-        AccountData storage accountData = _accountData[account];
-        if (isSelfRequested) {
-            if (accountData.withdrawalIndices.length() + 1 >= maxWithdrawalRequests()) {
-                revert("EigenLayerWithdrawalQueue: max withdrawal requests reached");
-            }
-            accountData.withdrawalIndices.add(withdrawalIndex);
-        } else {
-            accountData.transferedWithdrawalIndices.add(withdrawalIndex);
-        }
-        withdrawal.balanceOf[account] += assets;
+        // uint256 withdrawalIndex = _withdrawals.length;
+        // WithdrawalData storage withdrawal = _withdrawals.push();
+        // withdrawal.data = data;
+        // withdrawal.totalSupply = assets;
+        // AccountData storage accountData = _accountData[account];
+        // if (isSelfRequested) {
+        //     if (accountData.withdrawalIndices.length() + 1 >= maxWithdrawalRequests()) {
+        //         revert("EigenLayerWithdrawalQueue: max withdrawal requests reached");
+        //     }
+        //     accountData.withdrawalIndices.add(withdrawalIndex);
+        // } else {
+        //     accountData.transferedWithdrawalIndices.add(withdrawalIndex);
+        // }
+        // withdrawal.balanceOf[account] += assets;
     }
 
     function withdrawalAssets(uint256 withdrawalIndex)
@@ -177,16 +178,16 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
         view
         returns (bool isClaimed, bool isClaimable, uint256 assets, uint256 shares)
     {
-        WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
-        if (withdrawal.isClaimed) {
-            return (true, false, withdrawal.assets, 0);
-        }
-        IDelegationManager delegationManager = MellowEigenLayerVault(vault).delegationManager();
-        IStrategy strategy = MellowEigenLayerVault(vault).strategy();
-        isClaimable = withdrawal.data.startBlock
-            + delegationManager.getWithdrawalDelay(withdrawal.data.strategies) <= block.number;
-        shares = withdrawal.data.shares[0];
-        assets = strategy.sharesToUnderlyingView(shares);
+        // WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
+        // if (withdrawal.isClaimed) {
+        //     return (true, false, withdrawal.assets, 0);
+        // }
+        // IDelegationManager delegationManager = MellowEigenLayerVault(vault).delegationManager();
+        // IStrategy strategy = MellowEigenLayerVault(vault).strategy();
+        // isClaimable = withdrawal.data.startBlock
+        //     + delegationManager.getWithdrawalDelay(withdrawal.data.strategies) <= block.number;
+        // shares = withdrawal.data.shares[0];
+        // assets = strategy.sharesToUnderlyingView(shares);
     }
 
     function withdrawalAssetsOf(uint256 withdrawalIndex, address account)
@@ -253,20 +254,20 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
     }
 
     function _pull(WithdrawalData storage withdrawal) private returns (bool) {
-        if (withdrawal.isClaimed) {
-            return true;
-        }
-        IDelegationManager.Withdrawal memory data = withdrawal.data;
-        if (
-            data.startBlock
-                + MellowEigenLayerVault(vault).delegationManager().getWithdrawalDelay(data.strategies)
-                <= block.number
-        ) {
-            withdrawal.assets = MellowEigenLayerVault(vault).proxyClaimWithdrawals(data);
-            withdrawal.isClaimed = true;
-            return true;
-        }
-        return false;
+        // if (withdrawal.isClaimed) {
+        //     return true;
+        // }
+        // IDelegationManager.Withdrawal memory data = withdrawal.data;
+        // if (
+        //     data.startBlock
+        //         + MellowEigenLayerVault(vault).delegationManager().getWithdrawalDelay(data.strategies)
+        //         <= block.number
+        // ) {
+        //     withdrawal.assets = MellowEigenLayerVault(vault).proxyClaimWithdrawals(data);
+        //     withdrawal.isClaimed = true;
+        //     return true;
+        // }
+        // return false;
     }
 
     function handleWithdrawals(address account) public {

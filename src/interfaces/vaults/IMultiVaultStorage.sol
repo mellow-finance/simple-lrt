@@ -3,9 +3,9 @@ pragma solidity 0.8.25;
 
 import {IDefaultCollateral} from "../tokens/IDefaultCollateral.sol";
 
-import {IBaseDepositStrategy} from "../strategies/IBaseDepositStrategy.sol";
-import {IBaseRebalanceStrategy} from "../strategies/IBaseRebalanceStrategy.sol";
-import {IBaseWithdrawalStrategy} from "../strategies/IBaseWithdrawalStrategy.sol";
+import {IDepositStrategy} from "../strategies/IDepositStrategy.sol";
+import {IRebalanceStrategy} from "../strategies/IRebalanceStrategy.sol";
+import {IWithdrawalStrategy} from "../strategies/IWithdrawalStrategy.sol";
 import {IEigenLayerWithdrawalQueue} from "../utils/IEigenLayerWithdrawalQueue.sol";
 import {IWithdrawalQueue} from "../utils/IWithdrawalQueue.sol";
 import {IERC4626Vault} from "./IERC4626Vault.sol";
