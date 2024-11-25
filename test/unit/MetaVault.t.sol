@@ -8,8 +8,7 @@ import "../../src/strategies/DefaultDepositStrategy.sol";
 import "../../src/strategies/DefaultRebalanceStrategy.sol";
 import "../../src/strategies/DefaultWithdrawalStrategy.sol";
 
-import {MultiVault} from "../../src/MultiVault.sol";
-import {MultiVaultStorage} from "../../src/MultiVaultStorage.sol";
+import "../../src/MultiVault.sol";
 import {MultiDepositStrategy} from "../../src/strategies/MultiDepositStrategy.sol";
 import {MultiWithdrawalStrategy} from "../../src/strategies/MultiWithdrawalStrategy.sol";
 
@@ -146,21 +145,21 @@ contract Unit is BaseTest {
     }
 
     function _testMultiVault() internal {
-        multiVault = new MultiVault(bytes32("MetaVault"), 1, 1000, 1000);
+        multiVault = new MultiVault(bytes32("MetaVault"), 1);
         multiDepositStrategy = new MultiDepositStrategy();
         multiWithdrawalStrategy = new MultiWithdrawalStrategy();
         rebalanceStrategy = new DefaultRebalanceStrategy();
 
         multiVault.initialize(
-            admin,
-            type(uint256).max,
-            false,
-            false,
-            false,
-            wsteth,
-            "MultiVault",
-            "MV",
-            MultiVault.InitParams({
+            IMultiVault.InitParams({
+                admin: admin,
+                limit: type(uint256).max,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                asset: wsteth,
+                name: "MultiVault",
+                symbol: "MV",
                 depositStrategy: address(multiDepositStrategy),
                 withdrawalStrategy: address(multiWithdrawalStrategy),
                 rebalanceStrategy: address(rebalanceStrategy),
@@ -191,7 +190,7 @@ contract Unit is BaseTest {
 
             vm.prank(admin);
             multiVault.addSubvault(
-                symbioticVault, withdrawalQueue, MultiVaultStorage.SubvaultType.SYMBIOTIC
+                symbioticVault, withdrawalQueue, IMultiVaultStorage.SubvaultType.SYMBIOTIC
             );
         }
 

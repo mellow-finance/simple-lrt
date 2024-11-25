@@ -1,34 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "./MellowEigenLayerVault.sol";
-import "./MellowSymbioticVault.sol";
-import "./interfaces/vaults/IMetaVault.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
+import "./interfaces/vaults/IMultiVaultStorage.sol";
 
-contract MultiVaultStorage is Initializable {
-    enum SubvaultType {
-        SYMBIOTIC,
-        EIGEN_LAYER,
-        ERC4626
-    }
-
-    struct Subvault {
-        SubvaultType subvaultType;
-        address vault;
-        address withdrawalQueue;
-    }
-
-    struct MultiStorage {
-        address depositStrategy;
-        address withdrawalStrategy;
-        address rebalanceStrategy;
-        address symbioticDefaultCollateral;
-        address eigenLayerStrategyManager;
-        address eigenLayerRewardsCoordinator;
-        Subvault[] subvaults;
-        mapping(address subvault => uint256 index) indexOfSubvault;
-    }
+contract MultiVaultStorage is IMultiVaultStorage, Initializable {
+    using EnumerableSet for EnumerableSet.UintSet;
 
     bytes32 private immutable storageSlotRef;
 
@@ -109,6 +85,26 @@ contract MultiVaultStorage is Initializable {
         return _multiStorage().rebalanceStrategy;
     }
 
+    function rewardData(uint256 farmId) public view returns (RewardData memory) {
+        return _multiStorage().rewardData[farmId];
+    }
+
+    function farmIds() public view returns (uint256[] memory) {
+        return _multiStorage().farmIds.values();
+    }
+
+    function farmCount() public view returns (uint256) {
+        return _multiStorage().farmIds.length();
+    }
+
+    function farmIdAt(uint256 index) public view returns (uint256) {
+        return _multiStorage().farmIds.at(index);
+    }
+
+    function farmIdsContains(uint256 farmId) public view returns (bool) {
+        return _multiStorage().farmIds.contains(farmId);
+    }
+
     function _setDepositStrategy(address newDepositStrategy) internal {
         if (newDepositStrategy == address(0)) {
             revert("MultiVaultStorage: deposit strategy cannot be zero address");
@@ -170,5 +166,17 @@ contract MultiVaultStorage is Initializable {
 
         $.subvaults.pop();
         delete $.indexOfSubvault[subvault];
+    }
+
+    function _setRewardData(uint256 farmId, RewardData memory data) internal {
+        MultiStorage storage $ = _multiStorage();
+        if (data.token == address(0)) {
+            if ($.farmIds.remove(farmId)) {
+                delete $.rewardData[farmId];
+            }
+        } else {
+            $.rewardData[farmId] = data;
+            $.farmIds.add(farmId);
+        }
     }
 }

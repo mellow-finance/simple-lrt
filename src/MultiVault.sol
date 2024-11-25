@@ -1,21 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "./MultiVaultStorage.sol";
+import {ERC4626Vault} from "./ERC4626Vault.sol";
+import {MultiVaultStorage} from "./MultiVaultStorage.sol";
+import {VaultControlStorage} from "./VaultControlStorage.sol";
+import "./interfaces/vaults/IMultiVault.sol";
 
-contract MultiVault is ERC4626Vault, MultiVaultStorage {
+contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     using SafeERC20 for IERC20;
-    using SafeERC20 for address;
     using Math for uint256;
 
-    struct InitParams {
-        address depositStrategy;
-        address withdrawalStrategy;
-        address rebalanceStrategy;
-        address symbioticDefaultCollateral;
-        address eigenLayerStrategyManager;
-        address eigenLayerRewardsCoordinator;
-    }
+    uint256 private constant D6 = 1e6;
 
     constructor(bytes32 name_, uint256 version_)
         VaultControlStorage(name_, version_)
@@ -24,26 +19,17 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
 
     // ------------------------------- EXTERNAL FUNCTIONS -------------------------------
 
-    function initialize(
-        address _admin,
-        uint256 _limit,
-        bool _depositPause,
-        bool _withdrawalPause,
-        bool _depositWhitelist,
-        address _asset,
-        string memory _name,
-        string memory _symbol,
-        InitParams memory initParams
-    ) public virtual initializer {
+    /// @inheritdoc IMultiVault
+    function initialize(InitParams calldata initParams) public virtual initializer {
         __initializeERC4626(
-            _admin,
-            _limit,
-            _depositPause,
-            _withdrawalPause,
-            _depositWhitelist,
-            _asset,
-            _name,
-            _symbol
+            initParams.admin,
+            initParams.limit,
+            initParams.depositPause,
+            initParams.withdrawalPause,
+            initParams.depositWhitelist,
+            initParams.asset,
+            initParams.name,
+            initParams.symbol
         );
         __initializeMultiVaultStorage(
             initParams.depositStrategy,
@@ -55,6 +41,7 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         );
     }
 
+    /// @inheritdoc IMultiVault
     function maxDeposit(uint256 subvaultIndex) public view returns (uint256) {
         Subvault memory subvault = subvaultAt(subvaultIndex);
         if (subvault.subvaultType == SubvaultType.SYMBIOTIC) {
@@ -74,6 +61,7 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         }
     }
 
+    /// @inheritdoc IMultiVault
     function maxWithdraw(uint256 subvaultIndex)
         public
         view
@@ -93,6 +81,7 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         pending = IWithdrawalQueue(subvault.withdrawalQueue).pendingAssetsOf(this_);
     }
 
+    /// @inheritdoc IERC4626
     function totalAssets()
         public
         view
@@ -114,6 +103,7 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         }
     }
 
+    /// @inheritdoc IMultiVault
     function addSubvault(address vault, address withdrawalQueue, SubvaultType subvaultType)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -143,14 +133,17 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         _addSubvault(vault, withdrawalQueue, subvaultType);
     }
 
+    /// @inheritdoc IMultiVault
     function removeSubvault(address subvault) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _removeSubvault(subvault);
     }
 
+    /// @inheritdoc IMultiVault
     function setDepositStrategy(address newDepositStrategy) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setDepositStrategy(newDepositStrategy);
     }
 
+    /// @inheritdoc IMultiVault
     function setWithdrawalStrategy(address newWithdrawalStrategy)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -158,6 +151,7 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         _setWithdrawalStrategy(newWithdrawalStrategy);
     }
 
+    /// @inheritdoc IMultiVault
     function setRebalanceStrategy(address newRebalanceStrategy)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -165,6 +159,7 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         _setRebalanceStrategy(newRebalanceStrategy);
     }
 
+    /// @inheritdoc IMultiVault
     function setSymbioticDefaultCollateral(address newSymbioticDefaultCollateral)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -172,6 +167,7 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         _setSymbioticDefaultCollateral(newSymbioticDefaultCollateral);
     }
 
+    /// @inheritdoc IMultiVault
     function setEigenLayerStrategyManager(address newEigenLayerStrategyManager)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -179,11 +175,115 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         _setEigenLayerStrategyManager(newEigenLayerStrategyManager);
     }
 
+    /// @inheritdoc IMultiVault
     function setEigenLayerRewardsCoordinator(address newEigenLayerRewardsCoordinator)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         _setEigenLayerRewardsCoordinator(newEigenLayerRewardsCoordinator);
+    }
+
+    function addRewardsData(uint256 farmId, RewardData calldata rewardData)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(rewardData.curatorFeeD6 <= D6, "Vault: invalid curator fee");
+        require(rewardData.token != address(0), "Vault: token address cannot be zero");
+        require(
+            rewardData.distributionFarm != address(0),
+            "Vault: distribution farm address cannot be zero"
+        );
+        if (rewardData.curatorFeeD6 != 0) {
+            require(
+                rewardData.curatorTreasury != address(0),
+                "Vault: curator treasury address cannot be zero"
+            );
+        }
+        if (rewardData.subvaultType == SubvaultType.SYMBIOTIC) {
+            require(rewardData.data.length == 20, "Vault: invalid symbiotic farm data length");
+        } else if (rewardData.subvaultType == SubvaultType.EIGEN_LAYER) {
+            require(rewardData.data.length == 0, "Vault: invalid eigen layer farm data length");
+        } else {
+            revert("Vault: invalid subvault type");
+        }
+        _setRewardData(farmId, rewardData);
+    }
+
+    function removeRewardsData(uint256 farmId) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        RewardData memory emptyData;
+        _setRewardData(farmId, emptyData);
+    }
+
+    /// @inheritdoc IMultiVault
+    function rebalance() external {
+        address this_ = address(this);
+        IBaseRebalanceStrategy.Data[] memory data =
+            IBaseRebalanceStrategy(rebalanceStrategy()).calculateRebalaneAmounts(this_);
+        IBaseRebalanceStrategy.Data memory d;
+        uint256 depositAmount = 0;
+        for (uint256 i = 0; i < data.length; i++) {
+            d = data[i];
+            _withdraw(d.subvaultIndex, d.withdrawalRequestAmount, 0, d.claimAmount, this_, this_);
+            depositAmount += d.depositAmount;
+        }
+        uint256 assets_ = IERC20(asset()).balanceOf(this_);
+        if (assets_ < depositAmount) {
+            symbioticDefaultCollateral().withdraw(this_, depositAmount - assets_);
+        }
+        for (uint256 i = 0; i < data.length; i++) {
+            d = data[i];
+            _deposit(d.subvaultIndex, d.depositAmount);
+        }
+        _depositIntoCollateral();
+    }
+
+    /// @inheritdoc IMultiVault
+    function pushRewards(uint256 farmId, bytes calldata farmData) external {
+        IMultiVaultStorage.RewardData memory data = rewardData(farmId);
+        if (data.token == address(0)) {
+            revert("MultiVault: farm not found");
+        }
+        IERC20 rewardToken = IERC20(data.token);
+
+        address this_ = address(this);
+        uint256 rewardAmount = rewardToken.balanceOf(this_);
+
+        if (data.subvaultType == SubvaultType.SYMBIOTIC) {
+            address symbioticFarm = abi.decode(data.data, (address));
+            bytes memory symbioticFarmData = abi.decode(farmData, (bytes));
+            IStakerRewards(symbioticFarm).claimRewards(
+                this_, address(rewardToken), symbioticFarmData
+            );
+        } else if (data.subvaultType == SubvaultType.EIGEN_LAYER) {
+            IRewardsCoordinator.RewardsMerkleClaim memory eigenLayerFarmData =
+                abi.decode(farmData, (IRewardsCoordinator.RewardsMerkleClaim));
+            require(
+                eigenLayerFarmData.tokenLeaves.length == 1
+                    && address(eigenLayerFarmData.tokenLeaves[0].token) == address(rewardToken),
+                "Vault: invalid claim"
+            );
+            IRewardsCoordinator(eigenLayerRewardsCoordinator()).processClaim(
+                eigenLayerFarmData, this_
+            );
+        } else {
+            revert("MultiVault: unknown subvault type");
+        }
+
+        rewardAmount = rewardToken.balanceOf(this_) - rewardAmount;
+        if (rewardAmount == 0) {
+            return;
+        }
+
+        uint256 curatorFee = rewardAmount.mulDiv(data.curatorFeeD6, D6);
+        if (curatorFee != 0) {
+            rewardToken.safeTransfer(data.curatorTreasury, curatorFee);
+        }
+        // Guranteed to be >= 0 since data.curatorFeeD6 <= D6
+        rewardAmount = rewardAmount - curatorFee;
+        if (rewardAmount != 0) {
+            rewardToken.safeTransfer(data.distributionFarm, rewardAmount);
+        }
+        // emit RewardsPushed(farmId, rewardAmount, curatorFee, block.timestamp);
     }
 
     // ------------------------------- INTERNAL FUNCTIONS -------------------------------
@@ -329,36 +429,4 @@ contract MultiVault is ERC4626Vault, MultiVaultStorage {
         // emitting event with transfered + new pending assets
         emit Withdraw(caller, receiver, owner, assets, shares);
     }
-
-    function rebalance() external {
-        address this_ = address(this);
-        IBaseRebalanceStrategy.Data[] memory data =
-            IBaseRebalanceStrategy(rebalanceStrategy()).calculateRebalaneAmounts(this_);
-        IBaseRebalanceStrategy.Data memory d;
-        uint256 depositAmount = 0;
-        for (uint256 i = 0; i < data.length; i++) {
-            d = data[i];
-            _withdraw(d.subvaultIndex, d.withdrawalRequestAmount, 0, d.claimAmount, this_, this_);
-            depositAmount += d.depositAmount;
-        }
-        uint256 assets_ = IERC20(asset()).balanceOf(this_);
-        if (assets_ < depositAmount) {
-            symbioticDefaultCollateral().withdraw(this_, depositAmount - assets_);
-        }
-        for (uint256 i = 0; i < data.length; i++) {
-            d = data[i];
-            _deposit(d.subvaultIndex, d.depositAmount);
-        }
-        _depositIntoCollateral();
-    }
-
-    struct RewardData {
-        SubvaultType subvaultType;
-        address rewardIndex;
-        bytes data;
-    }
-
-    mapping(uint256 id => RewardData) public farmData;
-
-    function pushRewards(uint256 farmId, bytes calldata data) external {}
 }
