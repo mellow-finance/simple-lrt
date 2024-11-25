@@ -9,7 +9,7 @@ interface IRebalanceStrategy {
         uint256 withdrawalRequestAmount;
     }
 
-    function calculateRebalaneAmounts(address vault)
+    function calculateRebalanceAmounts(address vault)
         external
         view
         returns (RebalanceData[] memory subvaultsData);

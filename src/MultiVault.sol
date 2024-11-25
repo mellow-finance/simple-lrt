@@ -218,7 +218,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     function rebalance() external {
         address this_ = address(this);
         IRebalanceStrategy.RebalanceData[] memory data =
-            IRebalanceStrategy(rebalanceStrategy()).calculateRebalaneAmounts(this_);
+            IRebalanceStrategy(rebalanceStrategy()).calculateRebalanceAmounts(this_);
         IRebalanceStrategy.RebalanceData memory d;
         uint256 depositAmount = 0;
         for (uint256 i = 0; i < data.length; i++) {
