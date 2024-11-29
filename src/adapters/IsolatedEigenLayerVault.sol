@@ -30,12 +30,17 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         IDelegationManager(manager).delegateTo(operator, signature, salt);
     }
 
-    function deposit(address manager, address strategy, uint256 assets) external onlyVault {
+    function deposit(address manager, address strategy, uint256 assets)
+        external
+        virtual
+        onlyVault
+    {
         IStrategyManager(manager).depositIntoStrategy(IStrategy(strategy), IERC20(asset), assets);
     }
 
     function withdraw(address queue, address reciever, uint256 request, bool flag)
         external
+        virtual
         onlyVault
     {
         IEigenLayerWithdrawalQueue(queue).request(reciever, request, flag);
@@ -58,7 +63,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
     function claimWithdrawal(
         IDelegationManager manager,
         IDelegationManager.Withdrawal calldata data
-    ) external returns (uint256 assets) {
+    ) external virtual returns (uint256 assets) {
         address this_ = address(this);
         (,,, address queue) = IIsolatedEigenLayerVaultFactory(factory).instances(this_);
         require(msg.sender == queue, "Only queue");

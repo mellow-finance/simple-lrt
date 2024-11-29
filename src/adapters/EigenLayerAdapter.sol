@@ -34,7 +34,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         delegationManager = strategyManager_.delegation();
     }
 
-    function maxDeposit(address isolatedVault) external view returns (uint256) {
+    function maxDeposit(address isolatedVault) external view virtual returns (uint256) {
         (,, address strategy,) = factory.instances(isolatedVault);
         if (
             IPausable(address(strategyManager)).paused(PAUSED_DEPOSITS)
@@ -49,17 +49,19 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
             return type(uint256).max;
         }
         (uint256 maxPerDeposit, uint256 maxTotalDeposits) = abi.decode(data, (uint256, uint256));
-        return Math.min(
-            maxPerDeposit, maxTotalDeposits - IERC20(assetOf(isolatedVault)).balanceOf(strategy)
-        );
+        uint256 assets = IERC20(assetOf(isolatedVault)).balanceOf(strategy);
+        if (assets >= maxTotalDeposits) {
+            return 0;
+        }
+        return Math.min(maxPerDeposit, maxTotalDeposits - assets);
     }
 
-    function maxWithdraw(address isolatedVault) external view returns (uint256) {
-        (,, address strategy,) = factory.instances(isolatedVault);
+    function maxWithdraw(address isolatedVault) external view virtual returns (uint256) {
         if (IPausable(address(delegationManager)).paused(PAUSED_ENTER_WITHDRAWAL_QUEUE)) {
             return 0;
         }
-        return IStrategy(strategy).userUnderlyingView(address(this));
+        (,, address strategy,) = factory.instances(isolatedVault);
+        return IStrategy(strategy).userUnderlyingView(isolatedVault);
     }
 
     function assetOf(address isolatedVault) public view returns (address) {

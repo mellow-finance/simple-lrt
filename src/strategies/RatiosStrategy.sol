@@ -83,10 +83,12 @@ contract RatiosStrategy is IRatiosStrategy {
         for (uint256 i = 0; i < n; i++) {
             Ratio memory ratio = ratios[multiVault.subvaultAt(i).vault];
             if (ratio.maxRatioD18 == 0) {
-                continue;
+                state[i].max = 0;
+                state[i].min = 0;
+            } else {
+                state[i].max = Math.min(state[i].max, (totalAssets * ratio.maxRatioD18) / D18);
+                state[i].min = Math.min(state[i].max, (totalAssets * ratio.minRatioD18) / D18);
             }
-            state[i].max = Math.min(state[i].max, (totalAssets * ratio.maxRatioD18) / D18);
-            state[i].min = Math.min(state[i].max, (totalAssets * ratio.minRatioD18) / D18);
         }
     }
 

@@ -102,7 +102,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
         IStrategy[] memory strategies = new IStrategy[](1);
         uint256[] memory shares = new uint256[](1);
         strategies[0] = IStrategy(strategy);
-        shares[0] = strategies[0].underlyingToSharesView(assets);
+        shares[0] = IStrategy(strategies[0]).underlyingToSharesView(assets);
         IDelegationManager delegationManager = IDelegationManager(delegation);
 
         IDelegationManager.Withdrawal memory data = IDelegationManager.Withdrawal({
@@ -126,7 +126,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
         withdrawal.assets = assets;
         AccountData storage accountData = _accountData[account];
         if (isSelfRequested) {
-            if (accountData.withdrawals.length() + 1 >= MAX_PENDING_WITHDRAWALS) {
+            if (accountData.withdrawals.length() + 1 > MAX_PENDING_WITHDRAWALS) {
                 revert("EigenLayerWithdrawalQueue: max withdrawal requests reached");
             }
             accountData.withdrawals.add(withdrawalIndex);

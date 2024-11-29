@@ -36,12 +36,10 @@ contract IsolatedEigenLayerVaultFactory {
             return (isolatedVault, instances[isolatedVault].withdrawalQueue);
         }
 
-        isolatedVault = address(new IsolatedEigenLayerVault{salt: key_}(owner));
-
+        isolatedVault = _create(owner, key_);
         (ISignatureUtils.SignatureWithExpiry memory signature, bytes32 salt) =
             abi.decode(data, (ISignatureUtils.SignatureWithExpiry, bytes32));
-        IsolatedEigenLayerVault(isolatedVault).delegateTo(delegation, operator, signature, salt);
-
+        IIsolatedEigenLayerVault(isolatedVault).delegateTo(delegation, operator, signature, salt);
         withdrawalQueue = address(
             new EigenLayerWithdrawalQueue{salt: key_}(
                 isolatedVault, claimer, strategy, delegation, operator
@@ -49,5 +47,9 @@ contract IsolatedEigenLayerVaultFactory {
         );
 
         instances[isolatedVault] = Data(owner, operator, strategy, withdrawalQueue);
+    }
+
+    function _create(address owner, bytes32 key_) internal virtual returns (address) {
+        return address(new IsolatedEigenLayerVault{salt: key_}(owner));
     }
 }
