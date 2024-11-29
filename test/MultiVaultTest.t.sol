@@ -87,8 +87,8 @@ contract MultiVaultTest is Test {
 
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(mv), address(claimer));
-        // EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter();
         // ERC4626Adapter erc4626Adapter = new ERC4626Adapter();
+        // EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter();
 
         address symbioticVault = createNewSymbioticVault(
             CreationParams({

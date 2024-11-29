@@ -3,8 +3,6 @@ pragma solidity 0.8.25;
 
 import "../interfaces/strategies/IRatiosStrategy.sol";
 
-import "forge-std/console2.sol";
-
 contract RatiosStrategy is IRatiosStrategy {
     uint256 public constant D18 = 1e18;
     bytes32 public constant SHARES_STRATEGY_SET_RATIO_ROLE =

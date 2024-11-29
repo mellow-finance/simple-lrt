@@ -2,7 +2,6 @@
 pragma solidity 0.8.25;
 
 import "../interfaces/queues/ISymbioticWithdrawalQueue.sol";
-import "forge-std/console2.sol";
 
 contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     using SafeERC20 for IERC20;
