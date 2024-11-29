@@ -4,9 +4,9 @@ pragma solidity 0.8.25;
 interface IRebalanceStrategy {
     struct RebalanceData {
         uint256 subvaultIndex;
-        uint256 claimAmount;
-        uint256 depositAmount;
-        uint256 withdrawalRequestAmount;
+        uint256 claim;
+        uint256 deposit;
+        uint256 request;
     }
 
     function calculateRebalanceAmounts(address vault)

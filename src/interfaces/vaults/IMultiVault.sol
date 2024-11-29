@@ -16,24 +16,17 @@ interface IMultiVault is IMultiVaultStorage {
         address depositStrategy;
         address withdrawalStrategy;
         address rebalanceStrategy;
-        address symbioticDefaultCollateral;
-        address eigenLayerStrategyManager;
-        address eigenLayerRewardsCoordinator;
+        address defaultCollateral;
+        address symbioticAdapter;
+        address eigenLayerAdapter;
+        address erc4626Adapter;
     }
-
-    // ------------------------------- EXTERNAL FUNCTIONS -------------------------------
 
     function initialize(InitParams calldata initParams) external;
 
-    function maxDeposit(uint256 subvaultIndex) external view returns (uint256);
+    function rebalance() external;
 
-    function maxWithdraw(uint256 subvaultIndex)
-        external
-        view
-        returns (uint256 claimable, uint256 pending, uint256 staked);
-
-    function addSubvault(address vault, address withdrawalQueue, SubvaultType subvaultType)
-        external;
+    function addSubvault(address vault, Protocol protocol) external;
 
     function removeSubvault(address subvault) external;
 
@@ -43,13 +36,12 @@ interface IMultiVault is IMultiVaultStorage {
 
     function setRebalanceStrategy(address newRebalanceStrategy) external;
 
-    function setSymbioticDefaultCollateral(address newSymbioticDefaultCollateral) external;
-
-    function setEigenLayerStrategyManager(address newEigenLayerStrategyManager) external;
-
-    function setEigenLayerRewardsCoordinator(address newEigenLayerRewardsCoordinator) external;
-
-    function rebalance() external;
-
     function pushRewards(uint256 farmId, bytes calldata data) external;
+
+    function maxDeposit(uint256 subvaultIndex) external view returns (uint256);
+
+    function maxWithdraw(uint256 subvaultIndex)
+        external
+        view
+        returns (uint256 claimable, uint256 pending, uint256 staked);
 }

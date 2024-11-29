@@ -4,7 +4,7 @@ pragma solidity 0.8.25;
 interface IDepositStrategy {
     struct DepositData {
         uint256 subvaultIndex;
-        uint256 depositAmount;
+        uint256 deposit;
     }
 
     function calculateDepositAmounts(address vault, uint256 assets)

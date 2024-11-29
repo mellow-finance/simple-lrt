@@ -1,35 +1,16 @@
 // // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import {IDepositStrategy} from "../interfaces/strategies/IDepositStrategy.sol";
-import {IRebalanceStrategy} from "../interfaces/strategies/IRebalanceStrategy.sol";
-import {IWithdrawalStrategy} from "../interfaces/strategies/IWithdrawalStrategy.sol";
-import {
-    IDefaultCollateral, IERC20, IERC4626, IMultiVault
-} from "../interfaces/vaults/IMultiVault.sol";
-import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import "../interfaces/strategies/IRatiosStrategy.sol";
 
-contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStrategy {
-    struct Ratio {
-        uint64 minRatioD18;
-        uint64 maxRatioD18;
-    }
-
-    struct Amounts {
-        uint256 min;
-        uint256 max;
-        uint256 claimable;
-        uint256 pending;
-        uint256 staked;
-    }
-
+contract RatiosStrategy is IRatiosStrategy {
     uint256 public constant D18 = 1e18;
     bytes32 public constant SHARES_STRATEGY_SET_RATIO_ROLE =
         keccak256("SHARES_STRATEGY_SET_RATIO_ROLE");
 
     mapping(address vault => mapping(address subvault => Ratio)) private _ratios;
 
+    /// @inheritdoc IRatiosStrategy
     function getRatios(address vault, address subvault)
         external
         view
@@ -39,6 +20,7 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
         return (ratio.minRatioD18, ratio.maxRatioD18);
     }
 
+    /// @inheritdoc IRatiosStrategy
     function setRatio(address vault, address[] calldata subvaults, Ratio[] calldata ratios)
         external
     {
@@ -71,7 +53,8 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
         }
     }
 
-    function calculateState(address vault)
+    /// @inheritdoc IRatiosStrategy
+    function calculateState(address vault, bool isDeposit, uint256 increment)
         public
         view
         returns (Amounts[] memory state, uint256 liquid)
@@ -81,7 +64,7 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
         state = new Amounts[](n);
 
         liquid = IERC20(IERC4626(vault).asset()).balanceOf(vault);
-        IDefaultCollateral defaultCollateral = multiVault.symbioticDefaultCollateral();
+        IDefaultCollateral defaultCollateral = multiVault.defaultCollateral();
         if (address(defaultCollateral) != address(0)) {
             liquid += IERC20(defaultCollateral.asset()).balanceOf(vault);
         }
@@ -92,6 +75,7 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
             totalAssets += assets;
             state[i].max = assets + multiVault.maxDeposit(i);
         }
+        totalAssets = isDeposit ? totalAssets + increment : totalAssets - increment;
         mapping(address => Ratio) storage ratios = _ratios[vault];
         for (uint256 i = 0; i < n; i++) {
             Ratio memory ratio = ratios[multiVault.subvaultAt(i).vault];
@@ -103,14 +87,14 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
         }
     }
 
+    /// @inheritdoc IDepositStrategy
     function calculateDepositAmounts(address vault, uint256 amount)
         external
         view
         override
-        returns (DepositData[] memory subvaultsData)
+        returns (DepositData[] memory data)
     {
-        (Amounts[] memory state, uint256 liquid) = calculateState(vault);
-        amount += liquid;
+        (Amounts[] memory state,) = calculateState(vault, true, amount);
         uint256 n = state.length;
         for (uint256 i = 0; i < n; i++) {
             uint256 assets_ = state[i].staked;
@@ -125,16 +109,16 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
                 state[i].max = 0;
             }
         }
-        subvaultsData = new DepositData[](n);
+        data = new DepositData[](n);
         for (uint256 i = 0; i < n && amount != 0; i++) {
-            subvaultsData[i].subvaultIndex = i;
+            data[i].subvaultIndex = i;
             if (state[i].min == 0) {
                 continue;
             }
             uint256 assets_ = Math.min(state[i].min, amount);
             state[i].max -= assets_;
             amount -= assets_;
-            subvaultsData[i].depositAmount = assets_;
+            data[i].deposit = assets_;
         }
         for (uint256 i = 0; i < n && amount != 0; i++) {
             if (state[i].max == 0) {
@@ -142,44 +126,45 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
             }
             uint256 assets_ = Math.min(state[i].max, amount);
             amount -= assets_;
-            subvaultsData[i].depositAmount += assets_;
+            data[i].deposit += assets_;
         }
         uint256 count = 0;
         for (uint256 i = 0; i < n; i++) {
-            if (subvaultsData[i].depositAmount != 0) {
+            if (data[i].deposit != 0) {
                 if (count != i) {
-                    subvaultsData[count] = subvaultsData[i];
+                    data[count] = data[i];
                 }
                 count++;
             }
         }
         assembly {
-            mstore(subvaultsData, count)
+            mstore(data, count)
         }
     }
 
+    /// @inheritdoc IWithdrawalStrategy
     function calculateWithdrawalAmounts(address vault, uint256 amount)
         external
         view
         override
-        returns (WithdrawalData[] memory subvaultsData)
+        returns (WithdrawalData[] memory data)
     {
-        (Amounts[] memory state, uint256 liquid) = calculateState(vault);
+        (Amounts[] memory state, uint256 liquid) = calculateState(vault, false, amount);
         if (amount <= liquid) {
-            return subvaultsData;
+            return data;
         }
         amount -= liquid;
         uint256 n = state.length;
-        subvaultsData = new WithdrawalData[](n);
+        data = new WithdrawalData[](n);
         for (uint256 i = 0; i < n && amount != 0; i++) {
-            subvaultsData[i].subvaultIndex = i;
+            data[i].subvaultIndex = i;
             if (state[i].staked > state[i].max) {
                 uint256 extra = state[i].staked - state[i].max;
                 if (extra > amount) {
-                    subvaultsData[i].withdrawalRequestAmount = amount;
+                    data[i].staked = amount;
                     amount = 0;
                 } else {
-                    subvaultsData[i].withdrawalRequestAmount = extra;
+                    data[i].staked = extra;
                     amount -= extra;
                 }
             }
@@ -188,10 +173,10 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
             if (state[i].staked > state[i].min) {
                 uint256 allowed = state[i].staked - state[i].min;
                 if (allowed > amount) {
-                    subvaultsData[i].withdrawalRequestAmount += amount;
+                    data[i].staked += amount;
                     amount = 0;
                 } else {
-                    subvaultsData[i].withdrawalRequestAmount += allowed;
+                    data[i].staked += allowed;
                     amount -= allowed;
                 }
             }
@@ -199,10 +184,10 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
         for (uint256 i = 0; i < n && amount != 0; i++) {
             if (state[i].pending > 0) {
                 if (state[i].pending > amount) {
-                    subvaultsData[i].withdrawalTransferPendingAmount += amount;
+                    data[i].pending += amount;
                     amount = 0;
                 } else {
-                    subvaultsData[i].withdrawalTransferPendingAmount += state[i].pending;
+                    data[i].pending += state[i].pending;
                     amount -= state[i].pending;
                 }
             }
@@ -210,51 +195,48 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
         for (uint256 i = 0; i < n && amount != 0; i++) {
             if (state[i].claimable > 0) {
                 if (state[i].claimable > amount) {
-                    subvaultsData[i].claimAmount += amount;
+                    data[i].claimable += amount;
                     amount = 0;
                 } else {
-                    subvaultsData[i].claimAmount += state[i].claimable;
+                    data[i].claimable += state[i].claimable;
                     amount -= state[i].claimable;
                 }
             }
         }
         uint256 count = 0;
         for (uint256 i = 0; i < n; i++) {
-            if (
-                subvaultsData[i].withdrawalRequestAmount
-                    + subvaultsData[i].withdrawalTransferPendingAmount + subvaultsData[i].claimAmount
-                    != 0
-            ) {
+            if (data[i].staked + data[i].pending + data[i].claimable != 0) {
                 if (count != i) {
-                    subvaultsData[count] = subvaultsData[i];
+                    data[count] = data[i];
                 }
                 count++;
             }
         }
         assembly {
-            mstore(subvaultsData, count)
+            mstore(data, count)
         }
     }
 
+    /// @inheritdoc IRebalanceStrategy
     function calculateRebalanceAmounts(address vault)
         external
         view
         override
-        returns (RebalanceData[] memory subvaultsData)
+        returns (RebalanceData[] memory data)
     {
-        (Amounts[] memory state, uint256 liquid) = calculateState(vault);
+        (Amounts[] memory state, uint256 liquid) = calculateState(vault, true, 0);
         uint256 n = state.length;
-        subvaultsData = new RebalanceData[](n);
+        data = new RebalanceData[](n);
         uint256 totalRequired = 0;
         uint256 totalPending = 0;
         for (uint256 i = 0; i < n; i++) {
-            subvaultsData[i].subvaultIndex = i;
-            subvaultsData[i].claimAmount = state[i].claimable;
+            data[i].subvaultIndex = i;
+            data[i].claim = state[i].claimable;
             liquid += state[i].claimable;
             totalPending += state[i].pending;
             if (state[i].staked > state[i].max) {
-                subvaultsData[i].withdrawalRequestAmount = state[i].staked - state[i].max;
-                totalPending += subvaultsData[i].withdrawalRequestAmount;
+                data[i].request = state[i].staked - state[i].max;
+                totalPending += data[i].request;
                 state[i].staked = state[i].max;
             }
             if (state[i].min > state[i].staked) {
@@ -268,10 +250,10 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
                 if (state[i].staked > state[i].min) {
                     uint256 allowed = state[i].staked - state[i].min;
                     if (allowed > amountForUnstake) {
-                        subvaultsData[i].withdrawalRequestAmount += amountForUnstake;
+                        data[i].request += amountForUnstake;
                         amountForUnstake = 0;
                     } else {
-                        subvaultsData[i].withdrawalRequestAmount += allowed;
+                        data[i].request += allowed;
                         amountForUnstake -= allowed;
                     }
                 }
@@ -282,10 +264,10 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
             if (state[i].staked < state[i].min) {
                 uint256 required = state[i].min - state[i].staked;
                 if (required > liquid) {
-                    subvaultsData[i].depositAmount = liquid;
+                    data[i].deposit = liquid;
                     liquid = 0;
                 } else {
-                    subvaultsData[i].depositAmount = required;
+                    data[i].deposit = required;
                     liquid -= required;
                 }
             }
@@ -295,10 +277,10 @@ contract RatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceStra
             if (state[i].staked < state[i].max) {
                 uint256 allowed = state[i].max - state[i].staked;
                 if (allowed > liquid) {
-                    subvaultsData[i].depositAmount += liquid;
+                    data[i].deposit += liquid;
                     liquid = 0;
                 } else {
-                    subvaultsData[i].depositAmount += allowed;
+                    data[i].deposit += allowed;
                     liquid -= allowed;
                 }
             }

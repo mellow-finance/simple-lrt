@@ -1,42 +1,31 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import {IDefaultCollateral} from "../tokens/IDefaultCollateral.sol";
-
+import {IProtocolAdapter} from "../adapters/IProtocolAdapter.sol";
+import {IWithdrawalQueue} from "../queues/IWithdrawalQueue.sol";
 import {IDepositStrategy} from "../strategies/IDepositStrategy.sol";
 import {IRebalanceStrategy} from "../strategies/IRebalanceStrategy.sol";
 import {IWithdrawalStrategy} from "../strategies/IWithdrawalStrategy.sol";
-import {IEigenLayerWithdrawalQueue} from "../utils/IEigenLayerWithdrawalQueue.sol";
-import {IWithdrawalQueue} from "../utils/IWithdrawalQueue.sol";
-import {IERC4626Vault} from "./IERC4626Vault.sol";
-import {IMellowSymbioticVaultStorage} from "./IMellowSymbioticVaultStorage.sol";
-import {IDelegationManager} from "@eigenlayer-interfaces/IDelegationManager.sol";
-import {IRewardsCoordinator} from "@eigenlayer-interfaces/IRewardsCoordinator.sol";
-import {IStrategy, IStrategyManager} from "@eigenlayer-interfaces/IStrategyManager.sol";
-import {AccessManagerUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/access/manager/AccessManagerUpgradeable.sol";
+import {IDefaultCollateral} from "../tokens/IDefaultCollateral.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {
     ERC4626Upgradeable,
     IERC4626
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {ReentrancyGuardUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
-import {IStakerRewards} from "@symbiotic/rewards/interfaces/stakerRewards/IStakerRewards.sol";
 
 interface IMultiVaultStorage {
-    enum SubvaultType {
+    enum Protocol {
         SYMBIOTIC,
         EIGEN_LAYER,
         ERC4626
     }
 
     struct Subvault {
-        SubvaultType subvaultType;
+        Protocol protocol;
         address vault;
         address withdrawalQueue;
     }
@@ -46,7 +35,7 @@ interface IMultiVaultStorage {
         address curatorTreasury;
         address token;
         uint256 curatorFeeD6;
-        SubvaultType subvaultType;
+        Protocol protocol;
         bytes data;
     }
 
@@ -58,9 +47,10 @@ interface IMultiVaultStorage {
         mapping(address subvault => uint256 index) indexOfSubvault;
         mapping(uint256 id => RewardData) rewardData;
         EnumerableSet.UintSet farmIds;
-        address symbioticDefaultCollateral;
-        address eigenLayerStrategyManager;
-        address eigenLayerRewardsCoordinator;
+        address defaultCollateral;
+        address symbioticAdapter;
+        address eigenLayerAdapter;
+        address erc4626Adapter;
         bytes32[16] _gap;
     }
 
@@ -70,19 +60,19 @@ interface IMultiVaultStorage {
 
     function indexOfSubvault(address subvault) external view returns (uint256);
 
-    function symbioticDefaultCollateral() external view returns (IDefaultCollateral);
+    function defaultCollateral() external view returns (IDefaultCollateral);
 
-    function eigenLayerStrategyManager() external view returns (address);
+    function depositStrategy() external view returns (IDepositStrategy);
 
-    function eigenLayerDelegationManager() external view returns (IDelegationManager);
+    function withdrawalStrategy() external view returns (IWithdrawalStrategy);
 
-    function eigenLayerRewardsCoordinator() external view returns (address);
+    function rebalanceStrategy() external view returns (IRebalanceStrategy);
 
-    function depositStrategy() external view returns (address);
+    function eigenLayerAdapter() external view returns (IProtocolAdapter);
 
-    function withdrawalStrategy() external view returns (address);
+    function symbioticAdapter() external view returns (IProtocolAdapter);
 
-    function rebalanceStrategy() external view returns (address);
+    function erc4626Adapter() external view returns (IProtocolAdapter);
 
     function rewardData(uint256 farmId) external view returns (RewardData memory);
 }
