@@ -137,8 +137,11 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
     }
 
     /// @inheritdoc IWithdrawalQueue
-    function transferPendingAssets(address from, address to, uint256 amount) external {
-        require(msg.sender == from, "EigenLayerWithdrawalQueue: forbidden");
+    function transferPendingAssets(address to, uint256 amount) external {
+        address from = msg.sender;
+        if (amount == 0) {
+            return;
+        }
         handleWithdrawals(from);
         AccountData storage accountData_ = _accountData[from];
         uint256 pendingWithdrawals = accountData_.withdrawals.length();

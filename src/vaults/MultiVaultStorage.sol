@@ -148,22 +148,22 @@ contract MultiVaultStorage is IMultiVaultStorage, Initializable {
         MultiStorage storage $ = _multiStorage();
         require($.indexOfSubvault[vault] == 0, "MultiVaultStorage: subvault already exists");
         $.subvaults.push(Subvault(protocol, vault, withdrawalQueue));
-        $.indexOfSubvault[vault] = subvaultsCount();
+        $.indexOfSubvault[vault] = $.subvaults.length;
     }
 
-    function _removeSubvault(address subvault) internal {
+    function _removeSubvault(address vault) internal {
         MultiStorage storage $ = _multiStorage();
-        uint256 index = $.indexOfSubvault[subvault];
-        require(index == 0, "MultiVaultStorage: subvault not found");
+        uint256 index = $.indexOfSubvault[vault];
+        require(index != 0, "MultiVaultStorage: subvault not found");
         index--;
-        uint256 last = subvaultsCount() - 1;
+        uint256 last = $.subvaults.length - 1;
         if (index < last) {
             Subvault memory lastSubvault = $.subvaults[last];
             $.subvaults[index] = lastSubvault;
             $.indexOfSubvault[lastSubvault.vault] = index + 1;
         }
         $.subvaults.pop();
-        delete $.indexOfSubvault[subvault];
+        delete $.indexOfSubvault[vault];
     }
 
     function _setRewardData(uint256 farmId, RewardData memory data) internal {

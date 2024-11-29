@@ -243,9 +243,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
             IWithdrawalQueue(subvault.withdrawalQueue).claim(this_, receiver, claimable);
         }
         if (pending != 0) {
-            IWithdrawalQueue(subvault.withdrawalQueue).transferPendingAssets(
-                this_, receiver, pending
-            );
+            IWithdrawalQueue(subvault.withdrawalQueue).transferPendingAssets(receiver, pending);
         }
         if (request != 0) {
             Address.functionDelegateCall(

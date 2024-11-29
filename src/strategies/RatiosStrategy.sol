@@ -3,6 +3,8 @@ pragma solidity 0.8.25;
 
 import "../interfaces/strategies/IRatiosStrategy.sol";
 
+import "forge-std/console2.sol";
+
 contract RatiosStrategy is IRatiosStrategy {
     uint256 public constant D18 = 1e18;
     bytes32 public constant SHARES_STRATEGY_SET_RATIO_ROLE =
@@ -73,7 +75,10 @@ contract RatiosStrategy is IRatiosStrategy {
             (state[i].claimable, state[i].pending, state[i].staked) = multiVault.maxWithdraw(i);
             uint256 assets = state[i].staked + state[i].pending + state[i].claimable;
             totalAssets += assets;
-            state[i].max = assets + multiVault.maxDeposit(i);
+            state[i].max = multiVault.maxDeposit(i);
+            if (type(uint256).max - assets >= state[i].max) {
+                state[i].max += assets;
+            }
         }
         totalAssets = isDeposit ? totalAssets + increment : totalAssets - increment;
         mapping(address => Ratio) storage ratios = _ratios[vault];
@@ -167,6 +172,7 @@ contract RatiosStrategy is IRatiosStrategy {
                     data[i].staked = extra;
                     amount -= extra;
                 }
+                state[i].staked -= data[i].staked;
             }
         }
         for (uint256 i = 0; i < n && amount != 0; i++) {

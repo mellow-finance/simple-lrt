@@ -20,7 +20,7 @@ contract SymbioticAdapter is ISymbioticAdapter {
 
     function maxDeposit(address symbioticVault) external view returns (uint256) {
         ISymbioticVault vault_ = ISymbioticVault(symbioticVault);
-        if (vault_.depositWhitelist() && !vault_.isDepositorWhitelisted(address(this))) {
+        if (vault_.depositWhitelist() && !vault_.isDepositorWhitelisted(vault)) {
             return 0;
         }
         if (!vault_.isDepositLimit()) {
@@ -39,10 +39,11 @@ contract SymbioticAdapter is ISymbioticAdapter {
     }
 
     function maxWithdraw(address symbioticVault) external view returns (uint256) {
-        return ISymbioticVault(symbioticVault).activeBalanceOf(address(this));
+        return ISymbioticVault(symbioticVault).activeBalanceOf(vault);
     }
 
     function handleVault(address symbioticVault) external returns (address withdrawalQueue) {
+        require(msg.sender == vault, "Vault only");
         withdrawalQueue = withdrawalQueues[symbioticVault];
         if (withdrawalQueue != address(0)) {
             return withdrawalQueue;

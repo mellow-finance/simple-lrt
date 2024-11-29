@@ -1,38 +1,23 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "forge-std/Test.sol";
-import "forge-std/console2.sol";
-
 import "../src/adapters/ERC4626Adapter.sol";
 import "../src/adapters/EigenLayerAdapter.sol";
+import "../src/adapters/IsolatedEigenLayerVault.sol";
+import "../src/adapters/IsolatedEigenLayerVaultFactory.sol";
 import "../src/adapters/SymbioticAdapter.sol";
-
 import "../src/strategies/RatiosStrategy.sol";
 import "../src/utils/Claimer.sol";
 import "../src/vaults/MultiVault.sol";
-
-import {IDelegatorFactory} from "@symbiotic/core/interfaces/IDelegatorFactory.sol";
-import {INetworkRegistry} from "@symbiotic/core/interfaces/INetworkRegistry.sol";
-import {IOperatorRegistry} from "@symbiotic/core/interfaces/IOperatorRegistry.sol";
-import {ISlasherFactory} from "@symbiotic/core/interfaces/ISlasherFactory.sol";
 import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
-import {IVaultFactory} from "@symbiotic/core/interfaces/IVaultFactory.sol";
 import {
     IBaseDelegator,
     IFullRestakeDelegator
 } from "@symbiotic/core/interfaces/delegator/IFullRestakeDelegator.sol";
+import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
-import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
-import {INetworkMiddlewareService} from
-    "@symbiotic/core/interfaces/service/INetworkMiddlewareService.sol";
-// import {ISlasher} from "@symbiotic/core/interfaces/slasher/ISlasher.sol";
-import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
-
-import {DefaultStakerRewards} from
-    "@symbiotic/rewards/contracts/defaultStakerRewards/DefaultStakerRewards.sol";
-import {IDefaultStakerRewards} from
-    "@symbiotic/rewards/interfaces/defaultStakerRewards/IDefaultStakerRewards.sol";
+import "forge-std/Test.sol";
+import "forge-std/console2.sol";
 
 contract MultiVaultTest is Test {
     string private constant NAME = "MultiVaultTest";
@@ -74,7 +59,7 @@ contract MultiVaultTest is Test {
                 version: 1,
                 owner: params.vaultOwner,
                 vaultParams: abi.encode(
-                    IVault.InitParams({
+                    ISymbioticVault.InitParams({
                         collateral: params.asset,
                         burner: address(0),
                         epochDuration: params.epochDuration,
@@ -141,6 +126,7 @@ contract MultiVaultTest is Test {
         vm.startPrank(admin);
 
         mv.grantRole(keccak256("ADD_SUBVAULT_ROLE"), admin);
+        mv.grantRole(keccak256("REMOVE_SUBVAULT_ROLE"), admin);
         mv.grantRole(keccak256("SHARES_STRATEGY_SET_RATIO_ROLE"), admin);
         mv.grantRole(keccak256("REBALANCE_ROLE"), admin);
 
@@ -152,25 +138,52 @@ contract MultiVaultTest is Test {
 
         mv.addSubvault(symbioticVault, IMultiVaultStorage.Protocol.SYMBIOTIC);
         strategy.setRatio(address(mv), subvaults, ratios);
+        mv.removeSubvault(symbioticVault);
+        mv.addSubvault(symbioticVault, IMultiVaultStorage.Protocol.SYMBIOTIC);
 
+        logState("init:", mv, symbioticVault);
         mv.rebalance();
 
         for (uint256 i = 0; i < 10; i++) {
             uint256 amount = 1 ether;
             deal(wsteth, admin, amount);
             IERC20(wsteth).approve(address(mv), amount);
+            logState("before deposit:", mv, symbioticVault);
             mv.deposit(amount, admin, admin);
+            logState("after deposit:", mv, symbioticVault);
             if (i == 0) {
-                deal(wsteth, address(mv), IERC20(wsteth).balanceOf(address(mv)) * 5);
-            }
-            if (i == 9) {
+                deal(wsteth, address(mv), 100 ether);
+            } else if (i == 7) {
                 deal(wsteth, address(mv), 0);
             }
+            logState("after changes:", mv, symbioticVault);
             mv.rebalance();
-
+            logState("after rebalance:", mv, symbioticVault);
             mv.redeem(mv.balanceOf(admin), admin, admin);
+            logState("after withdrawal:", mv, symbioticVault);
         }
 
+        skip(3 days);
+
+        claimer.multiAcceptAndClaim(
+            address(mv), new uint256[](1), new uint256[][](0), admin, type(uint256).max
+        );
+
+        skip(3 days);
+
+        claimer.multiAcceptAndClaim(
+            address(mv), new uint256[](1), new uint256[][](0), admin, type(uint256).max
+        );
+
         vm.stopPrank();
+    }
+
+    function logState(string memory prefix, MultiVault mv, address symbioticVault) internal view {
+        console2.log("prefix:", prefix);
+        console2.log("total assets:", mv.totalAssets());
+        console2.log("wsteth balance:", IERC20(wsteth).balanceOf(address(mv)));
+        console2.log(
+            "symbiotic balance:", ISymbioticVault(symbioticVault).activeBalanceOf(address(mv))
+        );
     }
 }

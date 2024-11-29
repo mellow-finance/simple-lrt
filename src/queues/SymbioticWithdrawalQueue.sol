@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import "../interfaces/queues/ISymbioticWithdrawalQueue.sol";
+import "forge-std/console2.sol";
 
 contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     using SafeERC20 for IERC20;
@@ -111,45 +112,44 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     }
 
     /// @inheritdoc IWithdrawalQueue
-    function transferPendingAssets(address from, address to, uint256 amount) external {
-        require(msg.sender == from, "SymbioticWithdrawalQueue: forbidden");
+    function transferPendingAssets(address to, uint256 amount) external {
+        address from = msg.sender;
         if (amount == 0) {
             return;
         }
 
         uint256 epoch = getCurrentEpoch();
+        uint256 nextEpoch = epoch + 1;
         AccountData storage fromData = _accountData[from];
         AccountData storage toData = _accountData[to];
         _handlePendingEpochs(fromData, epoch);
         _handlePendingEpochs(toData, epoch);
 
-        uint256 nextSharesToClaim = fromData.sharesToClaim[epoch + 1];
-        uint256 nextPending = _withdrawalsOf(epoch, nextSharesToClaim);
+        uint256 nextSharesToClaim = fromData.sharesToClaim[nextEpoch];
+        uint256 nextPending = _withdrawalsOf(nextEpoch, nextSharesToClaim);
         if (nextPending >= amount) {
-            uint256 shares = Math.mulDiv(nextSharesToClaim, amount, nextPending);
-            fromData.sharesToClaim[epoch + 1] -= shares;
-            toData.sharesToClaim[epoch + 1] += shares;
-            toData.claimEpoch = epoch + 1;
-            return;
-        }
+            uint256 shares = nextSharesToClaim.mulDiv(amount, nextPending);
+            fromData.sharesToClaim[nextEpoch] -= shares;
+            toData.sharesToClaim[nextEpoch] += shares;
+            toData.claimEpoch = nextEpoch;
+        } else {
+            uint256 currentSharesToClaim = fromData.sharesToClaim[epoch];
+            uint256 currentPending = _withdrawalsOf(epoch, currentSharesToClaim);
+            require(
+                nextPending + currentPending >= amount,
+                "SymbioticWithdrawalQueue: insufficient pending assets"
+            );
 
-        uint256 currentPending = _withdrawalsOf(epoch, fromData.sharesToClaim[epoch]);
-        require(
-            nextPending + currentPending >= amount,
-            "SymbioticWithdrawalQueue: limit overflow on transfer"
-        );
+            if (nextSharesToClaim != 0) {
+                toData.sharesToClaim[nextEpoch] += nextSharesToClaim;
+                delete fromData.sharesToClaim[nextEpoch];
+                amount -= nextPending;
+            }
 
-        if (nextSharesToClaim != 0) {
-            toData.sharesToClaim[epoch + 1] += nextSharesToClaim;
-            delete fromData.sharesToClaim[epoch + 1];
-        }
-        {
-            uint256 leftover = amount - nextPending;
-            uint256 shares = Math.mulDiv(fromData.sharesToClaim[epoch], leftover, currentPending);
-
-            fromData.sharesToClaim[epoch] -= shares;
+            uint256 shares = currentSharesToClaim.mulDiv(amount, currentPending);
+            fromData.sharesToClaim[epoch] = currentSharesToClaim - shares;
             toData.sharesToClaim[epoch] += shares;
-            toData.claimEpoch = epoch + 1;
+            toData.claimEpoch = nextEpoch;
         }
     }
 
