@@ -293,6 +293,10 @@ contract MultiVaultTest is Test {
         vm.stopPrank();
     }
 
+    function logState(MultiVault mv) internal view {
+        console2.log("totalSupply: %d, totalAssets: %d", mv.totalSupply(), mv.totalAssets());
+    }
+
     function testSymbioticVaults() public {
         MultiVault mv = new MultiVault(bytes32("MultiVaultTest"), VERSION);
 
@@ -309,6 +313,7 @@ contract MultiVaultTest is Test {
 
         RatiosStrategy strategy = new RatiosStrategy();
 
+        address defaultCollateral = 0x23E98253F372Ee29910e22986fe75Bb287b011fC;
         mv.initialize(
             IMultiVault.InitParams({
                 admin: admin,
@@ -322,7 +327,7 @@ contract MultiVaultTest is Test {
                 depositStrategy: address(strategy),
                 withdrawalStrategy: address(strategy),
                 rebalanceStrategy: address(strategy),
-                defaultCollateral: address(0x23E98253F372Ee29910e22986fe75Bb287b011fC),
+                defaultCollateral: defaultCollateral,
                 symbioticAdapter: address(symbioticAdapter),
                 eigenLayerAdapter: address(eigenLayerAdapter),
                 erc4626Adapter: address(0)

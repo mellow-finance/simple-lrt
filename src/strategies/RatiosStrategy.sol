@@ -2,7 +2,6 @@
 pragma solidity 0.8.25;
 
 import "../interfaces/strategies/IRatiosStrategy.sol";
-import "forge-std/console2.sol";
 
 contract RatiosStrategy is IRatiosStrategy {
     uint256 public constant D18 = 1e18;
@@ -65,9 +64,9 @@ contract RatiosStrategy is IRatiosStrategy {
         state = new Amounts[](n);
 
         liquid = IERC20(IERC4626(vault).asset()).balanceOf(vault);
-        IDefaultCollateral defaultCollateral = multiVault.defaultCollateral();
-        if (address(defaultCollateral) != address(0)) {
-            liquid += IERC20(defaultCollateral.asset()).balanceOf(vault);
+        IDefaultCollateral collateral = multiVault.defaultCollateral();
+        if (address(collateral) != address(0)) {
+            liquid += collateral.balanceOf(vault);
         }
         uint256 totalAssets = liquid;
         for (uint256 i = 0; i < n; i++) {
@@ -79,9 +78,6 @@ contract RatiosStrategy is IRatiosStrategy {
                 state[i].max += assets;
             }
         }
-        console2.log(
-            totalAssets, increment
-        );
         totalAssets = isDeposit ? totalAssets + increment : totalAssets - increment;
         mapping(address => Ratio) storage ratios = _ratios[vault];
         for (uint256 i = 0; i < n; i++) {
