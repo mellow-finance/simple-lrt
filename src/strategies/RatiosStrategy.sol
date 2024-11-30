@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import "../interfaces/strategies/IRatiosStrategy.sol";
+import "forge-std/console2.sol";
 
 contract RatiosStrategy is IRatiosStrategy {
     uint256 public constant D18 = 1e18;
@@ -78,6 +79,9 @@ contract RatiosStrategy is IRatiosStrategy {
                 state[i].max += assets;
             }
         }
+        console2.log(
+            totalAssets, increment
+        );
         totalAssets = isDeposit ? totalAssets + increment : totalAssets - increment;
         mapping(address => Ratio) storage ratios = _ratios[vault];
         for (uint256 i = 0; i < n; i++) {

@@ -322,7 +322,7 @@ contract MultiVaultTest is Test {
                 depositStrategy: address(strategy),
                 withdrawalStrategy: address(strategy),
                 rebalanceStrategy: address(strategy),
-                defaultCollateral: address(0),
+                defaultCollateral: address(0x23E98253F372Ee29910e22986fe75Bb287b011fC),
                 symbioticAdapter: address(symbioticAdapter),
                 eigenLayerAdapter: address(eigenLayerAdapter),
                 erc4626Adapter: address(0)
