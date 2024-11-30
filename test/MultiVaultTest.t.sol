@@ -292,4 +292,108 @@ contract MultiVaultTest is Test {
 
         vm.stopPrank();
     }
+
+    function testSymbioticVaults() public {
+        MultiVault mv = new MultiVault(bytes32("MultiVaultTest"), VERSION);
+
+        Claimer claimer = new Claimer();
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(mv), address(claimer));
+        IsolatedEigenLayerWstETHVaultFactory factory =
+            new IsolatedEigenLayerWstETHVaultFactory(delegationManager, address(claimer), wsteth);
+        EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
+            address(factory),
+            address(mv),
+            IStrategyManager(strategyManager),
+            IRewardsCoordinator(rewardsCoordinator)
+        );
+
+        RatiosStrategy strategy = new RatiosStrategy();
+
+        mv.initialize(
+            IMultiVault.InitParams({
+                admin: admin,
+                limit: limit,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                asset: wsteth,
+                name: NAME,
+                symbol: NAME,
+                depositStrategy: address(strategy),
+                withdrawalStrategy: address(strategy),
+                rebalanceStrategy: address(strategy),
+                defaultCollateral: address(0),
+                symbioticAdapter: address(symbioticAdapter),
+                eigenLayerAdapter: address(eigenLayerAdapter),
+                erc4626Adapter: address(0)
+            })
+        );
+
+        vm.startPrank(admin);
+
+        mv.grantRole(keccak256("ADD_SUBVAULT_ROLE"), admin);
+        mv.grantRole(keccak256("REMOVE_SUBVAULT_ROLE"), admin);
+        mv.grantRole(keccak256("SHARES_STRATEGY_SET_RATIO_ROLE"), admin);
+        mv.grantRole(keccak256("REBALANCE_ROLE"), admin);
+
+        uint256 n = 12;
+        address[] memory subvaults = new address[](n);
+
+        for (uint256 i = 0; i < n; i++) {
+            subvaults[i] = createNewSymbioticVault(
+                CreationParams({
+                    vaultOwner: admin,
+                    vaultAdmin: admin,
+                    epochDuration: 1 days,
+                    asset: wsteth,
+                    isDepositLimit: true,
+                    depositLimit: 1 ether
+                })
+            );
+        }
+
+        for (uint256 i = 0; i < n; i++) {
+            mv.addSubvault(subvaults[i], IMultiVaultStorage.Protocol.SYMBIOTIC);
+        }
+        RatiosStrategy.Ratio[] memory ratios = new RatiosStrategy.Ratio[](n);
+
+        for (uint256 i = 0; i < n; i++) {
+            ratios[i].minRatioD18 = uint64(1 ether * (i + 1) ** 2 / n ** 2);
+            ratios[i].maxRatioD18 = 1 ether;
+        }
+        strategy.setRatio(address(mv), subvaults, ratios);
+
+        mv.rebalance();
+
+        for (uint256 i = 0; i < 100; i++) {
+            uint256 amount = (i + 1) * 1 ether;
+            deal(wsteth, admin, amount);
+            IERC20(wsteth).approve(address(mv), amount);
+            mv.deposit(amount, admin, admin);
+            if (i == 0) {
+                deal(wsteth, address(mv), 100 ether);
+            } else if (i == 7) {
+                deal(wsteth, address(mv), 0);
+            }
+            mv.rebalance();
+            mv.redeem(mv.balanceOf(admin), admin, admin);
+        }
+
+        skip(3 days);
+
+        uint256[] memory vaults = new uint256[](2);
+        vaults[1] = 1;
+
+        claimer.multiAcceptAndClaim(
+            address(mv), vaults, new uint256[][](2), admin, type(uint256).max
+        );
+
+        skip(3 days);
+
+        claimer.multiAcceptAndClaim(
+            address(mv), vaults, new uint256[][](2), admin, type(uint256).max
+        );
+
+        vm.stopPrank();
+    }
 }

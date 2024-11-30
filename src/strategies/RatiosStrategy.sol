@@ -275,6 +275,7 @@ contract RatiosStrategy is IRatiosStrategy {
                 } else {
                     data[i].deposit = required;
                     liquid -= required;
+                    state[i].max -= data[i].deposit;
                 }
             }
         }

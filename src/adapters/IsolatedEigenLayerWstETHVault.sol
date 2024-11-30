@@ -11,9 +11,9 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
     ISTETH public immutable steth;
 
     constructor(address vault_, address wsteth_) IsolatedEigenLayerVault(vault_) {
+        require(wsteth_ == IERC4626(vault_).asset(), "Invalid asset");
         wsteth = IWSTETH(wsteth_);
         steth = wsteth.stETH();
-        require(wsteth_ == IERC4626(vault_).asset(), "Invalid asset");
     }
 
     function deposit(address manager, address strategy, uint256 assets)
@@ -21,8 +21,8 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         override
         onlyVault
     {
-        // insignificant amount
         if (assets <= 1) {
+            // insignificant amount
             return;
         }
         IERC20(wsteth).safeTransferFrom(vault, address(this), assets);

@@ -329,7 +329,17 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
                     asset_.safeTransfer(receiver, balance);
                     liquid -= balance;
                 }
-                defaultCollateral().withdraw(receiver, liquid);
+                IDefaultCollateral defaultCollateral_ = defaultCollateral();
+                if (address(defaultCollateral_) != address(0)) {
+                    balance = defaultCollateral_.balanceOf(this_).min(liquid);
+                    if (balance != 0) {
+                        defaultCollateral_.withdraw(receiver, balance);
+                        liquid -= balance;
+                    }
+                }
+                if (liquid != 0) {
+                    assets -= liquid;
+                }
             } else {
                 asset_.safeTransfer(receiver, liquid);
             }

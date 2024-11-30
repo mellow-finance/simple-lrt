@@ -26,10 +26,10 @@ contract SymbioticAdapter is ISymbioticAdapter {
         if (!vault_.isDepositLimit()) {
             return type(uint256).max;
         }
-        uint256 totalStake = vault_.totalStake();
+        uint256 activeStake = vault_.activeStake();
         uint256 limit = vault_.depositLimit();
-        if (limit > totalStake) {
-            return limit - totalStake;
+        if (limit > activeStake) {
+            return limit - activeStake;
         }
         return 0;
     }
