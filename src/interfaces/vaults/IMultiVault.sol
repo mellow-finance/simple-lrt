@@ -38,6 +38,14 @@ interface IMultiVault is IMultiVaultStorage {
 
     function setRewardsData(uint256 farmId, RewardData calldata rewardData) external;
 
+    function setDefaultCollateral(address defaultCollateral_) external;
+
+    function setSymbioticAdapter(address adapter_) external;
+
+    function setEigenLayerAdapter(address adapter_) external;
+
+    function setERC4626Adapter(address adapter_) external;
+
     function pushRewards(uint256 farmId, bytes calldata data) external;
 
     function maxDeposit(uint256 subvaultIndex) external view returns (uint256);

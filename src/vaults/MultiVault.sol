@@ -16,6 +16,8 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     bytes32 public constant SET_STRATEGY_ROLE = keccak256("SET_STRATEGY_ROLE");
     bytes32 public constant SET_REWARDS_DATA_ROLE = keccak256("SET_REWARDS_DATA_ROLE");
     bytes32 public constant REBALANCE_ROLE = keccak256("REBALANCE_ROLE");
+    bytes32 public constant SET_DEFAULT_COLLATERAL_ROLE = keccak256("SET_DEFAULT_COLLATERAL_ROLE");
+    bytes32 public constant SET_ADAPTER_ROLE = keccak256("SET_ADAPTER_ROLE");
 
     constructor(bytes32 name_, uint256 version_)
         VaultControlStorage(name_, version_)
@@ -127,6 +129,36 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         onlyRole(SET_STRATEGY_ROLE)
     {
         _setRebalanceStrategy(newRebalanceStrategy);
+    }
+
+    /// @inheritdoc IMultiVault
+    function setDefaultCollateral(address defaultCollateral_)
+        external
+        onlyRole(SET_DEFAULT_COLLATERAL_ROLE)
+    {
+        require(
+            address(defaultCollateral()) == address(0) && defaultCollateral_ != address(0),
+            "MultiVault: default collateral already set or cannot be zero address"
+        );
+        _setDefaultCollateral(defaultCollateral_);
+    }
+
+    /// @inheritdoc IMultiVault
+    function setSymbioticAdapter(address adapter_) external onlyRole(SET_ADAPTER_ROLE) {
+        require(adapter_ != address(0), "MultiVault: adapter cannot be zero address");
+        _setSymbioticAdapter(adapter_);
+    }
+
+    /// @inheritdoc IMultiVault
+    function setEigenLayerAdapter(address adapter_) external onlyRole(SET_ADAPTER_ROLE) {
+        require(adapter_ != address(0), "MultiVault: adapter cannot be zero address");
+        _setEigenLayerAdapter(adapter_);
+    }
+
+    /// @inheritdoc IMultiVault
+    function setERC4626Adapter(address adapter_) external onlyRole(SET_ADAPTER_ROLE) {
+        require(adapter_ != address(0), "MultiVault: adapter cannot be zero address");
+        _setERC4626Adapter(adapter_);
     }
 
     /// @inheritdoc IMultiVault
