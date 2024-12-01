@@ -60,6 +60,14 @@ interface IMultiVaultStorage {
 
     function indexOfSubvault(address subvault) external view returns (uint256);
 
+    function farmIds() external view returns (uint256[] memory);
+
+    function farmCount() external view returns (uint256);
+
+    function farmIdAt(uint256 index) external view returns (uint256);
+
+    function farmIdsContains(uint256 farmId) external view returns (bool);
+
     function defaultCollateral() external view returns (IDefaultCollateral);
 
     function depositStrategy() external view returns (IDepositStrategy);
@@ -73,6 +81,8 @@ interface IMultiVaultStorage {
     function symbioticAdapter() external view returns (IProtocolAdapter);
 
     function erc4626Adapter() external view returns (IProtocolAdapter);
+
+    function adapterOf(Protocol protocol) external view returns (IProtocolAdapter);
 
     function rewardData(uint256 farmId) external view returns (RewardData memory);
 }

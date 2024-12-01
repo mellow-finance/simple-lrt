@@ -36,6 +36,8 @@ interface IMultiVault is IMultiVaultStorage {
 
     function setRebalanceStrategy(address newRebalanceStrategy) external;
 
+    function setRewardsData(uint256 farmId, RewardData calldata rewardData) external;
+
     function pushRewards(uint256 farmId, bytes calldata data) external;
 
     function maxDeposit(uint256 subvaultIndex) external view returns (uint256);

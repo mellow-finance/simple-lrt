@@ -22,43 +22,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         MultiVaultStorage(name_, version_)
     {}
 
-    // ------------------------------- EXTERNAL FUNCTIONS -------------------------------
-
-    function adapterOf(Protocol protocol) public view returns (IProtocolAdapter adapter) {
-        if (protocol == Protocol.SYMBIOTIC) {
-            adapter = symbioticAdapter();
-        } else if (protocol == Protocol.EIGEN_LAYER) {
-            adapter = eigenLayerAdapter();
-        } else if (protocol == Protocol.ERC4626) {
-            adapter = erc4626Adapter();
-        }
-        if (address(adapter) == address(0)) {
-            revert("MultiVault: unsupported protocol");
-        }
-    }
-
-    /// @inheritdoc IMultiVault
-    function initialize(InitParams calldata initParams) public virtual initializer {
-        __initializeERC4626(
-            initParams.admin,
-            initParams.limit,
-            initParams.depositPause,
-            initParams.withdrawalPause,
-            initParams.depositWhitelist,
-            initParams.asset,
-            initParams.name,
-            initParams.symbol
-        );
-        __initializeMultiVaultStorage(
-            initParams.depositStrategy,
-            initParams.withdrawalStrategy,
-            initParams.rebalanceStrategy,
-            initParams.defaultCollateral,
-            initParams.symbioticAdapter,
-            initParams.eigenLayerAdapter,
-            initParams.erc4626Adapter
-        );
-    }
+    // ------------------------------- EXTERNAL VIEW FUNCTIONS -------------------------------
 
     /// @inheritdoc IMultiVault
     function maxDeposit(uint256 subvaultIndex) public view returns (uint256) {
@@ -103,6 +67,31 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         }
     }
 
+    // ------------------------------- EXTERNAL MUTATIVE FUNCTIONS -------------------------------
+
+    /// @inheritdoc IMultiVault
+    function initialize(InitParams calldata initParams) public virtual initializer {
+        __initializeERC4626(
+            initParams.admin,
+            initParams.limit,
+            initParams.depositPause,
+            initParams.withdrawalPause,
+            initParams.depositWhitelist,
+            initParams.asset,
+            initParams.name,
+            initParams.symbol
+        );
+        __initializeMultiVaultStorage(
+            initParams.depositStrategy,
+            initParams.withdrawalStrategy,
+            initParams.rebalanceStrategy,
+            initParams.defaultCollateral,
+            initParams.symbioticAdapter,
+            initParams.eigenLayerAdapter,
+            initParams.erc4626Adapter
+        );
+    }
+
     /// @inheritdoc IMultiVault
     function addSubvault(address vault, Protocol protocol) external onlyRole(ADD_SUBVAULT_ROLE) {
         IProtocolAdapter adapter = adapterOf(protocol);
@@ -140,6 +129,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         _setRebalanceStrategy(newRebalanceStrategy);
     }
 
+    /// @inheritdoc IMultiVault
     function setRewardsData(uint256 farmId, RewardData calldata rewardData)
         external
         onlyRole(SET_REWARDS_DATA_ROLE)
@@ -215,8 +205,9 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         // emit RewardsPushed(farmId, rewardAmount, curatorFee, block.timestamp);
     }
 
-    // ------------------------------- INTERNAL FUNCTIONS -------------------------------
+    // ------------------------------- INTERNAL MUTATIVE FUNCTIONS -------------------------------
 
+    /// @dev Deposits assets into the specified subvault
     function _deposit(uint256 subvaultIndex, uint256 assets) private {
         if (assets == 0) {
             return;
@@ -229,6 +220,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         );
     }
 
+    /// @dev Withdraws assets from the specified subvault
     function _withdraw(
         uint256 subvaultIndex,
         uint256 request,
@@ -256,6 +248,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         }
     }
 
+    /// @dev Deposits assets into the default collateral
     function _depositIntoCollateral() private {
         IDefaultCollateral collateral = defaultCollateral();
         if (address(collateral) == address(0)) {
@@ -268,12 +261,12 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         }
         address this_ = address(this);
         IERC20 asset_ = IERC20(asset());
-        uint256 amount = asset_.balanceOf(this_).min(limit_ - supply_);
-        if (amount == 0) {
+        uint256 assets = asset_.balanceOf(this_).min(limit_ - supply_);
+        if (assets == 0) {
             return;
         }
-        asset_.safeIncreaseAllowance(address(collateral), amount);
-        collateral.deposit(this_, amount);
+        asset_.safeIncreaseAllowance(address(collateral), assets);
+        collateral.deposit(this_, assets);
     }
 
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
@@ -329,17 +322,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
                     asset_.safeTransfer(receiver, balance);
                     liquid -= balance;
                 }
-                IDefaultCollateral defaultCollateral_ = defaultCollateral();
-                if (address(defaultCollateral_) != address(0)) {
-                    balance = defaultCollateral_.balanceOf(this_).min(liquid);
-                    if (balance != 0) {
-                        defaultCollateral_.withdraw(receiver, balance);
-                        liquid -= balance;
-                    }
-                }
-                if (liquid != 0) {
-                    assets -= liquid;
-                }
+                defaultCollateral().withdraw(receiver, liquid);
             } else {
                 asset_.safeTransfer(receiver, liquid);
             }

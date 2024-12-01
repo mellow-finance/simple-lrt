@@ -5,12 +5,11 @@ import "../interfaces/adapters/ISymbioticAdapter.sol";
 import {SymbioticWithdrawalQueue} from "../queues/SymbioticWithdrawalQueue.sol";
 
 contract SymbioticAdapter is ISymbioticAdapter {
-    uint8 public constant PAUSED_DEPOSITS = 0;
-    uint8 public constant PAUSED_ENTER_WITHDRAWAL_QUEUE = 1;
-
+    /// @inheritdoc IProtocolAdapter
     address public immutable vault;
+    /// @inheritdoc ISymbioticAdapter
     address public immutable claimer;
-
+    /// @inheritdoc ISymbioticAdapter
     mapping(address symbioticVault => address withdrawalQueue) public withdrawalQueues;
 
     constructor(address vault_, address claimer_) {
@@ -18,6 +17,7 @@ contract SymbioticAdapter is ISymbioticAdapter {
         claimer = claimer_;
     }
 
+    /// @inheritdoc IProtocolAdapter
     function maxDeposit(address symbioticVault) external view returns (uint256) {
         ISymbioticVault vault_ = ISymbioticVault(symbioticVault);
         if (vault_.depositWhitelist() && !vault_.isDepositorWhitelisted(vault)) {
@@ -34,41 +34,49 @@ contract SymbioticAdapter is ISymbioticAdapter {
         return 0;
     }
 
+    /// @inheritdoc IProtocolAdapter
     function assetOf(address symbioticVault) external view returns (address) {
         return ISymbioticVault(symbioticVault).collateral();
     }
 
+    /// @inheritdoc IProtocolAdapter
     function maxWithdraw(address symbioticVault) external view returns (uint256) {
         return ISymbioticVault(symbioticVault).activeBalanceOf(vault);
     }
 
+    /// @inheritdoc IProtocolAdapter
     function handleVault(address symbioticVault) external returns (address withdrawalQueue) {
-        require(msg.sender == vault, "Vault only");
+        require(msg.sender == vault, "SymbioticAdapter: only vault");
         withdrawalQueue = withdrawalQueues[symbioticVault];
         if (withdrawalQueue != address(0)) {
             return withdrawalQueue;
         }
-        bytes32 queueSalt = keccak256(abi.encodePacked(symbioticVault));
-        withdrawalQueue =
-            address(new SymbioticWithdrawalQueue{salt: queueSalt}(vault, symbioticVault, claimer));
+        withdrawalQueue = address(
+            new SymbioticWithdrawalQueue{salt: keccak256(abi.encodePacked(symbioticVault))}(
+                vault, symbioticVault, claimer
+            )
+        );
         withdrawalQueues[symbioticVault] = withdrawalQueue;
     }
 
+    /// @inheritdoc IProtocolAdapter
     function validateFarmData(bytes calldata data) external pure {
-        require(data.length == 20, "INVALID_FARM_DATA");
+        require(data.length == 20, "SymbioticAdapter: invalid farm data");
         address symbioticFarm = abi.decode(data, (address));
-        require(symbioticFarm != address(0), "INVALID_FARM_DATA");
+        require(symbioticFarm != address(0), "SymbioticAdapter: invalid farm data");
     }
 
+    /// @inheritdoc IProtocolAdapter
     function pushRewards(address rewardToken, bytes calldata farmData, bytes memory rewardData)
         external
     {
-        require(address(this) == vault, "Delegate call only");
+        require(address(this) == vault, "SymbioticAdapter: delegate call only");
         address symbioticFarm = abi.decode(rewardData, (address));
         bytes memory symbioticFarmData = abi.decode(farmData, (bytes));
         IStakerRewards(symbioticFarm).claimRewards(vault, address(rewardToken), symbioticFarmData);
     }
 
+    /// @inheritdoc IProtocolAdapter
     function withdraw(
         address symbioticVault,
         address withdrawalQueue,
@@ -76,14 +84,14 @@ contract SymbioticAdapter is ISymbioticAdapter {
         uint256 request,
         address /* owner */
     ) external {
-        require(address(this) == vault, "Delegate call only");
+        require(address(this) == vault, "SymbioticAdapter: delegate call only");
         (, uint256 requestedShares) =
             ISymbioticVault(symbioticVault).withdraw(withdrawalQueue, request);
         ISymbioticWithdrawalQueue(withdrawalQueue).request(receiver, requestedShares);
     }
 
     function deposit(address symbioticVault, uint256 assets) external {
-        require(address(this) == vault, "Delegate call only");
+        require(address(this) == vault, "SymbioticAdapter: delegate call only");
         ISymbioticVault(symbioticVault).deposit(vault, assets);
     }
 }

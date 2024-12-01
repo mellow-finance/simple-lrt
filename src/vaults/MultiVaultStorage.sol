@@ -22,6 +22,106 @@ contract MultiVaultStorage is IMultiVaultStorage, Initializable {
         ) & ~bytes32(uint256(0xff));
     }
 
+    function _multiStorage() private view returns (MultiStorage storage $) {
+        bytes32 slot = storageSlotRef;
+        assembly {
+            $.slot := slot
+        }
+    }
+
+    /// ------------------------------- EXTERNAL VIEW FUNCTIONS -------------------------------
+
+    /// @inheritdoc IMultiVaultStorage
+    function subvaultsCount() public view returns (uint256) {
+        return _multiStorage().subvaults.length;
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function subvaultAt(uint256 index) public view returns (Subvault memory) {
+        return _multiStorage().subvaults[index];
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function indexOfSubvault(address subvault) public view returns (uint256) {
+        return _multiStorage().indexOfSubvault[subvault];
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function defaultCollateral() public view returns (IDefaultCollateral) {
+        return IDefaultCollateral(_multiStorage().defaultCollateral);
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function depositStrategy() public view returns (IDepositStrategy) {
+        return IDepositStrategy(_multiStorage().depositStrategy);
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function withdrawalStrategy() public view returns (IWithdrawalStrategy) {
+        return IWithdrawalStrategy(_multiStorage().withdrawalStrategy);
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function rebalanceStrategy() public view returns (IRebalanceStrategy) {
+        return IRebalanceStrategy(_multiStorage().rebalanceStrategy);
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function symbioticAdapter() public view returns (IProtocolAdapter) {
+        return IProtocolAdapter(_multiStorage().symbioticAdapter);
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function eigenLayerAdapter() public view returns (IProtocolAdapter) {
+        return IProtocolAdapter(_multiStorage().eigenLayerAdapter);
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function erc4626Adapter() public view returns (IProtocolAdapter) {
+        return IProtocolAdapter(_multiStorage().erc4626Adapter);
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function rewardData(uint256 farmId) public view returns (RewardData memory) {
+        return _multiStorage().rewardData[farmId];
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function farmIds() public view returns (uint256[] memory) {
+        return _multiStorage().farmIds.values();
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function farmCount() public view returns (uint256) {
+        return _multiStorage().farmIds.length();
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function farmIdAt(uint256 index) public view returns (uint256) {
+        return _multiStorage().farmIds.at(index);
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function farmIdsContains(uint256 farmId) public view returns (bool) {
+        return _multiStorage().farmIds.contains(farmId);
+    }
+
+    /// @inheritdoc IMultiVaultStorage
+    function adapterOf(Protocol protocol) public view returns (IProtocolAdapter adapter) {
+        if (protocol == Protocol.SYMBIOTIC) {
+            adapter = symbioticAdapter();
+        } else if (protocol == Protocol.EIGEN_LAYER) {
+            adapter = eigenLayerAdapter();
+        } else if (protocol == Protocol.ERC4626) {
+            adapter = erc4626Adapter();
+        }
+        if (address(adapter) == address(0)) {
+            revert("MultiVault: unsupported protocol");
+        }
+    }
+
+    /// ------------------------------- INTERNAL MUTATIVE FUNCTIONS -------------------------------
+
     function __initializeMultiVaultStorage(
         address depositStrategy_,
         address withdrawalStrategy_,
@@ -38,73 +138,6 @@ contract MultiVaultStorage is IMultiVaultStorage, Initializable {
         _setSymbioticAdapter(symbioticAdapter_);
         _setEigenLayerAdapter(eigenLayerAdapter_);
         _setERC4626Adapter(erc4626Adapter_);
-    }
-
-    function _multiStorage() private view returns (MultiStorage storage $) {
-        bytes32 slot = storageSlotRef;
-        assembly {
-            $.slot := slot
-        }
-    }
-
-    function subvaultsCount() public view returns (uint256) {
-        return _multiStorage().subvaults.length;
-    }
-
-    function subvaultAt(uint256 index) public view returns (Subvault memory) {
-        return _multiStorage().subvaults[index];
-    }
-
-    function indexOfSubvault(address subvault) public view returns (uint256) {
-        return _multiStorage().indexOfSubvault[subvault];
-    }
-
-    function defaultCollateral() public view returns (IDefaultCollateral) {
-        return IDefaultCollateral(_multiStorage().defaultCollateral);
-    }
-
-    function depositStrategy() public view returns (IDepositStrategy) {
-        return IDepositStrategy(_multiStorage().depositStrategy);
-    }
-
-    function withdrawalStrategy() public view returns (IWithdrawalStrategy) {
-        return IWithdrawalStrategy(_multiStorage().withdrawalStrategy);
-    }
-
-    function rebalanceStrategy() public view returns (IRebalanceStrategy) {
-        return IRebalanceStrategy(_multiStorage().rebalanceStrategy);
-    }
-
-    function symbioticAdapter() public view returns (IProtocolAdapter) {
-        return IProtocolAdapter(_multiStorage().symbioticAdapter);
-    }
-
-    function eigenLayerAdapter() public view returns (IProtocolAdapter) {
-        return IProtocolAdapter(_multiStorage().eigenLayerAdapter);
-    }
-
-    function erc4626Adapter() public view returns (IProtocolAdapter) {
-        return IProtocolAdapter(_multiStorage().erc4626Adapter);
-    }
-
-    function rewardData(uint256 farmId) public view returns (RewardData memory) {
-        return _multiStorage().rewardData[farmId];
-    }
-
-    function farmIds() public view returns (uint256[] memory) {
-        return _multiStorage().farmIds.values();
-    }
-
-    function farmCount() public view returns (uint256) {
-        return _multiStorage().farmIds.length();
-    }
-
-    function farmIdAt(uint256 index) public view returns (uint256) {
-        return _multiStorage().farmIds.at(index);
-    }
-
-    function farmIdsContains(uint256 farmId) public view returns (bool) {
-        return _multiStorage().farmIds.contains(farmId);
     }
 
     function _setSymbioticAdapter(address symbioticAdapter_) internal {

@@ -184,6 +184,7 @@ contract RatiosStrategy is IRatiosStrategy {
                 } else {
                     data[i].staked += allowed;
                     amount -= allowed;
+                    state[i].staked -= allowed;
                 }
             }
         }
@@ -209,6 +210,21 @@ contract RatiosStrategy is IRatiosStrategy {
                 }
             }
         }
+        for (uint256 i = 0; i < n && amount != 0; i++) {
+            uint256 staked = state[i].staked;
+            if (staked > 0) {
+                if (staked > amount) {
+                    data[i].staked += amount;
+                    amount = 0;
+                } else {
+                    data[i].staked += staked;
+                    amount -= staked;
+                }
+            }
+        }
+
+        require(amount == 0, "SharesStrategy: invalid state");
+
         uint256 count = 0;
         for (uint256 i = 0; i < n; i++) {
             if (data[i].staked + data[i].pending + data[i].claimable != 0) {
@@ -234,15 +250,15 @@ contract RatiosStrategy is IRatiosStrategy {
         uint256 n = state.length;
         data = new RebalanceData[](n);
         uint256 totalRequired = 0;
-        uint256 totalPending = 0;
+        uint256 pending = 0;
         for (uint256 i = 0; i < n; i++) {
             data[i].subvaultIndex = i;
             data[i].claim = state[i].claimable;
             liquid += state[i].claimable;
-            totalPending += state[i].pending;
+            pending += state[i].pending;
             if (state[i].staked > state[i].max) {
                 data[i].request = state[i].staked - state[i].max;
-                totalPending += data[i].request;
+                pending += data[i].request;
                 state[i].staked = state[i].max;
             }
             if (state[i].min > state[i].staked) {
@@ -250,17 +266,17 @@ contract RatiosStrategy is IRatiosStrategy {
             }
         }
 
-        if (totalRequired > liquid + totalPending) {
-            uint256 amountForUnstake = totalRequired - liquid - totalPending;
-            for (uint256 i = 0; i < n && amountForUnstake > 0; i++) {
+        if (totalRequired > liquid + pending) {
+            uint256 unstake = totalRequired - liquid - pending;
+            for (uint256 i = 0; i < n && unstake > 0; i++) {
                 if (state[i].staked > state[i].min) {
                     uint256 allowed = state[i].staked - state[i].min;
-                    if (allowed > amountForUnstake) {
-                        data[i].request += amountForUnstake;
-                        amountForUnstake = 0;
+                    if (allowed > unstake) {
+                        data[i].request += unstake;
+                        unstake = 0;
                     } else {
                         data[i].request += allowed;
-                        amountForUnstake -= allowed;
+                        unstake -= allowed;
                     }
                 }
             }
