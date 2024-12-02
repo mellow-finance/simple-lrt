@@ -115,9 +115,7 @@ contract MultiVaultStorage is IMultiVaultStorage, Initializable {
         } else if (protocol == Protocol.ERC4626) {
             adapter = erc4626Adapter();
         }
-        if (address(adapter) == address(0)) {
-            revert("MultiVault: unsupported protocol");
-        }
+        require(address(adapter) != address(0), "MultiVault: unsupported protocol");
     }
 
     /// ------------------------------- INTERNAL MUTATIVE FUNCTIONS -------------------------------
@@ -142,46 +140,47 @@ contract MultiVaultStorage is IMultiVaultStorage, Initializable {
 
     function _setSymbioticAdapter(address symbioticAdapter_) internal {
         _multiStorage().symbioticAdapter = symbioticAdapter_;
+        emit SymbioticAdapterSet(symbioticAdapter_);
     }
 
     function _setEigenLayerAdapter(address eigenLayerAdapter_) internal {
         _multiStorage().eigenLayerAdapter = eigenLayerAdapter_;
+        emit EigenLayerAdapterSet(eigenLayerAdapter_);
     }
 
     function _setERC4626Adapter(address erc4626Adapter_) internal {
         _multiStorage().erc4626Adapter = erc4626Adapter_;
+        emit ERC4626AdapterSet(erc4626Adapter_);
     }
 
     function _setDepositStrategy(address newDepositStrategy) internal {
-        if (newDepositStrategy == address(0)) {
-            revert("MultiVaultStorage: deposit strategy cannot be zero address");
-        }
         _multiStorage().depositStrategy = newDepositStrategy;
+        emit DepositStrategySet(newDepositStrategy);
     }
 
     function _setWithdrawalStrategy(address newWithdrawalStrategy) internal {
-        if (newWithdrawalStrategy == address(0)) {
-            revert("MultiVaultStorage: withdrawal strategy cannot be zero address");
-        }
         _multiStorage().withdrawalStrategy = newWithdrawalStrategy;
+        emit WithdrawalStrategySet(newWithdrawalStrategy);
     }
 
     function _setRebalanceStrategy(address newRebalanceStrategy) internal {
         _multiStorage().rebalanceStrategy = newRebalanceStrategy;
+        emit RebalanceStrategySet(newRebalanceStrategy);
     }
 
     function _setDefaultCollateral(address defaultCollateral_) internal {
         _multiStorage().defaultCollateral = defaultCollateral_;
+        emit DefaultCollateralSet(defaultCollateral_);
     }
 
     function _addSubvault(address vault, address withdrawalQueue, Protocol protocol) internal {
-        if (protocol > type(Protocol).max) {
-            revert("MultiVaultStorage: invalid subvault type");
-        }
+        require(protocol <= type(Protocol).max, "MultiVaultStorage: invalid subvault type");
         MultiStorage storage $ = _multiStorage();
         require($.indexOfSubvault[vault] == 0, "MultiVaultStorage: subvault already exists");
         $.subvaults.push(Subvault(protocol, vault, withdrawalQueue));
-        $.indexOfSubvault[vault] = $.subvaults.length;
+        uint256 index = $.subvaults.length;
+        $.indexOfSubvault[vault] = index;
+        emit SubvaultAdded(vault, withdrawalQueue, protocol, index - 1);
     }
 
     function _removeSubvault(address vault) internal {
@@ -190,10 +189,12 @@ contract MultiVaultStorage is IMultiVaultStorage, Initializable {
         require(index != 0, "MultiVaultStorage: subvault not found");
         index--;
         uint256 last = $.subvaults.length - 1;
+        emit SubvaultRemoved(vault, index);
         if (index < last) {
             Subvault memory lastSubvault = $.subvaults[last];
             $.subvaults[index] = lastSubvault;
             $.indexOfSubvault[lastSubvault.vault] = index + 1;
+            emit SubvaultIndexChanged(lastSubvault.vault, last, index);
         }
         $.subvaults.pop();
         delete $.indexOfSubvault[vault];
@@ -204,10 +205,12 @@ contract MultiVaultStorage is IMultiVaultStorage, Initializable {
         if (data.token == address(0)) {
             if ($.farmIds.remove(farmId)) {
                 delete $.rewardData[farmId];
+                emit RewardDataRemoved(farmId);
             }
         } else {
             $.rewardData[farmId] = data;
             $.farmIds.add(farmId);
+            emit RewardDataSet(farmId, data);
         }
     }
 }

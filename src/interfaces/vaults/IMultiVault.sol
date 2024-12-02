@@ -54,4 +54,15 @@ interface IMultiVault is IMultiVaultStorage {
         external
         view
         returns (uint256 claimable, uint256 pending, uint256 staked);
+
+    event Rebalance(IRebalanceStrategy.RebalanceData[] data, uint256 timestamp);
+
+    event DepositIntoCollateral(uint256 assets);
+
+    event RewardsPushed(
+        uint256 indexed farmId,
+        uint256 indexed rewardAmount,
+        uint256 indexed curatorFee,
+        uint256 timestamp
+    );
 }

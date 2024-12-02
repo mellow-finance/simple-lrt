@@ -85,4 +85,30 @@ interface IMultiVaultStorage {
     function adapterOf(Protocol protocol) external view returns (IProtocolAdapter);
 
     function rewardData(uint256 farmId) external view returns (RewardData memory);
+
+    event SubvaultAdded(
+        address indexed subvault, address withdrawalQueue, Protocol protocol, uint256 subvaultIndex
+    );
+
+    event SubvaultRemoved(address indexed subvault, uint256 subvaultIndex);
+
+    event SubvaultIndexChanged(address indexed subvault, uint256 oldIndex, uint256 newIndex);
+
+    event RewardDataRemoved(uint256 indexed farmId);
+
+    event RewardDataSet(uint256 indexed farmId, RewardData data);
+
+    event DefaultCollateralSet(address indexed defaultCollateral);
+
+    event DepositStrategySet(address indexed depositStrategy);
+
+    event WithdrawalStrategySet(address indexed withdrawalStrategy);
+
+    event RebalanceStrategySet(address indexed rebalanceStrategy);
+
+    event SymbioticAdapterSet(address indexed symbioticAdapter);
+
+    event EigenLayerAdapterSet(address indexed eigenLayerAdapter);
+
+    event ERC4626AdapterSet(address indexed erc4626Adapter);
 }

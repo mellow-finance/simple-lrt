@@ -112,6 +112,9 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
 
     /// @inheritdoc IMultiVault
     function setDepositStrategy(address newDepositStrategy) external onlyRole(SET_STRATEGY_ROLE) {
+        require(
+            newDepositStrategy != address(0), "MultiVault: deposit strategy cannot be zero address"
+        );
         _setDepositStrategy(newDepositStrategy);
     }
 
@@ -120,6 +123,10 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         external
         onlyRole(SET_STRATEGY_ROLE)
     {
+        require(
+            newWithdrawalStrategy != address(0),
+            "MultiVault: withdrawal strategy cannot be zero address"
+        );
         _setWithdrawalStrategy(newWithdrawalStrategy);
     }
 
@@ -128,6 +135,10 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         external
         onlyRole(SET_STRATEGY_ROLE)
     {
+        require(
+            newRebalanceStrategy != address(0),
+            "MultiVault: rebalance strategy cannot be zero address"
+        );
         _setRebalanceStrategy(newRebalanceStrategy);
     }
 
@@ -203,6 +214,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
             _deposit(data[i].subvaultIndex, data[i].deposit);
         }
         _depositIntoCollateral();
+        emit Rebalance(data, block.timestamp);
     }
 
     /// @inheritdoc IMultiVault
@@ -234,7 +246,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         if (rewardAmount != 0) {
             rewardToken.safeTransfer(data.distributionFarm, rewardAmount);
         }
-        // emit RewardsPushed(farmId, rewardAmount, curatorFee, block.timestamp);
+        emit RewardsPushed(farmId, rewardAmount, curatorFee, block.timestamp);
     }
 
     // ------------------------------- INTERNAL MUTATIVE FUNCTIONS -------------------------------
@@ -299,6 +311,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         }
         asset_.safeIncreaseAllowance(address(collateral), assets);
         collateral.deposit(this_, assets);
+        emit DepositIntoCollateral(assets);
     }
 
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
