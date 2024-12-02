@@ -30,6 +30,10 @@ contract MockMellowSymbioticVault is ERC20 {
         return IERC20(wsteth).balanceOf(address(this));
     }
 
+    function activeStake() external view returns (uint256) {
+        return IERC20(wsteth).balanceOf(address(this));
+    }
+
     function setLoss() external {
         loss = loss ^ 1;
     }

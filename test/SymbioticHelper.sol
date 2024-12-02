@@ -19,6 +19,10 @@ import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.
 import {INetworkMiddlewareService} from
     "@symbiotic/core/interfaces/service/INetworkMiddlewareService.sol";
 import {ISlasher} from "@symbiotic/core/interfaces/slasher/ISlasher.sol";
+import {
+    IBaseSlasher,
+    IVetoSlasher as ISymbioticVetoSlasher
+} from "@symbiotic/core/interfaces/slasher/IVetoSlasher.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
 import {DefaultStakerRewards} from
@@ -187,7 +191,13 @@ contract SymbioticHelper {
                 delegatorParams: abi.encode(initParams),
                 withSlasher: true,
                 slasherIndex: 0,
-                slasherParams: new bytes(0)
+                slasherParams: abi.encode(
+                    ISymbioticVetoSlasher.InitParams({
+                        baseParams: IBaseSlasher.BaseParams({isBurnerHook: false}),
+                        vetoDuration: 1 hours,
+                        resolverSetEpochsDelay: 3
+                    })
+                )
             })
         );
     }
