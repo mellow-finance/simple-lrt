@@ -101,8 +101,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
             adapter.assetOf(vault) == asset(),
             "MultiVault: subvault asset does not match the vault asset"
         );
-        address withdrawalQueue = adapter.handleVault(vault);
-        _addSubvault(vault, withdrawalQueue, protocol);
+        _addSubvault(vault, adapter.handleVault(vault), protocol);
     }
 
     /// @inheritdoc IMultiVault

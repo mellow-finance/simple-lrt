@@ -174,7 +174,6 @@ contract MultiVaultStorage is IMultiVaultStorage, Initializable {
     }
 
     function _addSubvault(address vault, address withdrawalQueue, Protocol protocol) internal {
-        require(protocol <= type(Protocol).max, "MultiVaultStorage: invalid subvault type");
         MultiStorage storage $ = _multiStorage();
         require($.indexOfSubvault[vault] == 0, "MultiVaultStorage: subvault already exists");
         $.subvaults.push(Subvault(protocol, vault, withdrawalQueue));
