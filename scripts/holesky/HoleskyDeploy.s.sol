@@ -1,59 +1,33 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "./FactoryDeploy.sol";
 import "forge-std/Script.sol";
 
-import {DelegatorFactory} from "@symbiotic/core/interfaces/DelegatorFactory.sol";
-import {NetworkRegistry} from "@symbiotic/core/interfaces/NetworkRegistry.sol";
-import {OperatorRegistry} from "@symbiotic/core/interfaces/OperatorRegistry.sol";
-import {SlasherFactory} from "@symbiotic/core/interfaces/SlasherFactory.sol";
-import {VaultConfigurator} from "@symbiotic/core/interfaces/VaultConfigurator.sol";
-import {VaultFactory} from "@symbiotic/core/interfaces/VaultFactory.sol";
-import {
-    FullRestakeDelegator,
-    IBaseDelegator,
-    IFullRestakeDelegator
-} from "@symbiotic/core/interfaces/delegator/FullRestakeDelegator.sol";
+import {EthWrapper} from "../../src/EthWrapper.sol";
+import "./FactoryDeploy.sol";
+import {IDelegatorFactory} from "@symbiotic/core/interfaces/IDelegatorFactory.sol";
 
-import {
-    INetworkRestakeDelegator,
-    NetworkRestakeDelegator
-} from "@symbiotic/core/interfaces/delegator/NetworkRestakeDelegator.sol";
-
-import {NetworkMiddlewareService} from
-    "@symbiotic/core/interfaces/service/NetworkMiddlewareService.sol";
-import {Slasher} from "@symbiotic/core/interfaces/slasher/Slasher.sol";
-import {IVetoSlasher, VetoSlasher} from "@symbiotic/core/interfaces/slasher/VetoSlasher.sol";
-
-import {Vault} from "@symbiotic/core/interfaces/vault/Vault.sol";
-
+import {INetworkRegistry} from "@symbiotic/core/interfaces/INetworkRegistry.sol";
+import {IOperatorRegistry} from "@symbiotic/core/interfaces/IOperatorRegistry.sol";
+import {ISlasherFactory} from "@symbiotic/core/interfaces/ISlasherFactory.sol";
 import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
+import {IVaultFactory} from "@symbiotic/core/interfaces/IVaultFactory.sol";
+import {
+    IBaseDelegator,
+    IFullRestakeDelegator,
+    IFullRestakeDelegator
+} from "@symbiotic/core/interfaces/delegator/IFullRestakeDelegator.sol";
+import {INetworkRestakeDelegator} from
+    "@symbiotic/core/interfaces/delegator/INetworkRestakeDelegator.sol";
+import {INetworkMiddlewareService} from
+    "@symbiotic/core/interfaces/service/INetworkMiddlewareService.sol";
+
+import {IBaseSlasher} from "@symbiotic/core/interfaces/slasher/IBaseSlasher.sol";
+import {ISlasher} from "@symbiotic/core/interfaces/slasher/ISlasher.sol";
+import {IVetoSlasher} from "@symbiotic/core/interfaces/slasher/IVetoSlasher.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
-import {EthWrapper} from "../../src/EthWrapper.sol";
-
 contract Deploy is Script, FactoryDeploy {
-    address public constant HOLESKY_DEPLOYER = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
-
-    address public constant HOLESKY_WSTETH = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
-    address public constant HOLESKY_STETH = 0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
-    address public constant HOLESKY_WETH = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
-    address public constant HOLESKY_WSTETH_DEFAULT_COLLATERAL =
-        0x23E98253F372Ee29910e22986fe75Bb287b011fC;
-
-    address public constant HOLESKY_VAULT_CONFIGURATOR = 0x382e9c6fF81F07A566a8B0A3622dc85c47a891Df;
-
-    uint256 public constant HOLESKY_LIMIT = 10 ether;
-    uint48 public constant HOLESKY_EPOCH_DURATION = 2 minutes;
-    uint48 public constant HOLESKY_VETO_DURATION = 1 minutes;
-    uint48 public constant HOLESKY_RESOLVER_SET_EPOCHS_DELAY = 1 minutes;
-
-    /*
-        two types of delegation
-        three types of slashing
-    */
-
     struct SlasherParams {
         bool withSlasher;
         uint64 slaherIndex;
@@ -64,6 +38,21 @@ contract Deploy is Script, FactoryDeploy {
         uint64 delegatorIndex;
         bytes delegatorParams;
     }
+
+    address public constant HOLESKY_DEPLOYER = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+
+    address public constant HOLESKY_WSTETH = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
+    address public constant HOLESKY_STETH = 0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
+    address public constant HOLESKY_WETH = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
+    address public constant HOLESKY_WSTETH_DEFAULT_COLLATERAL =
+        0x23E98253F372Ee29910e22986fe75Bb287b011fC;
+
+    address public constant HOLESKY_VAULT_CONFIGURATOR = 0xD2191FE92987171691d552C219b8caEf186eb9cA;
+
+    uint256 public constant HOLESKY_LIMIT = 10 ether;
+    uint48 public constant HOLESKY_EPOCH_DURATION = 2 minutes;
+    uint48 public constant HOLESKY_VETO_DURATION = 1 minutes;
+    uint48 public constant HOLESKY_RESOLVER_SET_EPOCHS_DELAY = 1 minutes;
 
     function createSymbioticVault(
         SlasherParams memory slasherParams,
@@ -132,18 +121,14 @@ contract Deploy is Script, FactoryDeploy {
             })
         ];
 
-        SlasherParams[3] memory slasherParams = [
+        SlasherParams[2] memory slasherParams = [
             SlasherParams({withSlasher: false, slaherIndex: 0, slasherParams: new bytes(0)}),
             SlasherParams({
                 withSlasher: true,
                 slaherIndex: 0,
-                slasherParams: new bytes(0) // Slasher
-            }),
-            SlasherParams({
-                withSlasher: true,
-                slaherIndex: 1,
                 slasherParams: abi.encode(
                     IVetoSlasher.InitParams({
+                        baseParams: IBaseSlasher.BaseParams({isBurnerHook: false}),
                         vetoDuration: HOLESKY_VETO_DURATION,
                         resolverSetEpochsDelay: HOLESKY_RESOLVER_SET_EPOCHS_DELAY
                     })
@@ -226,5 +211,7 @@ contract Deploy is Script, FactoryDeploy {
             }
         }
         vm.stopBroadcast();
+
+        revert("here");
     }
 }

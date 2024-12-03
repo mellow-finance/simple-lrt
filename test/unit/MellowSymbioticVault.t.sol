@@ -267,7 +267,7 @@ contract Unit is BaseTest {
     }
 
     function testTotalAssets() external {
-        (MellowSymbioticVault c, ) = _defaultDeploy();
+        (MellowSymbioticVault c,) = _defaultDeploy();
 
         assertEq(c.totalAssets(), 0);
         deal(wsteth, address(c), 1 ether);
@@ -327,7 +327,7 @@ contract Unit is BaseTest {
     }
 
     function testMint() external {
-        (MellowSymbioticVault c, ) = _defaultDeploy();
+        (MellowSymbioticVault c,) = _defaultDeploy();
 
         address depositor = makeAddr("depositor");
 
@@ -352,7 +352,7 @@ contract Unit is BaseTest {
     function testWithdraw() external {
         // simple case
         {
-            (MellowSymbioticVault c, ) = _defaultDeploy();
+            (MellowSymbioticVault c,) = _defaultDeploy();
 
             address depositor = makeAddr("depositor");
 
@@ -559,7 +559,7 @@ contract Unit is BaseTest {
     }
 
     function testRedeem() external {
-        (MellowSymbioticVault c, ) = _defaultDeploy();
+        (MellowSymbioticVault c,) = _defaultDeploy();
 
         address depositor = makeAddr("depositor");
 
@@ -1198,7 +1198,7 @@ contract Unit is BaseTest {
     }
 
     function testDepositExt000() external {
-        (MockMellowSymbioticVaultExt vault, ) = _extDeploy();
+        (MockMellowSymbioticVaultExt vault,) = _extDeploy();
 
         {
             vm.startPrank(user);
@@ -1223,7 +1223,7 @@ contract Unit is BaseTest {
     }
 
     function testDepositExt010() external {
-        (MockMellowSymbioticVaultExt vault, ) = _extDeploy();
+        (MockMellowSymbioticVaultExt vault,) = _extDeploy();
 
         {
             vm.startPrank(user);
