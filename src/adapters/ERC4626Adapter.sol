@@ -54,13 +54,13 @@ contract ERC4626Adapter is IERC4626Adapter {
         uint256 request,
         address /*owner*/
     ) external {
-        require(address(this) == vault, "Delegate call only");
+        require(address(this) == vault, "ERC4626Adapter: delegate call only");
         IERC4626(token).withdraw(request, reciever, vault);
     }
 
     /// @inheritdoc IProtocolAdapter
     function deposit(address token, uint256 assets) external {
-        require(address(this) == vault, "Delegate call only");
+        require(address(this) == vault, "ERC4626Adapter: delegate call only");
         IERC4626(token).deposit(assets, vault);
     }
 }

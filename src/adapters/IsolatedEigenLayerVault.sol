@@ -21,6 +21,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         asset = IERC4626(vault_).asset();
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVault
     function delegateTo(
         address manager,
         address operator,
@@ -30,6 +31,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         IDelegationManager(manager).delegateTo(operator, signature, salt);
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVault
     function deposit(address manager, address strategy, uint256 assets)
         external
         virtual
@@ -38,6 +40,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         IStrategyManager(manager).depositIntoStrategy(IStrategy(strategy), IERC20(asset), assets);
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVault
     function withdraw(address queue, address reciever, uint256 request, bool flag)
         external
         virtual
@@ -46,6 +49,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         IEigenLayerWithdrawalQueue(queue).request(reciever, request, flag);
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVault
     function processClaim(
         IRewardsCoordinator coodrinator,
         IRewardsCoordinator.RewardsMerkleClaim memory farmData,
@@ -60,6 +64,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         }
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVault
     function claimWithdrawal(
         IDelegationManager manager,
         IDelegationManager.Withdrawal calldata data
@@ -75,6 +80,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         asset_.safeTransfer(queue, assets);
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVault
     function queueWithdrawals(
         IDelegationManager manager,
         IDelegationManager.QueuedWithdrawalParams[] calldata requests

@@ -76,16 +76,16 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         address owner;
         (owner,,, withdrawalQueue) = factory.instances(isolatedVault);
         if (owner != address(vault)) {
-            revert("Invalid isolated vault owner");
+            revert("EigenLayerAdapter: invalid isolated vault owner");
         }
     }
 
     /// @inheritdoc IProtocolAdapter
     function validateFarmData(bytes calldata data) external view {
-        require(data.length == 20, "INVALID_FARM_DATA");
+        require(data.length == 20, "EigenLayerAdapter: invalid reward data");
         address isolatedVault = abi.decode(data, (address));
         (address owner,,,) = factory.instances(isolatedVault);
-        require(owner == vault, "INVALID_FARM_DATA");
+        require(owner == vault, "EigenLayerAdapter: invalid reward data");
     }
 
     /// @inheritdoc IProtocolAdapter
@@ -98,7 +98,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         require(
             eigenLayerFarmData.tokenLeaves.length == 1
                 && address(eigenLayerFarmData.tokenLeaves[0].token) == address(rewardToken),
-            "Vault: invalid claim"
+            "EigenLayerAdapter: invalid farm data"
         );
         address isolatedVault = abi.decode(rewardData, (address));
         IIsolatedEigenLayerVault(isolatedVault).processClaim(

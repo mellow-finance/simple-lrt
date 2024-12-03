@@ -16,6 +16,7 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         steth = wsteth.stETH();
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVault
     function deposit(address manager, address strategy, uint256 assets)
         external
         override
@@ -31,6 +32,7 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         IStrategyManager(manager).depositIntoStrategy(IStrategy(strategy), steth, assets);
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVault
     function withdraw(address queue, address reciever, uint256 request, bool flag)
         external
         override
@@ -43,6 +45,7 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         IEigenLayerWithdrawalQueue(queue).request(reciever, wsteth.getStETHByWstETH(request), flag);
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVault
     function claimWithdrawal(
         IDelegationManager manager,
         IDelegationManager.Withdrawal calldata data
