@@ -11,7 +11,7 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
     ISTETH public immutable steth;
 
     constructor(address vault_, address wsteth_) IsolatedEigenLayerVault(vault_) {
-        require(wsteth_ == IERC4626(vault_).asset(), "Invalid asset");
+        require(wsteth_ == IERC4626(vault_).asset(), "IsolatedEigenLayerWstETHVault: invalid asset");
         wsteth = IWSTETH(wsteth_);
         steth = wsteth.stETH();
     }
@@ -52,7 +52,7 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
     ) external override returns (uint256 assets) {
         address this_ = address(this);
         (,,, address queue) = IIsolatedEigenLayerVaultFactory(factory).instances(this_);
-        require(msg.sender == queue, "Only queue");
+        require(msg.sender == queue, "IsolatedEigenLayerWstETHVault: forbidden");
         IERC20 asset_ = IERC20(asset);
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = asset_;

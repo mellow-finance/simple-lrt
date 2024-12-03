@@ -71,7 +71,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
     ) external virtual returns (uint256 assets) {
         address this_ = address(this);
         (,,, address queue) = IIsolatedEigenLayerVaultFactory(factory).instances(this_);
-        require(msg.sender == queue, "Only queue");
+        require(msg.sender == queue, "IsolatedEigenLayerVault: forbidden");
         IERC20 asset_ = IERC20(asset);
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = asset_;
@@ -86,7 +86,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         IDelegationManager.QueuedWithdrawalParams[] calldata requests
     ) external {
         (,,, address queue) = IIsolatedEigenLayerVaultFactory(factory).instances(address(this));
-        require(msg.sender == queue, "Only queue");
+        require(msg.sender == queue, "IsolatedEigenLayerVault: forbidden");
         manager.queueWithdrawals(requests);
     }
 }
