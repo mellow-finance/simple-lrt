@@ -34,6 +34,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         delegationManager = strategyManager_.delegation();
     }
 
+    /// @inheritdoc IProtocolAdapter
     function maxDeposit(address isolatedVault) external view virtual returns (uint256) {
         (,, address strategy,) = factory.instances(isolatedVault);
         if (
@@ -56,6 +57,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         return Math.min(maxPerDeposit, maxTotalDeposits - assets);
     }
 
+    /// @inheritdoc IProtocolAdapter
     function maxWithdraw(address isolatedVault) external view virtual returns (uint256) {
         if (IPausable(address(delegationManager)).paused(PAUSED_ENTER_WITHDRAWAL_QUEUE)) {
             return 0;
@@ -64,10 +66,12 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         return IStrategy(strategy).userUnderlyingView(isolatedVault);
     }
 
+    /// @inheritdoc IProtocolAdapter
     function assetOf(address isolatedVault) public view returns (address) {
         return IIsolatedEigenLayerVault(isolatedVault).asset();
     }
 
+    /// @inheritdoc IProtocolAdapter
     function handleVault(address isolatedVault) external view returns (address withdrawalQueue) {
         address owner;
         (owner,,, withdrawalQueue) = factory.instances(isolatedVault);
@@ -76,6 +80,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         }
     }
 
+    /// @inheritdoc IProtocolAdapter
     function validateFarmData(bytes calldata data) external view {
         require(data.length == 20, "INVALID_FARM_DATA");
         address isolatedVault = abi.decode(data, (address));
@@ -83,6 +88,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         require(owner == vault, "INVALID_FARM_DATA");
     }
 
+    /// @inheritdoc IProtocolAdapter
     function pushRewards(address rewardToken, bytes calldata farmData, bytes calldata rewardData)
         external
         delegateCallOnly
@@ -100,6 +106,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         );
     }
 
+    /// @inheritdoc IProtocolAdapter
     function withdraw(
         address isolatedVault,
         address withdrawalQueue,
@@ -112,11 +119,13 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         );
     }
 
+    /// @inheritdoc IProtocolAdapter
     function deposit(address isolatedVault, uint256 assets) external delegateCallOnly {
         (,, address strategy,) = factory.instances(isolatedVault);
         IIsolatedEigenLayerVault(isolatedVault).deposit(address(strategyManager), strategy, assets);
     }
 
+    /// @inheritdoc IEigenLayerAdapter
     function claimWithdrawal(address isolatedVault, IDelegationManager.Withdrawal calldata data)
         external
         delegateCallOnly

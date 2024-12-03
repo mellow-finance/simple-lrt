@@ -90,6 +90,7 @@ contract SymbioticAdapter is ISymbioticAdapter {
         ISymbioticWithdrawalQueue(withdrawalQueue).request(receiver, requestedShares);
     }
 
+    /// @inheritdoc IProtocolAdapter
     function deposit(address symbioticVault, uint256 assets) external {
         require(address(this) == vault, "SymbioticAdapter: delegate call only");
         ISymbioticVault(symbioticVault).deposit(vault, assets);

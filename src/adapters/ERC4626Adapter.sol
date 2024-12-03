@@ -12,34 +12,41 @@ contract ERC4626Adapter is IERC4626Adapter {
         asset = IERC4626(vault).asset();
     }
 
+    /// @inheritdoc IProtocolAdapter
     function maxDeposit(address token) external view returns (uint256) {
-        return IERC4626(token).maxDeposit(token);
+        return IERC4626(token).maxDeposit(vault);
     }
 
+    /// @inheritdoc IProtocolAdapter
     function assetOf(address token) external view returns (address) {
         return IERC4626(token).asset();
     }
 
+    /// @inheritdoc IProtocolAdapter
     function maxWithdraw(address token) external view returns (uint256) {
-        return IERC4626(token).maxWithdraw(token);
+        return IERC4626(token).maxWithdraw(vault);
     }
 
+    /// @inheritdoc IProtocolAdapter
     function handleVault(address /* token */ ) external pure returns (address withdrawalQueue) {
         return address(0);
     }
 
+    /// @inheritdoc IProtocolAdapter
     function validateFarmData(bytes calldata /* data*/ ) external pure {
-        revert("NOT_IMPLEMENTED");
+        revert("ERC4626Adapter: not implemented");
     }
 
+    /// @inheritdoc IProtocolAdapter
     function pushRewards(
         address, /* rewardToken*/
         bytes calldata, /*farmData*/
         bytes memory /* rewardData */
     ) external pure {
-        revert("NOT_IMPLEMENTED");
+        revert("ERC4626Adapter: not implemented");
     }
 
+    /// @inheritdoc IProtocolAdapter
     function withdraw(
         address token,
         address, /*withdrawalQueue*/
@@ -51,6 +58,7 @@ contract ERC4626Adapter is IERC4626Adapter {
         IERC4626(token).withdraw(request, reciever, vault);
     }
 
+    /// @inheritdoc IProtocolAdapter
     function deposit(address token, uint256 assets) external {
         require(address(this) == vault, "Delegate call only");
         IERC4626(token).deposit(assets, vault);
