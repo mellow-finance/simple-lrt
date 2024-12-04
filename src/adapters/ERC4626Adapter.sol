@@ -24,7 +24,8 @@ contract ERC4626Adapter is IERC4626Adapter {
 
     /// @inheritdoc IProtocolAdapter
     function maxWithdraw(address token) external view returns (uint256) {
-        return IERC4626(token).maxWithdraw(vault);
+        IERC4626 token_ = IERC4626(token);
+        return token_.previewRedeem(token_.balanceOf(vault));
     }
 
     /// @inheritdoc IProtocolAdapter

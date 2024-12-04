@@ -50,9 +50,6 @@ contract EigenLayerWstETHAdapter is EigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function maxWithdraw(address isolatedVault) external view override returns (uint256) {
-        if (IPausable(address(delegationManager)).paused(PAUSED_ENTER_WITHDRAWAL_QUEUE)) {
-            return 0;
-        }
         (,, address strategy,) = factory.instances(isolatedVault);
         uint256 stethValue = IStrategy(strategy).userUnderlyingView(isolatedVault);
         return stethValue == 0 ? 0 : wsteth.getWstETHByStETH(stethValue);

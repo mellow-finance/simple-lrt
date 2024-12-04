@@ -7,7 +7,6 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
     using SafeERC20 for IERC20;
 
     uint8 public constant PAUSED_DEPOSITS = 0;
-    uint8 public constant PAUSED_ENTER_WITHDRAWAL_QUEUE = 1;
 
     address public immutable vault;
 
@@ -59,9 +58,6 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function maxWithdraw(address isolatedVault) external view virtual returns (uint256) {
-        if (IPausable(address(delegationManager)).paused(PAUSED_ENTER_WITHDRAWAL_QUEUE)) {
-            return 0;
-        }
         (,, address strategy,) = factory.instances(isolatedVault);
         return IStrategy(strategy).userUnderlyingView(isolatedVault);
     }
