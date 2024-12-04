@@ -22,6 +22,8 @@ import {
 } from "@symbiotic/core/interfaces/delegator/IFullRestakeDelegator.sol";
 import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
+import "./mocks/MockERC4626.sol";
+
 contract MultiVaultTest is Test {
     string private constant NAME = "MultiVaultTest";
     uint256 private constant VERSION = 1;
@@ -310,6 +312,7 @@ contract MultiVaultTest is Test {
             IStrategyManager(strategyManager),
             IRewardsCoordinator(rewardsCoordinator)
         );
+        ERC4626Adapter erc4626Adapter = new ERC4626Adapter(address(mv));
 
         RatiosStrategy strategy = new RatiosStrategy();
 
@@ -330,7 +333,7 @@ contract MultiVaultTest is Test {
                 defaultCollateral: defaultCollateral,
                 symbioticAdapter: address(symbioticAdapter),
                 eigenLayerAdapter: address(eigenLayerAdapter),
-                erc4626Adapter: address(0)
+                erc4626Adapter: address(erc4626Adapter)
             })
         );
 
@@ -342,7 +345,7 @@ contract MultiVaultTest is Test {
         mv.grantRole(keccak256("REBALANCE_ROLE"), admin);
 
         uint256 n = 12;
-        address[] memory subvaults = new address[](n);
+        address[] memory subvaults = new address[](n + 1);
 
         for (uint256 i = 0; i < n; i++) {
             subvaults[i] = createNewSymbioticVault(
@@ -360,10 +363,13 @@ contract MultiVaultTest is Test {
         for (uint256 i = 0; i < n; i++) {
             mv.addSubvault(subvaults[i], IMultiVaultStorage.Protocol.SYMBIOTIC);
         }
-        RatiosStrategy.Ratio[] memory ratios = new RatiosStrategy.Ratio[](n);
 
-        for (uint256 i = 0; i < n; i++) {
-            ratios[i].minRatioD18 = uint64(1 ether * (i + 1) ** 2 / n ** 2);
+        subvaults[n] = address(new MockERC4626(wsteth));
+        mv.addSubvault(subvaults[n], IMultiVaultStorage.Protocol.ERC4626);
+        RatiosStrategy.Ratio[] memory ratios = new RatiosStrategy.Ratio[](n + 1);
+
+        for (uint256 i = 0; i < n + 1; i++) {
+            ratios[i].minRatioD18 = uint64(1 ether * (i + 1) ** 2 / (n + 1) ** 2);
             ratios[i].maxRatioD18 = 1 ether;
         }
         strategy.setRatio(address(mv), subvaults, ratios);
