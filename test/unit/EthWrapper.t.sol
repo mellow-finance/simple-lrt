@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
+import "../../src/WhitelistedEthWrapper.sol";
 import "../BaseTest.sol";
 
 contract Unit is BaseTest {
@@ -354,5 +355,36 @@ contract Unit is BaseTest {
 
             vm.stopPrank();
         }
+    }
+
+    function testWhitelistedEthWrapper() external {
+        address admin = address(1243);
+        WhitelistedEthWrapper wrapper = new WhitelistedEthWrapper(
+            Constants.WETH(), Constants.WSTETH(), Constants.STETH(), admin
+        );
+
+        IdleVault vault = new IdleVault();
+        address token = Constants.WSTETH();
+        vault.initialize(
+            IIdleVault.InitParams({
+                asset: token,
+                limit: 100 ether,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                admin: makeAddr("admin"),
+                name: "IdleVault",
+                symbol: "IDLE"
+            })
+        );
+
+        vm.startPrank(admin);
+        deal(admin, 1 ether);
+
+        wrapper.deposit{value: 1 ether}(
+            0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE, 1 ether, address(vault), admin, admin
+        );
+
+        vm.stopPrank();
     }
 }
