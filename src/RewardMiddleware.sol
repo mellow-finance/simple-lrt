@@ -35,9 +35,6 @@ contract RewardMiddleware is AccessControlEnumerable {
 
     constructor(address admin_) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
-        _setRoleAdmin(SWAP_ROLE, DEFAULT_ADMIN_ROLE);
-        _setRoleAdmin(ESCROW_ROLE, DEFAULT_ADMIN_ROLE);
-        _setRoleAdmin(SEND_ROLE, DEFAULT_ADMIN_ROLE);
     }
 
     function setRouterPermission(address router, bool isAllowed)
