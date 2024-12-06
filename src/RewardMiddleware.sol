@@ -12,6 +12,7 @@ contract RewardMiddleware is AccessControlEnumerable {
 
     // Struct defining the properties of an Escrow.
     struct Escrow {
+        address operator;
         address tokenIn;
         address tokenOut;
         uint256 amountIn;
@@ -105,6 +106,9 @@ contract RewardMiddleware is AccessControlEnumerable {
         require(id < _escrows.length, "Escrow not found");
 
         Escrow memory escrow_ = _escrows[id];
+        require(
+            escrow_.operator == address(0) || escrow_.operator == msg.sender, "Operator mismatch"
+        );
 
         address this_ = address(this);
         address sender = msg.sender;
