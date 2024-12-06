@@ -72,7 +72,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     // ------------------------------- EXTERNAL MUTATIVE FUNCTIONS -------------------------------
 
     /// @inheritdoc IMultiVault
-    function initialize(InitParams calldata initParams) public virtual initializer {
+    function initialize(InitParams calldata initParams) public virtual reinitializer(2) {
         __initializeERC4626(
             initParams.admin,
             initParams.limit,

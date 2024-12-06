@@ -76,6 +76,8 @@ contract RatiosStrategy is IRatiosStrategy {
             state[i].max = multiVault.maxDeposit(i);
             if (type(uint256).max - assets >= state[i].max) {
                 state[i].max += assets;
+            } else {
+                state[i].max = type(uint256).max;
             }
         }
         totalAssets = isDeposit ? totalAssets + increment : totalAssets - increment;
