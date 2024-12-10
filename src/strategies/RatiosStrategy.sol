@@ -70,12 +70,12 @@ contract RatiosStrategy is IRatiosStrategy {
         }
         uint256 totalAssets = liquid;
         for (uint256 i = 0; i < n; i++) {
-            (state[i].claimable, state[i].pending, state[i].staked) = multiVault.maxWithdraw(i);
+            (state[i].claimable, state[i].pending, state[i].staked) = multiVault.assetsOf(i);
             uint256 assets = state[i].staked + state[i].pending + state[i].claimable;
             totalAssets += assets;
-            state[i].max = multiVault.maxDeposit(i);
-            if (type(uint256).max - assets >= state[i].max) {
-                state[i].max += assets;
+            uint256 maxDeposit = multiVault.maxDeposit(i);
+            if (type(uint256).max - assets > maxDeposit) {
+                state[i].max = maxDeposit + assets;
             } else {
                 state[i].max = type(uint256).max;
             }

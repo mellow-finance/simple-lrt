@@ -49,7 +49,7 @@ contract EigenLayerWstETHAdapter is EigenLayerAdapter {
     }
 
     /// @inheritdoc IProtocolAdapter
-    function maxWithdraw(address isolatedVault) external view override returns (uint256) {
+    function stakedAt(address isolatedVault) external view override returns (uint256) {
         (,, address strategy,) = factory.instances(isolatedVault);
         uint256 stethValue = IStrategy(strategy).userUnderlyingView(isolatedVault);
         return stethValue == 0 ? 0 : wsteth.getWstETHByStETH(stethValue);

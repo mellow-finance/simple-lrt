@@ -40,7 +40,7 @@ contract SymbioticAdapter is ISymbioticAdapter {
     }
 
     /// @inheritdoc IProtocolAdapter
-    function maxWithdraw(address symbioticVault) external view returns (uint256) {
+    function stakedAt(address symbioticVault) external view returns (uint256) {
         return ISymbioticVault(symbioticVault).activeBalanceOf(vault);
     }
 

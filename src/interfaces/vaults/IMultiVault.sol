@@ -48,9 +48,9 @@ interface IMultiVault is IMultiVaultStorage {
 
     function pushRewards(uint256 farmId, bytes calldata data) external;
 
-    function maxDeposit(uint256 subvaultIndex) external view returns (uint256);
+    function maxDeposit(uint256 subvaultIndex) external view returns (uint256 assets);
 
-    function maxWithdraw(uint256 subvaultIndex)
+    function assetsOf(uint256 subvaultIndex)
         external
         view
         returns (uint256 claimable, uint256 pending, uint256 staked);

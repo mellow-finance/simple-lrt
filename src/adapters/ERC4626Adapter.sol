@@ -5,11 +5,9 @@ import "../interfaces/adapters/IERC4626Adapter.sol";
 
 contract ERC4626Adapter is IERC4626Adapter {
     address public immutable vault;
-    address public immutable asset;
 
     constructor(address vault_) {
         vault = vault_;
-        asset = IERC4626(vault).asset();
     }
 
     /// @inheritdoc IProtocolAdapter
@@ -18,14 +16,14 @@ contract ERC4626Adapter is IERC4626Adapter {
     }
 
     /// @inheritdoc IProtocolAdapter
-    function assetOf(address token) external view returns (address) {
-        return IERC4626(token).asset();
+    function stakedAt(address token) external view returns (uint256) {
+        IERC4626 token_ = IERC4626(token);
+        return token_.previewRedeem(token_.balanceOf(vault));
     }
 
     /// @inheritdoc IProtocolAdapter
-    function maxWithdraw(address token) external view returns (uint256) {
-        IERC4626 token_ = IERC4626(token);
-        return token_.previewRedeem(token_.balanceOf(vault));
+    function assetOf(address token) external view returns (address) {
+        return IERC4626(token).asset();
     }
 
     /// @inheritdoc IProtocolAdapter

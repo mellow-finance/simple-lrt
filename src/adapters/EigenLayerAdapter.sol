@@ -57,7 +57,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
     }
 
     /// @inheritdoc IProtocolAdapter
-    function maxWithdraw(address isolatedVault) external view virtual returns (uint256) {
+    function stakedAt(address isolatedVault) external view virtual returns (uint256) {
         (,, address strategy,) = factory.instances(isolatedVault);
         return IStrategy(strategy).userUnderlyingView(isolatedVault);
     }

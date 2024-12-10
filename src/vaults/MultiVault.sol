@@ -33,13 +33,13 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     }
 
     /// @inheritdoc IMultiVault
-    function maxWithdraw(uint256 subvaultIndex)
+    function assetsOf(uint256 subvaultIndex)
         public
         view
         returns (uint256 claimable, uint256 pending, uint256 staked)
     {
         Subvault memory subvault = subvaultAt(subvaultIndex);
-        staked = adapterOf(subvault.protocol).maxWithdraw(subvault.vault);
+        staked = adapterOf(subvault.protocol).stakedAt(subvault.vault);
         if (subvault.withdrawalQueue != address(0)) {
             address this_ = address(this);
             claimable = IWithdrawalQueue(subvault.withdrawalQueue).claimableAssetsOf(this_);
@@ -64,7 +64,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
 
         uint256 length = subvaultsCount();
         for (uint256 i = 0; i < length; i++) {
-            (uint256 claimable, uint256 pending, uint256 staked) = maxWithdraw(i);
+            (uint256 claimable, uint256 pending, uint256 staked) = assetsOf(i);
             assets_ += claimable + pending + staked;
         }
     }

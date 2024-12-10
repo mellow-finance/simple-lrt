@@ -4,6 +4,4 @@ pragma solidity 0.8.25;
 import {IProtocolAdapter} from "./IProtocolAdapter.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
-interface IERC4626Adapter is IProtocolAdapter {
-    function asset() external view returns (address);
-}
+interface IERC4626Adapter is IProtocolAdapter {}

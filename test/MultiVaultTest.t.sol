@@ -1,27 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "forge-std/Test.sol";
-import "forge-std/console2.sol";
-
-import "../src/adapters/ERC4626Adapter.sol";
-import "../src/adapters/EigenLayerWstETHAdapter.sol";
-import "../src/adapters/IsolatedEigenLayerVault.sol";
-import "../src/adapters/IsolatedEigenLayerVaultFactory.sol";
-import "../src/adapters/IsolatedEigenLayerWstETHVault.sol";
-import "../src/adapters/IsolatedEigenLayerWstETHVaultFactory.sol";
-import "../src/adapters/SymbioticAdapter.sol";
-
-import "../src/strategies/RatiosStrategy.sol";
-import "../src/utils/Claimer.sol";
-import "../src/vaults/MultiVault.sol";
-import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
-import {
-    IBaseDelegator,
-    IFullRestakeDelegator
-} from "@symbiotic/core/interfaces/delegator/IFullRestakeDelegator.sol";
-import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
-
+import "./Imports.sol";
 import "./mocks/MockERC4626.sol";
 
 contract MultiVaultTest is Test {
