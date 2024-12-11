@@ -2,27 +2,37 @@
 pragma solidity 0.8.25;
 
 import "./EthWrapper.sol";
-import "@openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol";
+import "@openzeppelin/contracts/access/IAccessControl.sol";
 
-contract WhitelistedEthWrapper is EthWrapper, AccessControlEnumerable {
-    constructor(address WETH_, address wstETH_, address stETH_, address admin_)
+contract WhitelistedEthWrapper is EthWrapper {
+    constructor(address WETH_, address wstETH_, address stETH_)
         EthWrapper(WETH_, wstETH_, stETH_)
-    {
-        _grantRole(DEFAULT_ADMIN_ROLE, admin_);
+    {}
+
+    bytes32 public constant SET_WRAPPER_DEPOSIT_WHITELIST_ROLE =
+        keccak256("SET_WRAPPER_DEPOSIT_WHITELIST_ROLE");
+    bytes32 public constant SET_WRAPPER_DEPOSITOR_WHITELIST_STATUS_ROLE =
+        keccak256("SET_WRAPPER_DEPOSITOR_WHITELIST_STATUS_ROLE");
+
+    mapping(address vault => bool) public depositWhitelist;
+    mapping(address vault => mapping(address account => bool)) public isDepositWhitelist;
+
+    function setDepositWhitelist(address vault, bool depositWhitelist_) external {
+        require(
+            IAccessControl(vault).hasRole(SET_WRAPPER_DEPOSIT_WHITELIST_ROLE, msg.sender),
+            "WhitelistedEthWrapper: msg.sender must have SET_WRAPPER_DEPOSIT_WHITELIST_ROLE"
+        );
+        depositWhitelist[vault] = depositWhitelist_;
     }
 
-    bool public depositWhitelist;
-    mapping(address account => bool) public isDepositWhitelist;
-
-    function setDepositWhitelist(bool depositWhitelist_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        depositWhitelist = depositWhitelist_;
-    }
-
-    function setDepositWhitelist(address account, bool isDepositWhitelist_)
+    function setDepositWhitelist(address vault, address account, bool isDepositWhitelist_)
         external
-        onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        isDepositWhitelist[account] = isDepositWhitelist_;
+        require(
+            IAccessControl(vault).hasRole(SET_WRAPPER_DEPOSITOR_WHITELIST_STATUS_ROLE, msg.sender),
+            "WhitelistedEthWrapper: msg.sender must have SET_WRAPPER_DEPOSITOR_WHITELIST_STATUS_ROLE"
+        );
+        isDepositWhitelist[vault][account] = isDepositWhitelist_;
     }
 
     /// @inheritdoc IEthWrapper
@@ -35,7 +45,7 @@ contract WhitelistedEthWrapper is EthWrapper, AccessControlEnumerable {
     ) public payable override returns (uint256 shares) {
         require(depositToken == ETH || depositToken == WETH, "EthWrapper: invalid depositToken");
         require(
-            !depositWhitelist || isDepositWhitelist[msg.sender],
+            !depositWhitelist[vault] || isDepositWhitelist[vault][msg.sender],
             "EthWrapper: deposit not whitelisted"
         );
         return super.deposit(depositToken, amount, vault, receiver, referral);
