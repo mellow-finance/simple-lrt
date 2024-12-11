@@ -12,7 +12,7 @@
 	url = https://github.com/symbioticfi/core
 [submodule "lib/rewards"]
 	path = lib/rewards
-	url = https://github.com/symbioticfi/rewards
+	url = https://github.com/lib/rewards
 [submodule "lib/eigenlayer-contracts"]
 	path = lib/eigenlayer-contracts
 	url = https://github.com/layr-labs/eigenlayer-contracts
