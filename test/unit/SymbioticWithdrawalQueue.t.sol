@@ -31,12 +31,8 @@ contract Unit is BaseTest {
 
     function testSymbioticWithdrawalQueue() external {
         address vaultAdmin = rnd.randAddress();
-        (
-            MultiVault vault,
-            SymbioticAdapter adapter,
-            RatiosStrategy strategy,
-            address symbioticVault
-        ) = createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
+        (MultiVault vault,,, address symbioticVault) =
+            createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
         address user = rnd.randAddress();
         vm.startPrank(user);
         deal(Constants.WSTETH(), user, 1 ether);
