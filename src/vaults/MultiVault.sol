@@ -188,7 +188,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
                     "MultiVault: curator treasury address cannot be zero when fee is set"
                 );
             }
-            adapterOf(rewardData.protocol).validateFarmData(rewardData.data);
+            adapterOf(rewardData.protocol).validateRewardData(rewardData.data);
         }
         _setRewardData(farmId, rewardData);
     }

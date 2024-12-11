@@ -10,7 +10,7 @@ interface IProtocolAdapter {
 
     function assetOf(address subvault) external view returns (address);
 
-    function validateFarmData(bytes calldata data) external view;
+    function validateRewardData(bytes calldata data) external view;
 
     function pushRewards(address rewardToken, bytes calldata farmData, bytes memory rewardData)
         external;

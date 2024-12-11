@@ -701,7 +701,7 @@ contract Unit is BaseTest {
             })
         );
 
-        vm.expectRevert("SymbioticAdapter: invalid farm data");
+        vm.expectRevert("SymbioticAdapter: invalid reward data");
         vault.setRewardsData(
             0,
             IMultiVaultStorage.RewardData({
@@ -714,7 +714,7 @@ contract Unit is BaseTest {
             })
         );
 
-        vm.expectRevert("SymbioticAdapter: invalid farm data");
+        vm.expectRevert("SymbioticAdapter: invalid reward data");
         vault.setRewardsData(
             0,
             IMultiVaultStorage.RewardData({
@@ -821,6 +821,84 @@ contract Unit is BaseTest {
                 curatorTreasury: address(2),
                 protocol: IMultiVaultStorage.Protocol.ERC4626,
                 data: new bytes(0)
+            })
+        );
+
+        vm.stopPrank();
+    }
+
+    function testPushRewards() external {
+        MultiVault vault = new MultiVault("MultiVault", 1);
+
+        address vaultAdmin = rnd.randAddress();
+        RatiosStrategy strategy = new RatiosStrategy();
+        Claimer claimer = new Claimer();
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        );
+        EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
+            address(factory),
+            address(vault),
+            IStrategyManager(Constants.HOLESKY_EL_STRATEGY_MANAGER),
+            IRewardsCoordinator(Constants.HOLESKY_EL_REWARDS_COORDINATOR)
+        );
+        ERC4626Adapter erc4626Adapter = new ERC4626Adapter(address(vault));
+
+        vault.initialize(
+            IMultiVault.InitParams({
+                admin: vaultAdmin,
+                limit: type(uint256).max,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                asset: Constants.WSTETH(),
+                name: "MultiVault test",
+                symbol: "MVT",
+                depositStrategy: address(strategy),
+                withdrawalStrategy: address(strategy),
+                rebalanceStrategy: address(strategy),
+                defaultCollateral: Constants.WSTETH_SYMBIOTIC_COLLATERAL(),
+                symbioticAdapter: address(symbioticAdapter),
+                eigenLayerAdapter: address(eigenLayerAdapter),
+                erc4626Adapter: address(erc4626Adapter)
+            })
+        );
+
+        address distributorFarm = rnd.randAddress();
+        address curatorTreasury = rnd.randAddress();
+
+        vm.startPrank(vaultAdmin);
+        vault.grantRole(vault.SET_REWARDS_DATA_ROLE(), vaultAdmin);
+        vault.setRewardsData(
+            0,
+            IMultiVaultStorage.RewardData({
+                token: address(1),
+                curatorFeeD6: 1e5,
+                distributionFarm: distributorFarm,
+                curatorTreasury: curatorTreasury,
+                protocol: IMultiVaultStorage.Protocol.SYMBIOTIC,
+                data: abi.encode(address(1))
+            })
+        );
+
+        ISignatureUtils.SignatureWithExpiry memory signature;
+        (address isolatedVault,) = factory.getOrCreate(
+            address(vault),
+            0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937,
+            0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3,
+            abi.encode(signature, bytes32(0))
+        );
+
+        vault.setRewardsData(
+            1,
+            IMultiVaultStorage.RewardData({
+                token: address(1),
+                curatorFeeD6: 1e5,
+                distributionFarm: distributorFarm,
+                curatorTreasury: curatorTreasury,
+                protocol: IMultiVaultStorage.Protocol.EIGEN_LAYER,
+                data: abi.encode(isolatedVault)
             })
         );
 

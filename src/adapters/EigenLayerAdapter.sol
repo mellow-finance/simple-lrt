@@ -77,7 +77,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
     }
 
     /// @inheritdoc IProtocolAdapter
-    function validateFarmData(bytes calldata data) external view {
+    function validateRewardData(bytes calldata data) external view {
         require(data.length == 32, "EigenLayerAdapter: invalid reward data");
         address isolatedVault = abi.decode(data, (address));
         (address owner,,,) = factory.instances(isolatedVault);

@@ -32,7 +32,7 @@ contract ERC4626Adapter is IERC4626Adapter {
     }
 
     /// @inheritdoc IProtocolAdapter
-    function validateFarmData(bytes calldata /* data*/ ) external pure {
+    function validateRewardData(bytes calldata /* data*/ ) external pure {
         revert("ERC4626Adapter: not implemented");
     }
 

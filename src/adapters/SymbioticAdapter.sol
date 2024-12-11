@@ -60,10 +60,10 @@ contract SymbioticAdapter is ISymbioticAdapter {
     }
 
     /// @inheritdoc IProtocolAdapter
-    function validateFarmData(bytes calldata data) external pure {
-        require(data.length == 32, "SymbioticAdapter: invalid farm data");
+    function validateRewardData(bytes calldata data) external pure {
+        require(data.length == 32, "SymbioticAdapter: invalid reward data");
         address symbioticFarm = abi.decode(data, (address));
-        require(symbioticFarm != address(0), "SymbioticAdapter: invalid farm data");
+        require(symbioticFarm != address(0), "SymbioticAdapter: invalid reward data");
     }
 
     /// @inheritdoc IProtocolAdapter
@@ -72,8 +72,7 @@ contract SymbioticAdapter is ISymbioticAdapter {
     {
         require(address(this) == vault, "SymbioticAdapter: delegate call only");
         address symbioticFarm = abi.decode(rewardData, (address));
-        bytes memory symbioticFarmData = abi.decode(farmData, (bytes));
-        IStakerRewards(symbioticFarm).claimRewards(vault, address(rewardToken), symbioticFarmData);
+        IStakerRewards(symbioticFarm).claimRewards(vault, address(rewardToken), farmData);
     }
 
     /// @inheritdoc IProtocolAdapter
