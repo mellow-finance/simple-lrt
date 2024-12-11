@@ -755,6 +755,13 @@ contract Unit is BaseTest {
         );
         assertEq(0, withdrawalQueue.pendingAssetsOf(user2), "stage 1: pendingAssetsOf(user2)");
 
+        // self transfer == early exit
+        withdrawalQueue.transferPendingAssets(user, totalPending);
+        assertEq(
+            totalPending, withdrawalQueue.pendingAssetsOf(user), "stage 1: pendingAssetsOf(user)"
+        );
+        assertEq(0, withdrawalQueue.pendingAssetsOf(user2), "stage 1: pendingAssetsOf(user2)");
+
         // current epoch is enounch
         withdrawalQueue.transferPendingAssets(user2, totalPending / 2);
         assertEq(
