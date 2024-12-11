@@ -28,10 +28,6 @@ contract RatiosStrategy is IRatiosStrategy {
             IAccessControl(vault).hasRole(SHARES_STRATEGY_SET_RATIO_ROLE, msg.sender),
             "SharesStrategy: unauthorized"
         );
-        require(
-            subvaults.length == ratios.length,
-            "SharesStrategy: subvaults and ratios length mismatch"
-        );
         IMultiVault multiVault = IMultiVault(vault);
         uint256 n = subvaults.length;
         for (uint256 i = 0; i < n; i++) {
