@@ -26,7 +26,7 @@ contract RatiosStrategy is IRatiosStrategy {
     {
         require(
             IAccessControl(vault).hasRole(RATIOS_STRATEGY_SET_RATIOS_ROLE, msg.sender),
-            "SharesStrategy: unauthorized"
+            "SharesStrategy: forbidden"
         );
         IMultiVault multiVault = IMultiVault(vault);
         uint256 n = subvaults.length;

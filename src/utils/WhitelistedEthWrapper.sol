@@ -24,14 +24,12 @@ contract WhitelistedEthWrapper is EthWrapper {
         depositWhitelist[vault] = depositWhitelist_;
     }
 
-    function setDepositWhitelist(address vault, address account, bool isDepositWhitelist_)
-        external
-    {
+    function setDepositorWhitelistStatus(address vault, address account, bool status) external {
         require(
             IAccessControl(vault).hasRole(SET_DEPOSITOR_WHITELIST_STATUS_ROLE, msg.sender),
             "WhitelistedEthWrapper: forbidden"
         );
-        isDepositWhitelist[vault][account] = isDepositWhitelist_;
+        isDepositWhitelist[vault][account] = status;
     }
 
     /// @inheritdoc IEthWrapper
@@ -45,7 +43,7 @@ contract WhitelistedEthWrapper is EthWrapper {
         require(depositToken == ETH || depositToken == WETH, "EthWrapper: invalid depositToken");
         require(
             !depositWhitelist[vault] || isDepositWhitelist[vault][msg.sender],
-            "EthWrapper: deposit not whitelisted"
+            "WhitelistedEthWrapper: deposit not whitelisted"
         );
         return super.deposit(depositToken, amount, vault, receiver, referral);
     }
