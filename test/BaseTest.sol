@@ -44,7 +44,7 @@ abstract contract BaseTest is Test {
         (symbioticVault,,,) = symbioticHelper.createDefaultSymbioticVault(Constants.WSTETH());
         {
             vm.startPrank(vaultAdmin);
-            vault.grantRole(strategy.SHARES_STRATEGY_SET_RATIO_ROLE(), vaultAdmin);
+            vault.grantRole(strategy.RATIOS_STRATEGY_SET_RATIO_ROLE(), vaultAdmin);
             vault.grantRole(vault.ADD_SUBVAULT_ROLE(), vaultAdmin);
             vault.addSubvault(address(symbioticVault), IMultiVaultStorage.Protocol.SYMBIOTIC);
             address[] memory subvaults = new address[](1);

@@ -5,8 +5,8 @@ import "../interfaces/strategies/IRatiosStrategy.sol";
 
 contract RatiosStrategy is IRatiosStrategy {
     uint256 public constant D18 = 1e18;
-    bytes32 public constant SHARES_STRATEGY_SET_RATIO_ROLE =
-        keccak256("SHARES_STRATEGY_SET_RATIO_ROLE");
+    bytes32 public constant RATIOS_STRATEGY_SET_RATIO_ROLE =
+        keccak256("RATIOS_STRATEGY_SET_RATIO_ROLE");
 
     mapping(address vault => mapping(address subvault => Ratio)) private _ratios;
 
@@ -25,7 +25,7 @@ contract RatiosStrategy is IRatiosStrategy {
         external
     {
         require(
-            IAccessControl(vault).hasRole(SHARES_STRATEGY_SET_RATIO_ROLE, msg.sender),
+            IAccessControl(vault).hasRole(RATIOS_STRATEGY_SET_RATIO_ROLE, msg.sender),
             "SharesStrategy: unauthorized"
         );
         IMultiVault multiVault = IMultiVault(vault);
