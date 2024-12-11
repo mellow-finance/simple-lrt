@@ -9,18 +9,17 @@ contract WhitelistedEthWrapper is EthWrapper {
         EthWrapper(WETH_, wstETH_, stETH_)
     {}
 
-    bytes32 public constant SET_WRAPPER_DEPOSIT_WHITELIST_ROLE =
-        keccak256("SET_WRAPPER_DEPOSIT_WHITELIST_ROLE");
-    bytes32 public constant SET_WRAPPER_DEPOSITOR_WHITELIST_STATUS_ROLE =
-        keccak256("SET_WRAPPER_DEPOSITOR_WHITELIST_STATUS_ROLE");
+    bytes32 public constant SET_DEPOSIT_WHITELIST_ROLE = keccak256("SET_DEPOSIT_WHITELIST_ROLE");
+    bytes32 public constant SET_DEPOSITOR_WHITELIST_STATUS_ROLE =
+        keccak256("SET_DEPOSITOR_WHITELIST_STATUS_ROLE");
 
     mapping(address vault => bool) public depositWhitelist;
     mapping(address vault => mapping(address account => bool)) public isDepositWhitelist;
 
     function setDepositWhitelist(address vault, bool depositWhitelist_) external {
         require(
-            IAccessControl(vault).hasRole(SET_WRAPPER_DEPOSIT_WHITELIST_ROLE, msg.sender),
-            "WhitelistedEthWrapper: msg.sender must have SET_WRAPPER_DEPOSIT_WHITELIST_ROLE"
+            IAccessControl(vault).hasRole(SET_DEPOSIT_WHITELIST_ROLE, msg.sender),
+            "WhitelistedEthWrapper: forbidden"
         );
         depositWhitelist[vault] = depositWhitelist_;
     }
@@ -29,8 +28,8 @@ contract WhitelistedEthWrapper is EthWrapper {
         external
     {
         require(
-            IAccessControl(vault).hasRole(SET_WRAPPER_DEPOSITOR_WHITELIST_STATUS_ROLE, msg.sender),
-            "WhitelistedEthWrapper: msg.sender must have SET_WRAPPER_DEPOSITOR_WHITELIST_STATUS_ROLE"
+            IAccessControl(vault).hasRole(SET_DEPOSITOR_WHITELIST_STATUS_ROLE, msg.sender),
+            "WhitelistedEthWrapper: forbidden"
         );
         isDepositWhitelist[vault][account] = isDepositWhitelist_;
     }
