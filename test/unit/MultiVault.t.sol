@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
+import "../mocks/MockSymbioticFarm.sol";
 
 contract Unit is BaseTest {
     using RandomLib for RandomLib.Storage;
@@ -865,42 +866,227 @@ contract Unit is BaseTest {
             })
         );
 
-        address distributorFarm = rnd.randAddress();
+        address distributionFarm = rnd.randAddress();
         address curatorTreasury = rnd.randAddress();
 
         vm.startPrank(vaultAdmin);
         vault.grantRole(vault.SET_REWARDS_DATA_ROLE(), vaultAdmin);
+        MockSymbioticFarm mockSymbioticFarm = new MockSymbioticFarm();
         vault.setRewardsData(
             0,
             IMultiVaultStorage.RewardData({
-                token: address(1),
+                token: Constants.WETH(),
                 curatorFeeD6: 1e5,
-                distributionFarm: distributorFarm,
+                distributionFarm: distributionFarm,
                 curatorTreasury: curatorTreasury,
                 protocol: IMultiVaultStorage.Protocol.SYMBIOTIC,
-                data: abi.encode(address(1))
+                data: abi.encode(address(mockSymbioticFarm))
             })
         );
 
-        ISignatureUtils.SignatureWithExpiry memory signature;
-        (address isolatedVault,) = factory.getOrCreate(
+        deal(Constants.WETH(), address(mockSymbioticFarm), 1 ether);
+        vm.stopPrank();
+
+        IERC20 weth = IERC20(Constants.WETH());
+        assertEq(weth.balanceOf(distributionFarm), 0, "distribution farm balance should be zero");
+        assertEq(weth.balanceOf(curatorTreasury), 0, "curator treasury balance should be zero");
+
+        vault.pushRewards(0, new bytes(0));
+
+        assertEq(
+            weth.balanceOf(distributionFarm),
+            0.9 ether,
+            "distribution farm balance should be 90% of 1 ether"
+        );
+        assertEq(
+            weth.balanceOf(curatorTreasury),
+            0.1 ether,
+            "curator treasury balance should be 10% of 1 ether"
+        );
+
+        vault.pushRewards(0, new bytes(0));
+
+        assertEq(
+            weth.balanceOf(distributionFarm),
+            0.9 ether,
+            "distribution farm balance should not change"
+        );
+        assertEq(
+            weth.balanceOf(curatorTreasury), 0.1 ether, "curator treasury balance should not change"
+        );
+
+        vm.expectRevert("MultiVault: farm not found");
+        vault.pushRewards(1, new bytes(0));
+    }
+
+    function testDeposit() external {
+        MultiVault vault = new MultiVault("MultiVault", 1);
+
+        address vaultAdmin = rnd.randAddress();
+        RatiosStrategy strategy = new RatiosStrategy();
+        Claimer claimer = new Claimer();
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        );
+        EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
+            address(factory),
             address(vault),
-            0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937,
-            0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3,
-            abi.encode(signature, bytes32(0))
+            IStrategyManager(Constants.HOLESKY_EL_STRATEGY_MANAGER),
+            IRewardsCoordinator(Constants.HOLESKY_EL_REWARDS_COORDINATOR)
         );
-
-        vault.setRewardsData(
-            1,
-            IMultiVaultStorage.RewardData({
-                token: address(1),
-                curatorFeeD6: 1e5,
-                distributionFarm: distributorFarm,
-                curatorTreasury: curatorTreasury,
-                protocol: IMultiVaultStorage.Protocol.EIGEN_LAYER,
-                data: abi.encode(isolatedVault)
+        ERC4626Adapter erc4626Adapter = new ERC4626Adapter(address(vault));
+        vault.initialize(
+            IMultiVault.InitParams({
+                admin: vaultAdmin,
+                limit: type(uint256).max,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                asset: Constants.WSTETH(),
+                name: "MultiVault test",
+                symbol: "MVT",
+                depositStrategy: address(strategy),
+                withdrawalStrategy: address(strategy),
+                rebalanceStrategy: address(strategy),
+                defaultCollateral: Constants.WSTETH_SYMBIOTIC_COLLATERAL(),
+                symbioticAdapter: address(symbioticAdapter),
+                eigenLayerAdapter: address(eigenLayerAdapter),
+                erc4626Adapter: address(erc4626Adapter)
             })
         );
+
+        // deposit without subvaults
+
+        address user = rnd.randAddress();
+
+        vm.startPrank(user);
+
+        IERC20 wsteth = IERC20(Constants.WSTETH());
+        deal(address(wsteth), user, 1 ether);
+        wsteth.approve(address(vault), type(uint256).max);
+        vault.deposit(1 ether, user);
+        IDefaultCollateral defaultCollateral = vault.defaultCollateral();
+        assertEq(defaultCollateral.balanceOf(address(vault)), 1 ether);
+        assertEq(wsteth.balanceOf(address(vault)), 0);
+        assertEq(vault.balanceOf(user), 1 ether);
+
+        uint256 leftover = defaultCollateral.limit() - defaultCollateral.totalSupply();
+
+        deal(address(wsteth), user, 10000 ether);
+        vault.deposit(10000 ether, user);
+        assertEq(
+            defaultCollateral.balanceOf(address(vault)) + wsteth.balanceOf(address(vault)),
+            10001 ether
+        );
+        assertEq(defaultCollateral.balanceOf(address(vault)), 1 ether + leftover);
+        assertEq(wsteth.balanceOf(address(vault)), 10000 ether - leftover);
+        assertEq(vault.balanceOf(user), 10001 ether);
+
+        deal(address(wsteth), user, 1 ether);
+        vault.deposit(1 ether, user);
+        assertEq(
+            defaultCollateral.balanceOf(address(vault)) + wsteth.balanceOf(address(vault)),
+            10002 ether
+        );
+        assertEq(defaultCollateral.balanceOf(address(vault)), 1 ether + leftover);
+        assertEq(wsteth.balanceOf(address(vault)), 10001 ether - leftover);
+        assertEq(vault.balanceOf(user), 10002 ether);
+
+        vm.stopPrank();
+    }
+
+    function testWithdrawal() external {
+        MultiVault vault = new MultiVault("MultiVault", 1);
+
+        address vaultAdmin = rnd.randAddress();
+        RatiosStrategy strategy = new RatiosStrategy();
+        Claimer claimer = new Claimer();
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        );
+        EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
+            address(factory),
+            address(vault),
+            IStrategyManager(Constants.HOLESKY_EL_STRATEGY_MANAGER),
+            IRewardsCoordinator(Constants.HOLESKY_EL_REWARDS_COORDINATOR)
+        );
+        ERC4626Adapter erc4626Adapter = new ERC4626Adapter(address(vault));
+        vault.initialize(
+            IMultiVault.InitParams({
+                admin: vaultAdmin,
+                limit: type(uint256).max,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                asset: Constants.WSTETH(),
+                name: "MultiVault test",
+                symbol: "MVT",
+                depositStrategy: address(strategy),
+                withdrawalStrategy: address(strategy),
+                rebalanceStrategy: address(strategy),
+                defaultCollateral: Constants.WSTETH_SYMBIOTIC_COLLATERAL(),
+                symbioticAdapter: address(symbioticAdapter),
+                eigenLayerAdapter: address(eigenLayerAdapter),
+                erc4626Adapter: address(erc4626Adapter)
+            })
+        );
+
+        // deposit without subvaults
+
+        address user = rnd.randAddress();
+
+        vm.startPrank(user);
+
+        IERC20 wsteth = IERC20(Constants.WSTETH());
+        deal(address(wsteth), user, 20001 ether);
+        wsteth.approve(address(vault), type(uint256).max);
+
+        vault.deposit(1 ether, user);
+        vault.redeem(vault.balanceOf(user), user, user);
+
+        vault.deposit(10000 ether, user);
+        vault.redeem(vault.balanceOf(user), user, user);
+
+        vault.deposit(20000 ether, user);
+        address user2 = rnd.randAddress();
+        vault.approve(user2, 10000 ether);
+        vm.stopPrank();
+
+        vm.startPrank(user2);
+        vault.redeem(vault.balanceOf(user2), user2, user);
+        vm.stopPrank();
+
+        vm.startPrank(vaultAdmin);
+        vault.grantRole(vault.ADD_SUBVAULT_ROLE(), vaultAdmin);
+        vault.grantRole(vault.REBALANCE_ROLE(), vaultAdmin);
+        vault.grantRole(strategy.RATIOS_STRATEGY_SET_RATIOS_ROLE(), vaultAdmin);
+
+        (address symbioticVault,,,) =
+            symbioticHelper.createDefaultSymbioticVault(Constants.WSTETH());
+        vault.addSubvault(symbioticVault, IMultiVaultStorage.Protocol.SYMBIOTIC);
+        address[] memory subvaults = new address[](1);
+        subvaults[0] = symbioticVault;
+        IRatiosStrategy.Ratio[] memory ratios = new IRatiosStrategy.Ratio[](1);
+        ratios[0] = IRatiosStrategy.Ratio(0, 1 ether);
+        strategy.setRatios(address(vault), subvaults, ratios);
+        vault.rebalance();
+        ratios[0] = IRatiosStrategy.Ratio(0, 0.5 ether);
+        strategy.setRatios(address(vault), subvaults, ratios);
+        vault.rebalance();
+        skip(3 weeks);
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        vault.redeem(vault.balanceOf(user), user, user);
+        vault.withdraw(0, user, user);
+        vault.deposit(0, user);
+        vault.deposit(0, user, user);
+        vault.mint(0, user);
+        vault.maxDeposit(0);
+        vault.assetsOf(0);
+        vault.totalAssets();
 
         vm.stopPrank();
     }
