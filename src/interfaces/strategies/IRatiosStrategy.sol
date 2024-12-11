@@ -29,7 +29,7 @@ interface IRatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceSt
         view
         returns (uint256 minRatioD18, uint256 maxRatioD18);
 
-    function setRatio(address vault, address[] calldata subvaults, Ratio[] calldata ratios)
+    function setRatios(address vault, address[] calldata subvaults, Ratio[] calldata ratios)
         external;
 
     function calculateState(address vault, bool isDeposit, uint256 increment)

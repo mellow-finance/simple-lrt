@@ -132,7 +132,7 @@ contract MultiVaultTest is Test {
         ratios[0].maxRatioD18 = 0.95 ether;
 
         mv.addSubvault(symbioticVault, IMultiVaultStorage.Protocol.SYMBIOTIC);
-        strategy.setRatio(address(mv), subvaults, ratios);
+        strategy.setRatios(address(mv), subvaults, ratios);
         mv.removeSubvault(symbioticVault);
         mv.addSubvault(symbioticVault, IMultiVaultStorage.Protocol.SYMBIOTIC);
 
@@ -245,7 +245,7 @@ contract MultiVaultTest is Test {
         ratios[0].maxRatioD18 = 0.95 ether;
 
         mv.addSubvault(isolatedVault, IMultiVaultStorage.Protocol.EIGEN_LAYER);
-        strategy.setRatio(address(mv), subvaults, ratios);
+        strategy.setRatios(address(mv), subvaults, ratios);
 
         mv.rebalance();
 
@@ -352,7 +352,7 @@ contract MultiVaultTest is Test {
             ratios[i].minRatioD18 = uint64(1 ether * (i + 1) ** 2 / (n + 1) ** 2);
             ratios[i].maxRatioD18 = 1 ether;
         }
-        strategy.setRatio(address(mv), subvaults, ratios);
+        strategy.setRatios(address(mv), subvaults, ratios);
 
         mv.rebalance();
 

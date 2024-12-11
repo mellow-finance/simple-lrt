@@ -44,14 +44,14 @@ abstract contract BaseTest is Test {
         (symbioticVault,,,) = symbioticHelper.createDefaultSymbioticVault(Constants.WSTETH());
         {
             vm.startPrank(vaultAdmin);
-            vault.grantRole(strategy.RATIOS_STRATEGY_SET_RATIO_ROLE(), vaultAdmin);
+            vault.grantRole(strategy.RATIOS_STRATEGY_SET_RATIOS_ROLE(), vaultAdmin);
             vault.grantRole(vault.ADD_SUBVAULT_ROLE(), vaultAdmin);
             vault.addSubvault(address(symbioticVault), IMultiVaultStorage.Protocol.SYMBIOTIC);
             address[] memory subvaults = new address[](1);
             subvaults[0] = symbioticVault;
             IRatiosStrategy.Ratio[] memory ratios = new IRatiosStrategy.Ratio[](1);
             ratios[0] = IRatiosStrategy.Ratio(0.5 ether, 1 ether);
-            strategy.setRatio(address(vault), subvaults, ratios);
+            strategy.setRatios(address(vault), subvaults, ratios);
             vm.stopPrank();
         }
     }
