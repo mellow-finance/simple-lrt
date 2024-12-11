@@ -61,7 +61,7 @@ contract SymbioticAdapter is ISymbioticAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function validateFarmData(bytes calldata data) external pure {
-        require(data.length == 20, "SymbioticAdapter: invalid farm data");
+        require(data.length == 32, "SymbioticAdapter: invalid farm data");
         address symbioticFarm = abi.decode(data, (address));
         require(symbioticFarm != address(0), "SymbioticAdapter: invalid farm data");
     }

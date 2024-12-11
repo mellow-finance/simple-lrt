@@ -178,7 +178,6 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     {
         if (rewardData.token != address(0)) {
             require(rewardData.curatorFeeD6 <= D6, "MultiVault: curator fee exceeds 100%");
-            require(rewardData.token != address(0), "MultiVault: reward token cannot be zero");
             require(
                 rewardData.distributionFarm != address(0),
                 "MultiVault: distribution farm address cannot be zero"

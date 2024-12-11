@@ -122,7 +122,7 @@ contract MultiVaultTest is Test {
 
         mv.grantRole(keccak256("ADD_SUBVAULT_ROLE"), admin);
         mv.grantRole(keccak256("REMOVE_SUBVAULT_ROLE"), admin);
-        mv.grantRole(keccak256("SHARES_STRATEGY_SET_RATIO_ROLE"), admin);
+        mv.grantRole(keccak256("RATIOS_STRATEGY_SET_RATIOS_ROLE"), admin);
         mv.grantRole(keccak256("REBALANCE_ROLE"), admin);
 
         address[] memory subvaults = new address[](1);
@@ -224,7 +224,7 @@ contract MultiVaultTest is Test {
 
         mv.grantRole(keccak256("ADD_SUBVAULT_ROLE"), admin);
         mv.grantRole(keccak256("REMOVE_SUBVAULT_ROLE"), admin);
-        mv.grantRole(keccak256("SHARES_STRATEGY_SET_RATIO_ROLE"), admin);
+        mv.grantRole(keccak256("RATIOS_STRATEGY_SET_RATIOS_ROLE"), admin);
         mv.grantRole(keccak256("REBALANCE_ROLE"), admin);
 
         address isolatedVault;
@@ -321,7 +321,7 @@ contract MultiVaultTest is Test {
 
         mv.grantRole(keccak256("ADD_SUBVAULT_ROLE"), admin);
         mv.grantRole(keccak256("REMOVE_SUBVAULT_ROLE"), admin);
-        mv.grantRole(keccak256("SHARES_STRATEGY_SET_RATIO_ROLE"), admin);
+        mv.grantRole(keccak256("RATIOS_STRATEGY_SET_RATIOS_ROLE"), admin);
         mv.grantRole(keccak256("REBALANCE_ROLE"), admin);
 
         uint256 n = 12;
