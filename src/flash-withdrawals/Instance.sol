@@ -35,7 +35,7 @@ contract Instance {
         if (mmAssets_ != 0) {
             assets -= mmAssets;
             mmAssets -= mmAssets_;
-            IERC20(core.asset()).safeTransfer(core.mm(), mmAssets_);
+            IERC20(core.asset()).safeTransfer(address(core), mmAssets_);
         }
         if (assets != 0) {
             IERC20(core.asset()).safeTransfer(recipient, assets);

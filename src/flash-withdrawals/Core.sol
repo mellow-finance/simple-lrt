@@ -39,6 +39,10 @@ contract Core {
         IERC20(asset).transferFrom(mm, address(this), amount);
     }
 
+    function withdrawFunds(uint256 amount) external onlyMM {
+        IERC20(asset).transfer(mm, amount);
+    }
+
     function setRate(uint256 minVolume_, uint256 instantRateD18_, uint256 feeD18_)
         external
         onlyMM
