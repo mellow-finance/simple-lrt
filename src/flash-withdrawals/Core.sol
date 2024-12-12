@@ -36,17 +36,19 @@ contract Core {
     }
 
     function allocateFunds(uint256 amount) external onlyMM {
-        IERC20(asset).transferFrom(mm, address(this), amount);
+        IERC20(asset).safeTransferFrom(mm, address(this), amount);
     }
 
     function withdrawFunds(uint256 amount) external onlyMM {
-        IERC20(asset).transfer(mm, amount);
+        IERC20(asset).safeTransfer(mm, amount);
     }
 
     function setRate(uint256 minVolume_, uint256 instantRateD18_, uint256 feeD18_)
         external
         onlyMM
     {
+        require(instantRateD18 <= D18, "Core: invalid rate");
+        require(feeD18 <= D18, "Core: invalid fee");
         minVolume = minVolume_;
         instantRateD18 = instantRateD18_;
         feeD18 = feeD18_;
