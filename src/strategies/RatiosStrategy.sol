@@ -4,7 +4,9 @@ pragma solidity 0.8.25;
 import "../interfaces/strategies/IRatiosStrategy.sol";
 
 contract RatiosStrategy is IRatiosStrategy {
+    /// @inheritdoc IRatiosStrategy
     uint256 public constant D18 = 1e18;
+    /// @inheritdoc IRatiosStrategy
     bytes32 public constant RATIOS_STRATEGY_SET_RATIOS_ROLE =
         keccak256("RATIOS_STRATEGY_SET_RATIOS_ROLE");
 

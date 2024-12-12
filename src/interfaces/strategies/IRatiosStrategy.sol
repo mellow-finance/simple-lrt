@@ -24,6 +24,10 @@ interface IRatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceSt
         uint256 staked;
     }
 
+    function D18() external view returns (uint256);
+
+    function RATIOS_STRATEGY_SET_RATIOS_ROLE() external view returns (bytes32);
+
     function ratios(address vault, address subvault)
         external
         view
