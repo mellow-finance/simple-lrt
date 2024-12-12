@@ -14,7 +14,7 @@ contract Core {
     IERC20 public immutable asset;
     address public immutable claimer;
 
-    uint256 public instantRateD18;
+    uint256 public rateD18;
     uint256 public feeD18;
     uint256 public minVolume;
 
@@ -38,14 +38,11 @@ contract Core {
         asset.safeTransfer(mm, amount);
     }
 
-    function setParams(uint256 minVolume_, uint256 instantRateD18_, uint256 feeD18_)
-        external
-        onlyMM
-    {
-        require(instantRateD18 <= D18, "Core: invalid rate");
+    function setParams(uint256 minVolume_, uint256 rateD18_, uint256 feeD18_) external onlyMM {
+        require(rateD18 <= D18, "Core: invalid rate");
         require(feeD18 <= D18, "Core: invalid fee");
         minVolume = minVolume_;
-        instantRateD18 = instantRateD18_;
+        rateD18 = rateD18_;
         feeD18 = feeD18_;
     }
 
@@ -60,9 +57,9 @@ contract Core {
         uint256 assets = MultiVault(multiVault).previewRedeem(lpAmount);
         require(assets >= minVolume, "Core: insufficient volume");
         uint256 instant =
-            Math.min(Math.mulDiv(assets, instantRateD18, D18), asset.balanceOf(address(this)));
+            Math.min(Math.mulDiv(assets, rateD18, D18), asset.balanceOf(address(this)));
         require(instant >= minInstant, "Core: insufficient instant funds");
-        uint256 fee = Math.mulDiv(assets - instant, feeD18, D18);
+        uint256 fee = Math.mulDiv(assets, feeD18, D18);
         require(fee <= maxFee, "Core: fee exceeds limit");
 
         instance = new Instance(recipient, instant + fee);
