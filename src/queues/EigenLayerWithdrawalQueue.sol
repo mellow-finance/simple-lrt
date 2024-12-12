@@ -139,7 +139,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
     /// @inheritdoc IWithdrawalQueue
     function transferPendingAssets(address to, uint256 amount) external {
         address from = msg.sender;
-        if (amount == 0) {
+        if (amount == 0 || from == to) {
             return;
         }
         handleWithdrawals(from);
