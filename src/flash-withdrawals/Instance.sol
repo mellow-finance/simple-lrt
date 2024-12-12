@@ -1,4 +1,4 @@
-// // SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
 import "../utils/Claimer.sol";
@@ -31,7 +31,7 @@ contract Instance {
 
         uint256 mmAssets_ = Math.min(mmAssets, assets);
         if (mmAssets_ != 0) {
-            assets -= mmAssets;
+            assets -= mmAssets_;
             mmAssets -= mmAssets_;
             IERC20(core.asset()).safeTransfer(address(core), mmAssets_);
         }
