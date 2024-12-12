@@ -14,7 +14,7 @@ library RandomLib {
     }
 
     function rand(Storage storage s) internal returns (uint256) {
-        s.seed = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, s.seed)));
+        s.seed = uint256(keccak256(abi.encodePacked(s.seed)));
         return s.seed;
     }
 
@@ -57,4 +57,6 @@ library RandomLib {
             result = result_x96.mulDiv(Q96, b_x96) / Q96;
         }
     }
+
+    function testRandomLib() internal pure {}
 }

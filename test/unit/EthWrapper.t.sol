@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
+import "../mocks/MockERC4626Vault.sol";
 
 contract Unit is BaseTest {
     function testConstructor() external {
@@ -29,19 +30,17 @@ contract Unit is BaseTest {
 
             address user = makeAddr("user");
 
-            IdleVault vault = new IdleVault();
+            MockERC4626Vault vault = new MockERC4626Vault("MockERC4626Vault", 1);
             address token = Constants.WSTETH();
-            vault.initialize(
-                IIdleVault.InitParams({
-                    asset: token,
-                    limit: 100 ether,
-                    depositPause: false,
-                    withdrawalPause: false,
-                    depositWhitelist: false,
-                    admin: makeAddr("admin"),
-                    name: "IdleVault",
-                    symbol: "IDLE"
-                })
+            vault.initializeERC4626(
+                makeAddr("admin"),
+                100 ether,
+                false,
+                false,
+                false,
+                token,
+                "MockERC4626Vault",
+                "MERC4626"
             );
 
             vm.startPrank(user);
@@ -80,19 +79,17 @@ contract Unit is BaseTest {
 
             address user = makeAddr("user");
 
-            IdleVault vault = new IdleVault();
+            MockERC4626Vault vault = new MockERC4626Vault("MockERC4626Vault", 1);
             address token = Constants.WSTETH();
-            vault.initialize(
-                IIdleVault.InitParams({
-                    asset: token,
-                    limit: 100 ether,
-                    depositPause: false,
-                    withdrawalPause: false,
-                    depositWhitelist: false,
-                    admin: makeAddr("admin"),
-                    name: "IdleVault",
-                    symbol: "IDLE"
-                })
+            vault.initializeERC4626(
+                makeAddr("admin"),
+                100 ether,
+                false,
+                false,
+                false,
+                token,
+                "MockERC4626Vault",
+                "MERC4626"
             );
 
             vm.startPrank(user);
@@ -114,20 +111,17 @@ contract Unit is BaseTest {
                 new EthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
 
             address user = makeAddr("user");
-
-            IdleVault vault = new IdleVault();
+            MockERC4626Vault vault = new MockERC4626Vault("MockERC4626Vault", 1);
             address token = Constants.WSTETH();
-            vault.initialize(
-                IIdleVault.InitParams({
-                    asset: token,
-                    limit: 100 ether,
-                    depositPause: false,
-                    withdrawalPause: false,
-                    depositWhitelist: false,
-                    admin: makeAddr("admin"),
-                    name: "IdleVault",
-                    symbol: "IDLE"
-                })
+            vault.initializeERC4626(
+                makeAddr("admin"),
+                100 ether,
+                false,
+                false,
+                false,
+                token,
+                "MockERC4626Vault",
+                "MERC4626"
             );
 
             vm.startPrank(user);
@@ -151,19 +145,17 @@ contract Unit is BaseTest {
 
             address user = makeAddr("user");
 
-            IdleVault vault = new IdleVault();
+            MockERC4626Vault vault = new MockERC4626Vault("MockERC4626Vault", 1);
             address token = Constants.WSTETH();
-            vault.initialize(
-                IIdleVault.InitParams({
-                    asset: token,
-                    limit: 100 ether,
-                    depositPause: false,
-                    withdrawalPause: false,
-                    depositWhitelist: false,
-                    admin: makeAddr("admin"),
-                    name: "IdleVault",
-                    symbol: "IDLE"
-                })
+            vault.initializeERC4626(
+                makeAddr("admin"),
+                100 ether,
+                false,
+                false,
+                false,
+                token,
+                "MockERC4626Vault",
+                "MERC4626"
             );
 
             vm.startPrank(user);
@@ -186,19 +178,17 @@ contract Unit is BaseTest {
 
             address user = makeAddr("user");
 
-            IdleVault vault = new IdleVault();
+            MockERC4626Vault vault = new MockERC4626Vault("MockERC4626Vault", 1);
             address token = Constants.WSTETH();
-            vault.initialize(
-                IIdleVault.InitParams({
-                    asset: token,
-                    limit: 100 ether,
-                    depositPause: false,
-                    withdrawalPause: false,
-                    depositWhitelist: false,
-                    admin: makeAddr("admin"),
-                    name: "IdleVault",
-                    symbol: "IDLE"
-                })
+            vault.initializeERC4626(
+                makeAddr("admin"),
+                100 ether,
+                false,
+                false,
+                false,
+                token,
+                "MockERC4626Vault",
+                "MERC4626"
             );
 
             vm.startPrank(user);
@@ -219,19 +209,17 @@ contract Unit is BaseTest {
 
             address user = makeAddr("user");
 
-            IdleVault vault = new IdleVault();
+            MockERC4626Vault vault = new MockERC4626Vault("MockERC4626Vault", 1);
             address token = Constants.WSTETH();
-            vault.initialize(
-                IIdleVault.InitParams({
-                    asset: token,
-                    limit: 100 ether,
-                    depositPause: false,
-                    withdrawalPause: false,
-                    depositWhitelist: false,
-                    admin: makeAddr("admin"),
-                    name: "IdleVault",
-                    symbol: "IDLE"
-                })
+            vault.initializeERC4626(
+                makeAddr("admin"),
+                100 ether,
+                false,
+                false,
+                false,
+                token,
+                "MockERC4626Vault",
+                "MERC4626"
             );
 
             vm.startPrank(user);
@@ -253,19 +241,10 @@ contract Unit is BaseTest {
 
         address user = makeAddr("user");
 
-        IdleVault vault = new IdleVault();
+        MockERC4626Vault vault = new MockERC4626Vault("MockERC4626Vault", 1);
         address token = Constants.WSTETH();
-        vault.initialize(
-            IIdleVault.InitParams({
-                asset: token,
-                limit: 100 ether,
-                depositPause: false,
-                withdrawalPause: false,
-                depositWhitelist: false,
-                admin: makeAddr("admin"),
-                name: "IdleVault",
-                symbol: "IDLE"
-            })
+        vault.initializeERC4626(
+            makeAddr("admin"), 100 ether, false, false, false, token, "MockERC4626Vault", "MERC4626"
         );
 
         vm.startPrank(user);
@@ -288,21 +267,18 @@ contract Unit is BaseTest {
 
             address user = makeAddr("user");
 
-            IdleVault vault = new IdleVault();
+            MockERC4626Vault vault = new MockERC4626Vault("MockERC4626Vault", 1);
             address token = Constants.WSTETH();
-            vault.initialize(
-                IIdleVault.InitParams({
-                    asset: token,
-                    limit: 100 ether,
-                    depositPause: false,
-                    withdrawalPause: false,
-                    depositWhitelist: false,
-                    admin: makeAddr("admin"),
-                    name: "IdleVault",
-                    symbol: "IDLE"
-                })
+            vault.initializeERC4626(
+                makeAddr("admin"),
+                100 ether,
+                false,
+                false,
+                false,
+                token,
+                "MockERC4626Vault",
+                "MERC4626"
             );
-
             vm.startPrank(user);
 
             uint256 amount = 0.1 ether;
@@ -326,19 +302,17 @@ contract Unit is BaseTest {
 
             address user = makeAddr("user");
 
-            IdleVault vault = new IdleVault();
+            MockERC4626Vault vault = new MockERC4626Vault("MockERC4626Vault", 1);
             address token = Constants.WSTETH();
-            vault.initialize(
-                IIdleVault.InitParams({
-                    asset: token,
-                    limit: 100 ether,
-                    depositPause: false,
-                    withdrawalPause: false,
-                    depositWhitelist: false,
-                    admin: makeAddr("admin"),
-                    name: "IdleVault",
-                    symbol: "IDLE"
-                })
+            vault.initializeERC4626(
+                makeAddr("admin"),
+                100 ether,
+                false,
+                false,
+                false,
+                token,
+                "MockERC4626Vault",
+                "MERC4626"
             );
 
             vm.startPrank(user);

@@ -4,36 +4,55 @@ pragma solidity 0.8.25;
 import "./Imports.sol";
 
 abstract contract BaseTest is Test {
-    // Roles
-    bytes32 public constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
-    bytes32 public constant REMOVE_FARM_ROLE = keccak256("REMOVE_FARM_ROLE");
-    bytes32 public constant SET_LIMIT_ROLE = keccak256("SET_LIMIT_ROLE");
-    bytes32 public constant PAUSE_WITHDRAWALS_ROLE = keccak256("PAUSE_WITHDRAWALS_ROLE");
-    bytes32 public constant UNPAUSE_WITHDRAWALS_ROLE = keccak256("UNPAUSE_WITHDRAWALS_ROLE");
-    bytes32 public constant PAUSE_DEPOSITS_ROLE = keccak256("PAUSE_DEPOSITS_ROLE");
-    bytes32 public constant UNPAUSE_DEPOSITS_ROLE = keccak256("UNPAUSE_DEPOSITS_ROLE");
-    bytes32 public constant SET_DEPOSIT_WHITELIST_ROLE = keccak256("SET_DEPOSIT_WHITELIST_ROLE");
-    bytes32 public constant SET_DEPOSITOR_WHITELIST_STATUS_ROLE =
-        keccak256("SET_DEPOSITOR_WHITELIST_STATUS_ROLE");
-
-    // Constants
-
-    uint256 public constant MAX_ERROR = 10 wei;
-    uint256 public constant Q96 = 2 ** 96;
-    uint256 public constant D18 = 1e18;
-
-    // Helper contracts
     SymbioticHelper public immutable symbioticHelper = new SymbioticHelper();
+    RandomLib.Storage public rnd = RandomLib.Storage(0);
 
-    // Helper functions
-    function shrinkDefaultCollateralLimit(address collateral) public {
-        IDefaultCollateral c = IDefaultCollateral(collateral);
-        if (c.limit() != c.totalSupply()) {
-            vm.store(
-                collateral,
-                bytes32(uint256(9)), // limit slot
-                bytes32(c.totalSupply())
-            );
+    function createDefaultMultiVaultWithSymbioticVault(address vaultAdmin)
+        internal
+        returns (
+            MultiVault vault,
+            SymbioticAdapter adapter,
+            RatiosStrategy strategy,
+            address symbioticVault
+        )
+    {
+        vault = new MultiVault("MultiVault", 1);
+        adapter = new SymbioticAdapter(address(vault), address(new Claimer()));
+
+        strategy = new RatiosStrategy();
+
+        vault.initialize(
+            IMultiVault.InitParams({
+                admin: vaultAdmin,
+                limit: type(uint256).max,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                asset: Constants.WSTETH(),
+                name: "MultiVault test",
+                symbol: "MVT",
+                depositStrategy: address(strategy),
+                withdrawalStrategy: address(strategy),
+                rebalanceStrategy: address(strategy),
+                defaultCollateral: Constants.WSTETH_SYMBIOTIC_COLLATERAL(),
+                symbioticAdapter: address(adapter),
+                eigenLayerAdapter: address(0),
+                erc4626Adapter: address(0)
+            })
+        );
+
+        (symbioticVault,,,) = symbioticHelper.createDefaultSymbioticVault(Constants.WSTETH());
+        {
+            vm.startPrank(vaultAdmin);
+            vault.grantRole(strategy.RATIOS_STRATEGY_SET_RATIOS_ROLE(), vaultAdmin);
+            vault.grantRole(vault.ADD_SUBVAULT_ROLE(), vaultAdmin);
+            vault.addSubvault(address(symbioticVault), IMultiVaultStorage.Protocol.SYMBIOTIC);
+            address[] memory subvaults = new address[](1);
+            subvaults[0] = symbioticVault;
+            IRatiosStrategy.Ratio[] memory ratios = new IRatiosStrategy.Ratio[](1);
+            ratios[0] = IRatiosStrategy.Ratio(0.5 ether, 1 ether);
+            strategy.setRatios(address(vault), subvaults, ratios);
+            vm.stopPrank();
         }
     }
 
