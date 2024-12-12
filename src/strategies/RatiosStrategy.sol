@@ -23,6 +23,7 @@ contract RatiosStrategy is IRatiosStrategy {
         );
         IMultiVault multiVault = IMultiVault(vault);
         uint256 n = subvaults.length;
+        require(ratios_.length == subvaults.length, "RatiosStrategy: invalid length");
         for (uint256 i = 0; i < n; i++) {
             if (multiVault.indexOfSubvault(subvaults[i]) != 0) {
                 require(
