@@ -153,7 +153,7 @@ contract MellowSymbioticVault is
      * @return The remaining deposit capacity in the vault. Returns 0 if the vault has a deposit whitelist and the current contract is not whitelisted.
      *
      * @dev If the vault has no deposit limit, the maximum possible value is returned.
-     *      If the deposit limit is greater than the current total stake, the difference is returned.
+     *      If the deposit limit is greater than the current active stake, the difference is returned.
      *      Otherwise, returns 0.
      */
     function _calculateSymbioticVaultLeftover(ISymbioticVault vault)
@@ -167,10 +167,10 @@ contract MellowSymbioticVault is
         if (!vault.isDepositLimit()) {
             return type(uint256).max;
         }
-        uint256 totalStake = vault.totalStake();
+        uint256 activeStake = vault.activeStake();
         uint256 limit = vault.depositLimit();
-        if (limit > totalStake) {
-            return limit - totalStake;
+        if (limit > activeStake) {
+            return limit - activeStake;
         }
         return 0;
     }

@@ -522,7 +522,7 @@ contract Integration is BaseTest {
     }
 
     function testConstructorZeroParams() external {
-        Migrator migrator = new Migrator(address(0), address(0), 0);
+        assertTrue(address(new Migrator(address(0), address(0), 0)) != address(0));
     }
 
     function testApprovals() external {
