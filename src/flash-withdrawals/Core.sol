@@ -59,6 +59,7 @@ contract Core {
         returns (Instance instance)
     {
         uint256 assets = MultiVault(multiVault).previewRedeem(lpAmount);
+        require(assets >= minVolume, "Core: insufficient volume");
         uint256 instant = Math.min(
             Math.mulDiv(assets, instantRateD18, D18), IERC20(asset).balanceOf(address(this))
         );
