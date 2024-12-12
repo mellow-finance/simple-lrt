@@ -54,10 +54,14 @@ contract Core {
         feeD18 = feeD18_;
     }
 
-    function request(uint256 lpAmount, uint256 minInstant, uint256 maxFee, address recipient)
-        external
-        returns (Instance instance)
-    {
+    function request(
+        uint256 lpAmount,
+        uint256 minInstant,
+        uint256 maxFee,
+        address recipient,
+        uint256 deadline
+    ) external returns (Instance instance) {
+        require(block.timestamp <= deadline, "Core: expired");
         uint256 assets = MultiVault(multiVault).previewRedeem(lpAmount);
         require(assets >= minVolume, "Core: insufficient volume");
         uint256 instant =
@@ -66,7 +70,7 @@ contract Core {
         uint256 fee = Math.mulDiv(assets - instant, feeD18, D18);
         require(fee <= maxFee, "Core: fee exceeds limit");
 
-        instance = new Instance(recipient, claimer, instant + fee);
+        instance = new Instance(recipient, instant + fee);
         MultiVault(multiVault).redeem(lpAmount, address(instance), msg.sender);
         asset.safeTransfer(recipient, instant);
     }

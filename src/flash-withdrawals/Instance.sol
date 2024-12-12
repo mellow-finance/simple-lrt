@@ -9,14 +9,12 @@ contract Instance {
 
     address public immutable recipient;
     Core public immutable core;
-    Claimer public immutable claimer;
 
     uint256 public mmAssets;
 
-    constructor(address recipient_, address claimer_, uint256 mmAssets_) {
+    constructor(address recipient_, uint256 mmAssets_) {
         recipient = recipient_;
         core = Core(msg.sender);
-        claimer = Claimer(claimer_);
         mmAssets = mmAssets_;
     }
 
@@ -25,7 +23,7 @@ contract Instance {
         uint256[][] calldata indices,
         uint256 maxAssets
     ) external {
-        uint256 assets = claimer.multiAcceptAndClaim(
+        uint256 assets = Claimer(core.claimer()).multiAcceptAndClaim(
             core.multiVault(), subvaultIndices, indices, address(this), maxAssets
         );
 
