@@ -7,8 +7,6 @@ import "./Core.sol";
 contract Instance {
     using SafeERC20 for IERC20;
 
-    uint256 public constant D18 = 1 ether;
-
     address public immutable recipient;
     Core public immutable core;
     Claimer public immutable claimer;
