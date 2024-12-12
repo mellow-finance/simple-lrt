@@ -14,7 +14,6 @@ contract Core {
     IERC20 public immutable asset;
     address public immutable claimer;
 
-    uint256 public withdrawalDelay;
     uint256 public instantRateD18;
     uint256 public feeD18;
     uint256 public minVolume;
@@ -29,10 +28,6 @@ contract Core {
         multiVault = _multiVault;
         asset = IERC20(MultiVault(multiVault).asset());
         claimer = claimer_;
-    }
-
-    function setWithdrawalDelay(uint256 delay) external onlyMM {
-        withdrawalDelay = delay;
     }
 
     function deposit(uint256 amount) external onlyMM {
