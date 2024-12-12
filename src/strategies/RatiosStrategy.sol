@@ -8,20 +8,11 @@ contract RatiosStrategy is IRatiosStrategy {
     bytes32 public constant RATIOS_STRATEGY_SET_RATIOS_ROLE =
         keccak256("RATIOS_STRATEGY_SET_RATIOS_ROLE");
 
-    mapping(address vault => mapping(address subvault => Ratio)) private _ratios;
+    /// @inheritdoc IRatiosStrategy
+    mapping(address vault => mapping(address subvault => Ratio)) public ratios;
 
     /// @inheritdoc IRatiosStrategy
-    function getRatios(address vault, address subvault)
-        external
-        view
-        returns (uint256 minRatioD18, uint256 maxRatioD18)
-    {
-        Ratio memory ratio = _ratios[vault][subvault];
-        return (ratio.minRatioD18, ratio.maxRatioD18);
-    }
-
-    /// @inheritdoc IRatiosStrategy
-    function setRatios(address vault, address[] calldata subvaults, Ratio[] calldata ratios)
+    function setRatios(address vault, address[] calldata subvaults, Ratio[] calldata ratios_)
         external
     {
         require(
@@ -33,19 +24,20 @@ contract RatiosStrategy is IRatiosStrategy {
         for (uint256 i = 0; i < n; i++) {
             if (multiVault.indexOfSubvault(subvaults[i]) != 0) {
                 require(
-                    ratios[i].minRatioD18 <= ratios[i].maxRatioD18 && ratios[i].maxRatioD18 <= D18,
+                    ratios_[i].minRatioD18 <= ratios_[i].maxRatioD18
+                        && ratios_[i].maxRatioD18 <= D18,
                     "SharesStrategy: invalid ratios"
                 );
             } else {
                 require(
-                    ratios[i].minRatioD18 == 0 && ratios[i].maxRatioD18 == 0,
+                    ratios_[i].minRatioD18 == 0 && ratios_[i].maxRatioD18 == 0,
                     "SharesStrategy: invalid subvault"
                 );
             }
         }
-        mapping(address => Ratio) storage ratios_ = _ratios[vault];
+        mapping(address => Ratio) storage vaultRatios_ = ratios[vault];
         for (uint256 i = 0; i < n; i++) {
-            ratios_[subvaults[i]] = ratios[i];
+            vaultRatios_[subvaults[i]] = ratios_[i];
         }
     }
 
@@ -77,9 +69,9 @@ contract RatiosStrategy is IRatiosStrategy {
             }
         }
         totalAssets = isDeposit ? totalAssets + increment : totalAssets - increment;
-        mapping(address => Ratio) storage ratios = _ratios[vault];
+        mapping(address => Ratio) storage vaultRatios_ = ratios[vault];
         for (uint256 i = 0; i < n; i++) {
-            Ratio memory ratio = ratios[multiVault.subvaultAt(i).vault];
+            Ratio memory ratio = vaultRatios_[multiVault.subvaultAt(i).vault];
             if (ratio.maxRatioD18 == 0) {
                 state[i].max = 0;
                 state[i].min = 0;
