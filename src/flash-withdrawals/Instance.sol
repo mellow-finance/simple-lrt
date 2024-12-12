@@ -20,7 +20,7 @@ contract Instance {
         mmAssets = mmAssets_;
     }
 
-    function claimWithdrawals(
+    function claim(
         uint256[] calldata subvaultIndices,
         uint256[][] calldata indices,
         uint256 maxAssets
@@ -33,10 +33,10 @@ contract Instance {
         if (mmAssets_ != 0) {
             assets -= mmAssets_;
             mmAssets -= mmAssets_;
-            IERC20(core.asset()).safeTransfer(address(core), mmAssets_);
+            core.asset().safeTransfer(address(core), mmAssets_);
         }
         if (assets != 0) {
-            IERC20(core.asset()).safeTransfer(recipient, assets);
+            core.asset().safeTransfer(recipient, assets);
         }
     }
 }

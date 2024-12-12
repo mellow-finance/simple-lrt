@@ -11,7 +11,7 @@ contract Core {
 
     address public immutable mm;
     address public immutable multiVault;
-    address public immutable asset;
+    IERC20 public immutable asset;
     address public immutable claimer;
 
     uint256 public withdrawalDelay;
@@ -27,7 +27,7 @@ contract Core {
     constructor(address _mm, address _multiVault, address claimer_) {
         mm = _mm;
         multiVault = _multiVault;
-        asset = MultiVault(multiVault).asset();
+        asset = IERC20(MultiVault(multiVault).asset());
         claimer = claimer_;
     }
 
@@ -35,15 +35,15 @@ contract Core {
         withdrawalDelay = delay;
     }
 
-    function allocateFunds(uint256 amount) external onlyMM {
-        IERC20(asset).safeTransferFrom(mm, address(this), amount);
+    function deposit(uint256 amount) external onlyMM {
+        asset.safeTransferFrom(mm, address(this), amount);
     }
 
-    function withdrawFunds(uint256 amount) external onlyMM {
-        IERC20(asset).safeTransfer(mm, amount);
+    function withdraw(uint256 amount) external onlyMM {
+        asset.safeTransfer(mm, amount);
     }
 
-    function setRate(uint256 minVolume_, uint256 instantRateD18_, uint256 feeD18_)
+    function setParams(uint256 minVolume_, uint256 instantRateD18_, uint256 feeD18_)
         external
         onlyMM
     {
@@ -54,21 +54,20 @@ contract Core {
         feeD18 = feeD18_;
     }
 
-    function createRequest(uint256 lpAmount, uint256 minInstant, uint256 maxFee, address recipient)
+    function request(uint256 lpAmount, uint256 minInstant, uint256 maxFee, address recipient)
         external
         returns (Instance instance)
     {
         uint256 assets = MultiVault(multiVault).previewRedeem(lpAmount);
         require(assets >= minVolume, "Core: insufficient volume");
-        uint256 instant = Math.min(
-            Math.mulDiv(assets, instantRateD18, D18), IERC20(asset).balanceOf(address(this))
-        );
+        uint256 instant =
+            Math.min(Math.mulDiv(assets, instantRateD18, D18), asset.balanceOf(address(this)));
         require(instant >= minInstant, "Core: insufficient instant funds");
         uint256 fee = Math.mulDiv(assets - instant, feeD18, D18);
         require(fee <= maxFee, "Core: fee exceeds limit");
 
         instance = new Instance(recipient, claimer, instant + fee);
         MultiVault(multiVault).redeem(lpAmount, address(instance), msg.sender);
-        IERC20(asset).safeTransfer(recipient, instant);
+        asset.safeTransfer(recipient, instant);
     }
 }
