@@ -17,7 +17,7 @@ contract RatiosStrategy is IRatiosStrategy {
     {
         require(
             IAccessControl(vault).hasRole(RATIOS_STRATEGY_SET_RATIOS_ROLE, msg.sender),
-            "SharesStrategy: forbidden"
+            "RatiosStrategy: forbidden"
         );
         IMultiVault multiVault = IMultiVault(vault);
         uint256 n = subvaults.length;
@@ -26,12 +26,12 @@ contract RatiosStrategy is IRatiosStrategy {
                 require(
                     ratios_[i].minRatioD18 <= ratios_[i].maxRatioD18
                         && ratios_[i].maxRatioD18 <= D18,
-                    "SharesStrategy: invalid ratios"
+                    "RatiosStrategy: invalid ratios"
                 );
             } else {
                 require(
                     ratios_[i].minRatioD18 == 0 && ratios_[i].maxRatioD18 == 0,
-                    "SharesStrategy: invalid subvault"
+                    "RatiosStrategy: invalid subvault"
                 );
             }
         }
@@ -213,7 +213,7 @@ contract RatiosStrategy is IRatiosStrategy {
             }
         }
 
-        require(amount == 0, "SharesStrategy: invalid state");
+        require(amount == 0, "RatiosStrategy: invalid state");
 
         uint256 count = 0;
         for (uint256 i = 0; i < n; i++) {
