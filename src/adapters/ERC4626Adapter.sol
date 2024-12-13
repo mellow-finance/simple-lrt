@@ -27,9 +27,7 @@ contract ERC4626Adapter is IERC4626Adapter {
     }
 
     /// @inheritdoc IProtocolAdapter
-    function handleVault(address /* token */ ) external pure returns (address withdrawalQueue) {
-        return address(0);
-    }
+    function handleVault(address /* token */ ) external pure returns (address withdrawalQueue) {}
 
     /// @inheritdoc IProtocolAdapter
     function validateRewardData(bytes calldata /* data*/ ) external pure {
