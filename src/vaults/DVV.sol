@@ -7,14 +7,37 @@ import "./ERC4626Vault.sol";
 import "./VaultControlStorage.sol";
 import {ERC20Upgradeable} from
     "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts/access/IAccessControl.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 interface IStakingModule {
-    function stake(bytes calldata data, address caller, address vault) external;
+    function stake(bytes calldata data, address caller) external;
 
-    function forceStake(uint256 amount, address caller, address vault) external;
+    function forceStake(uint256 amount) external;
 }
 
+contract DefaultStakingModule is IStakingModule {
+    bytes32 public constant STAKER_ROLE = keccak256("STAKER_ROLE");
+    IWSTETH public constant WSTETH = IWSTETH(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
+    IERC20 public constant WETH = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+
+    function stake(bytes calldata, /* data */ address caller) external {
+        address this_ = address(this);
+        require(IAccessControl(this_).hasRole(STAKER_ROLE, caller), "StakingModule: forbidden");
+        forceStake(WETH.balanceOf(this_));
+    }
+
+    function forceStake(uint256 amount) public {
+        IWETH(address(WETH)).withdraw(amount);
+        Address.sendValue(payable(address(WSTETH)), amount);
+    }
+}
+
+/*
+    TODO:
+    setter, getter, separate storage contract, tests, fix storage slot
+*/
 contract DVV is ERC4626Vault {
     using SafeERC20 for IERC20;
 
@@ -26,14 +49,8 @@ contract DVV is ERC4626Vault {
     IWSTETH public constant WSTETH = IWSTETH(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
     IERC20 public constant WETH = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
-    bytes32 private constant dvvStorageSlot =
+    bytes32 private constant storageSlot =
         0x52c63247e1f47db19d5ce0460040c497f067ca4cebf71ba98eeadabe20bace00;
-
-    function _dvvStorage() private pure returns (DVVStorage storage $) {
-        assembly {
-            $.slot := dvvStorageSlot
-        }
-    }
 
     function yieldVault() public view returns (IERC4626) {
         return IERC4626(_dvvStorage().yieldVault);
@@ -54,10 +71,15 @@ contract DVV is ERC4626Vault {
         IERC4626 yieldVault_ = yieldVault();
         return WSTETH.balanceOf(this_) + yieldVault_.previewRedeem(yieldVault_.balanceOf(this_))
             + WSTETH.getWstETHByStETH(WETH.balanceOf(this_));
+        // for aave V3 we can add something like `+stakingModule().assetsOf(this)`;
     }
 
     function previewEthDeposit(uint256 ethAssets) public view returns (uint256 shares) {
         return previewDeposit(WSTETH.getWstETHByStETH(ethAssets));
+    }
+
+    receive() external payable {
+        require(msg.sender == address(WETH), "DVV: forbidden");
     }
 
     function ethDeposit(uint256 ethAssets, address receiver, address referral)
@@ -87,7 +109,9 @@ contract DVV is ERC4626Vault {
     }
 
     function stake(bytes calldata data) external {
-        IStakingModule(stakingModule()).stake(data, _msgSender(), address(this));
+        Address.functionDelegateCall(
+            address(stakingModule()), abi.encodeCall(IStakingModule.stake, (data, _msgSender()))
+        );
         _pushIntoYieldVault();
     }
 
@@ -108,23 +132,27 @@ contract DVV is ERC4626Vault {
 
         _burn(owner, shares);
 
-        // calculate multivault assets
         IERC4626 yieldVault_ = yieldVault();
         uint256 yieldAssets = yieldVault_.totalAssets();
+        address this_ = address(this);
         if (yieldAssets >= assets) {
-            yieldVault_.withdraw(assets, receiver, address(this));
-            emit Withdraw(caller, receiver, owner, assets, shares);
-            return;
-        }
+            yieldVault_.withdraw(assets, receiver, this_);
+        } else {
+            if (yieldAssets > 0) {
+                yieldVault_.withdraw(yieldAssets, receiver, this_);
+            }
 
-        if (yieldAssets > 0) {
-            yieldVault_.withdraw(yieldAssets, receiver, address(this));
-            assets -= yieldAssets;
-        }
-
-        uint256 wstethBalance = WSTETH.balanceOf(address(this));
-        if (wstethBalance < assets) {
-            uint256 required = assets - wstethBalance;
+            uint256 balance = WSTETH.balanceOf(this_);
+            if (balance + yieldAssets < assets) {
+                uint256 required = assets - balance - yieldAssets;
+                Address.functionDelegateCall(
+                    address(stakingModule()),
+                    abi.encodeCall(IStakingModule.forceStake, (WSTETH.getStETHByWstETH(required)))
+                );
+                IERC20(WSTETH).safeTransfer(receiver, WSTETH.balanceOf(this_));
+            } else {
+                IERC20(WSTETH).safeTransfer(receiver, assets - yieldAssets);
+            }
         }
 
         emit Withdraw(caller, receiver, owner, assets, shares);
@@ -139,6 +167,12 @@ contract DVV is ERC4626Vault {
         IERC4626 yieldVault_ = yieldVault();
         IERC20(address(WSTETH)).safeIncreaseAllowance(address(yieldVault_), wstethBalance);
         yieldVault_.deposit(wstethBalance, this_);
+    }
+
+    function _dvvStorage() private pure returns (DVVStorage storage $) {
+        assembly {
+            $.slot := storageSlot
+        }
     }
 
     /// ---------------------------------------------------------------------------
