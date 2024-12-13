@@ -22,7 +22,9 @@ contract Unit is BaseTest {
 
     function testRegularCreationSymbioticWithdrawalQueue() external {
         address vault = rnd.randAddress();
-        SymbioticAdapter adapter = new SymbioticAdapter(vault, address(new Claimer()));
+        SymbioticAdapter adapter = new SymbioticAdapter(
+            vault, address(new Claimer()), Constants.symbioticDeployment().vaultFactory
+        );
         (address symbioticVault,,,) =
             symbioticHelper.createDefaultSymbioticVault(Constants.WSTETH());
         vm.startPrank(vault);

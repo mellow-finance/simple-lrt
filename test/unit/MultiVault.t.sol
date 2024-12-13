@@ -72,7 +72,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );
@@ -130,7 +132,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );
@@ -198,7 +202,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );
@@ -258,7 +264,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );
@@ -318,7 +326,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );
@@ -378,7 +388,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );
@@ -439,7 +451,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );
@@ -499,7 +513,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );
@@ -557,7 +573,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );
@@ -615,7 +633,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );
@@ -662,7 +682,7 @@ contract Unit is BaseTest {
             })
         );
 
-        vault.grantRole(vault.SET_REWARDS_DATA_ROLE(), vaultAdmin);
+        vault.grantRole(vault.SET_FARM_ROLE(), vaultAdmin);
         vm.expectRevert("MultiVault: curator fee exceeds 100%");
         vault.setRewardsData(
             0,
@@ -834,7 +854,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );
@@ -870,7 +892,7 @@ contract Unit is BaseTest {
         address curatorTreasury = rnd.randAddress();
 
         vm.startPrank(vaultAdmin);
-        vault.grantRole(vault.SET_REWARDS_DATA_ROLE(), vaultAdmin);
+        vault.grantRole(vault.SET_FARM_ROLE(), vaultAdmin);
         MockSymbioticFarm mockSymbioticFarm = new MockSymbioticFarm();
         vault.setRewardsData(
             0,
@@ -925,7 +947,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );
@@ -1002,7 +1026,9 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
         );

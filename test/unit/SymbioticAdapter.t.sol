@@ -10,7 +10,9 @@ contract Unit is BaseTest {
     function testSymbioticAdapter() external {
         MultiVault vault = new MultiVault("test", 1);
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(vault), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
 
         vm.expectRevert("SymbioticAdapter: delegate call only");
         symbioticAdapter.pushRewards(address(0), new bytes(0), new bytes(0));

@@ -14,7 +14,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     bytes32 public constant ADD_SUBVAULT_ROLE = keccak256("ADD_SUBVAULT_ROLE");
     bytes32 public constant REMOVE_SUBVAULT_ROLE = keccak256("REMOVE_SUBVAULT_ROLE");
     bytes32 public constant SET_STRATEGY_ROLE = keccak256("SET_STRATEGY_ROLE");
-    bytes32 public constant SET_REWARDS_DATA_ROLE = keccak256("SET_REWARDS_DATA_ROLE");
+    bytes32 public constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
     bytes32 public constant REBALANCE_ROLE = keccak256("REBALANCE_ROLE");
     bytes32 public constant SET_DEFAULT_COLLATERAL_ROLE = keccak256("SET_DEFAULT_COLLATERAL_ROLE");
     bytes32 public constant SET_ADAPTER_ROLE = keccak256("SET_ADAPTER_ROLE");
@@ -150,6 +150,10 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
             address(defaultCollateral()) == address(0) && defaultCollateral_ != address(0),
             "MultiVault: default collateral already set or cannot be zero address"
         );
+        require(
+            IDefaultCollateral(defaultCollateral_).asset() == asset(),
+            "MultiVault: default collateral asset does not match the vault asset"
+        );
         _setDefaultCollateral(defaultCollateral_);
     }
 
@@ -174,9 +178,13 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     /// @inheritdoc IMultiVault
     function setRewardsData(uint256 farmId, RewardData calldata rewardData)
         external
-        onlyRole(SET_REWARDS_DATA_ROLE)
+        onlyRole(SET_FARM_ROLE)
     {
         if (rewardData.token != address(0)) {
+            require(
+                rewardData.token != asset() && rewardData.token != address(defaultCollateral()),
+                "MultiVault: reward token cannot be the same as the asset or default collateral"
+            );
             require(rewardData.curatorFeeD6 <= D6, "MultiVault: curator fee exceeds 100%");
             require(
                 rewardData.distributionFarm != address(0),

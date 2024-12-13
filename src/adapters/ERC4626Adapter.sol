@@ -18,7 +18,7 @@ contract ERC4626Adapter is IERC4626Adapter {
     /// @inheritdoc IProtocolAdapter
     function stakedAt(address token) external view returns (uint256) {
         IERC4626 token_ = IERC4626(token);
-        return token_.previewRedeem(token_.balanceOf(vault));
+        return token_.convertToAssets(token_.balanceOf(vault));
     }
 
     /// @inheritdoc IProtocolAdapter

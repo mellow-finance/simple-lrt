@@ -75,7 +75,9 @@ contract MultiVaultTest is Test {
         MultiVault mv = new MultiVault(bytes32("MultiVaultTest"), VERSION);
 
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(mv), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(mv), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory =
             new IsolatedEigenLayerWstETHVaultFactory(delegationManager, address(claimer), wsteth);
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
@@ -283,7 +285,9 @@ contract MultiVaultTest is Test {
         MultiVault mv = new MultiVault(bytes32("MultiVaultTest"), VERSION);
 
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(mv), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(mv), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory =
             new IsolatedEigenLayerWstETHVaultFactory(delegationManager, address(claimer), wsteth);
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
