@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgrad
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface IAToken is IERC20 {
-    function POOL() external view returns (address);
+    function POOL() external view returns (IAPool);
 }
 
 interface IAPool {
@@ -13,6 +13,30 @@ interface IAPool {
         external;
 
     function withdraw(address asset, uint256 amount, address to) external returns (uint256);
+
+    struct ReserveConfigurationMap {
+        uint256 data;
+    }
+
+    struct ReserveDataLegacy {
+        ReserveConfigurationMap configuration;
+        uint128 liquidityIndex;
+        uint128 currentLiquidityRate;
+        uint128 variableBorrowIndex;
+        uint128 currentVariableBorrowRate;
+        uint128 currentStableBorrowRate;
+        uint40 lastUpdateTimestamp;
+        uint16 id;
+        address aTokenAddress;
+        address stableDebtTokenAddress;
+        address variableDebtTokenAddress;
+        address interestRateStrategyAddress;
+        uint128 accruedToTreasury;
+        uint128 unbacked;
+        uint128 isolationModeTotalDebt;
+    }
+
+    function getReserveData(address asset) external view returns (ReserveDataLegacy memory);
 }
 
 contract AaveToken is ERC4626Upgradeable {
@@ -20,7 +44,7 @@ contract AaveToken is ERC4626Upgradeable {
 
     IERC4626 public vault;
     IAToken public aToken;
-    address public pool;
+    IAPool public pool;
 
     function initialize(IERC4626 vault_, IAToken aToken_) external initializer {
         vault = vault_;
@@ -36,40 +60,28 @@ contract AaveToken is ERC4626Upgradeable {
         return IERC20(aToken).balanceOf(address(this));
     }
 
-    function areDepositsLocked() public pure returns (bool) {
-        return false;
+    function areDepositsLocked() public view returns (bool) {
+        return (pool.getReserveData(asset()).configuration.data & 0x1300000000000000) != 0;
     }
 
-    function areWithdrawalsLocked() public pure returns (bool) {
-        return false;
+    function areWithdrawalsLocked() public view returns (bool) {
+        return (pool.getReserveData(asset()).configuration.data & 0x1100000000000000) != 0;
     }
 
-    function maxDeposit(address) public pure override returns (uint256) {
-        if (areDepositsLocked()) {
-            return 0;
-        }
-        return type(uint256).max;
+    function maxDeposit(address) public view override returns (uint256) {
+        return areDepositsLocked() ? 0 : type(uint256).max;
     }
 
-    function maxMint(address) public pure override returns (uint256) {
-        if (areDepositsLocked()) {
-            return 0;
-        }
-        return type(uint256).max;
+    function maxMint(address) public view override returns (uint256) {
+        return areDepositsLocked() ? 0 : type(uint256).max;
     }
 
     function maxWithdraw(address owner) public view override returns (uint256) {
-        if (areWithdrawalsLocked()) {
-            return 0;
-        }
-        return _convertToAssets(balanceOf(owner), Math.Rounding.Floor);
+        return areWithdrawalsLocked() ? 0 : _convertToAssets(balanceOf(owner), Math.Rounding.Floor);
     }
 
     function maxRedeem(address owner) public view override returns (uint256) {
-        if (areWithdrawalsLocked()) {
-            return 0;
-        }
-        return balanceOf(owner);
+        return areWithdrawalsLocked() ? 0 : balanceOf(owner);
     }
 
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
@@ -78,7 +90,7 @@ contract AaveToken is ERC4626Upgradeable {
     {
         super._deposit(caller, receiver, assets, shares);
         IERC20(asset()).safeIncreaseAllowance(address(pool), assets);
-        IAPool(pool).supply(asset(), assets, address(this), 0);
+        pool.supply(asset(), assets, address(this), 0);
     }
 
     function _withdraw(
@@ -93,7 +105,7 @@ contract AaveToken is ERC4626Upgradeable {
         }
 
         _burn(owner, shares);
-        IAPool(pool).withdraw(asset(), assets, receiver);
+        pool.withdraw(asset(), assets, receiver);
 
         emit Withdraw(caller, receiver, owner, assets, shares);
     }

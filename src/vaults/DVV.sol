@@ -34,10 +34,6 @@ contract DefaultStakingModule is IStakingModule {
     }
 }
 
-/*
-    TODO:
-    setter, getter, separate storage contract, tests, fix storage slot
-*/
 contract DVV is ERC4626Vault {
     using SafeERC20 for IERC20;
 
@@ -46,11 +42,36 @@ contract DVV is ERC4626Vault {
         address stakingModule;
     }
 
+    function initialize(
+        address _admin,
+        uint256 _limit,
+        bool _depositPause,
+        bool _withdrawalPause,
+        bool _depositWhitelist,
+        address _asset,
+        string memory _name,
+        string memory _symbol,
+        address _stakingModule,
+        address _yieldVault
+    ) external initializer {
+        __initializeERC4626(
+            _admin,
+            _limit,
+            _depositPause,
+            _withdrawalPause,
+            _depositWhitelist,
+            _asset,
+            _name,
+            _symbol
+        );
+        _dvvStorage().stakingModule = _stakingModule;
+        _dvvStorage().yieldVault = _yieldVault;
+    }
+
     IWSTETH public constant WSTETH = IWSTETH(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
     IERC20 public constant WETH = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
-    bytes32 private constant storageSlot =
-        0x52c63247e1f47db19d5ce0460040c497f067ca4cebf71ba98eeadabe20bace00;
+    bytes32 private immutable storageSlotRef;
 
     function yieldVault() public view returns (IERC4626) {
         return IERC4626(_dvvStorage().yieldVault);
@@ -71,7 +92,7 @@ contract DVV is ERC4626Vault {
         IERC4626 yieldVault_ = yieldVault();
         return WSTETH.balanceOf(this_) + yieldVault_.previewRedeem(yieldVault_.balanceOf(this_))
             + WSTETH.getWstETHByStETH(WETH.balanceOf(this_));
-        // for aave V3 we can add something like `+stakingModule().assetsOf(this)`;
+        // NOTE: in case of lido v3 integration add *+ stakingModule().assetsOf(this_)*
     }
 
     function previewEthDeposit(uint256 ethAssets) public view returns (uint256 shares) {
@@ -80,6 +101,10 @@ contract DVV is ERC4626Vault {
 
     receive() external payable {
         require(msg.sender == address(WETH), "DVV: forbidden");
+    }
+
+    function setStakingModule(address newStakingModule) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _dvvStorage().stakingModule = newStakingModule;
     }
 
     function ethDeposit(uint256 ethAssets, address receiver, address referral)
@@ -169,9 +194,10 @@ contract DVV is ERC4626Vault {
         yieldVault_.deposit(wstethBalance, this_);
     }
 
-    function _dvvStorage() private pure returns (DVVStorage storage $) {
+    function _dvvStorage() private view returns (DVVStorage storage $) {
+        bytes32 slot = storageSlotRef;
         assembly {
-            $.slot := storageSlot
+            $.slot := slot
         }
     }
 
@@ -195,7 +221,15 @@ contract DVV is ERC4626Vault {
         }
     }
 
-    constructor(bytes32 name_, uint256 version_) VaultControlStorage(name_, version_) {}
+    constructor(bytes32 name_, uint256 version_) VaultControlStorage(name_, version_) {
+        storageSlotRef = keccak256(
+            abi.encode(
+                uint256(
+                    keccak256(abi.encodePacked("mellow.simple-lrt.storage.DVV", name_, version_))
+                ) - 1
+            )
+        ) & ~bytes32(uint256(0xff));
+    }
 
     function compatTotalSupply() external view returns (uint256) {
         return _getERC20CompatStorage()._totalSupply;
