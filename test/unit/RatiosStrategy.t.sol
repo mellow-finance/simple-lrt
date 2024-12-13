@@ -22,7 +22,7 @@ contract Unit is BaseTest {
         c.setRatios(address(vault), new address[](0), new IRatiosStrategy.Ratio[](0));
         vault.setFlag(true);
 
-        vm.expectRevert("RatiosStrategy: invalid length");
+        vm.expectRevert("RatiosStrategy: subvaults and ratios length mismatch");
         c.setRatios(address(vault), new address[](10), new IRatiosStrategy.Ratio[](9));
 
         {

@@ -21,9 +21,12 @@ contract RatiosStrategy is IRatiosStrategy {
             IAccessControl(vault).hasRole(RATIOS_STRATEGY_SET_RATIOS_ROLE, msg.sender),
             "RatiosStrategy: forbidden"
         );
+        require(
+            ratios_.length == subvaults.length,
+            "RatiosStrategy: subvaults and ratios length mismatch"
+        );
         IMultiVault multiVault = IMultiVault(vault);
         uint256 n = subvaults.length;
-        require(ratios_.length == subvaults.length, "RatiosStrategy: invalid length");
         for (uint256 i = 0; i < n; i++) {
             if (multiVault.indexOfSubvault(subvaults[i]) != 0) {
                 require(
