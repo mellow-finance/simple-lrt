@@ -6,6 +6,17 @@ import "../Imports.sol";
 contract MockMultiVault {
     bool private flag;
 
+    address public asset;
+    address public defaultCollateral;
+
+    function setAsset(address asset_) external {
+        asset = asset_;
+    }
+
+    function setDefaultCollateral(address defaultCollateral_) external {
+        defaultCollateral = defaultCollateral_;
+    }
+
     function setFlag(bool flag_) external {
         flag = flag_;
     }
@@ -29,7 +40,7 @@ contract MockMultiVault {
             _subvaults.pop();
         }
         for (uint256 i = 0; i < data.length; i++) {
-            _subvaults.push() = data[i];
+            _subvaults.push(data[i]);
         }
     }
 
@@ -60,7 +71,9 @@ contract MockMultiVault {
         staked = _subvaults[subvaultIndex].staked;
     }
 
-    function subvaultCount() external view returns (uint256) {
+    function subvaultsCount() external view returns (uint256) {
         return _subvaults.length;
     }
+
+    function testMockMultiVault() internal pure {}
 }

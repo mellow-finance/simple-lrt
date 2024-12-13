@@ -62,11 +62,10 @@ contract RatiosStrategy is IRatiosStrategy {
         uint256 totalAssets = liquid;
         for (uint256 i = 0; i < n; i++) {
             (state[i].claimable, state[i].pending, state[i].staked) = multiVault.assetsOf(i);
-            uint256 assets = state[i].staked + state[i].pending + state[i].claimable;
-            totalAssets += assets;
+            totalAssets += state[i].staked + state[i].pending + state[i].claimable;
             uint256 maxDeposit = multiVault.maxDeposit(i);
-            if (type(uint256).max - assets > maxDeposit) {
-                state[i].max = maxDeposit + assets;
+            if (type(uint256).max - state[i].staked > maxDeposit) {
+                state[i].max = maxDeposit + state[i].staked;
             } else {
                 state[i].max = type(uint256).max;
             }
@@ -215,8 +214,6 @@ contract RatiosStrategy is IRatiosStrategy {
                 }
             }
         }
-
-        require(amount == 0, "RatiosStrategy: invalid state");
 
         uint256 count = 0;
         for (uint256 i = 0; i < n; i++) {
