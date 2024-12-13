@@ -22,7 +22,7 @@ contract RatiosStrategy is IRatiosStrategy {
             "RatiosStrategy: forbidden"
         );
         require(
-            ratios_.length == subvaults.length,
+            subvaults.length == ratios_.length,
             "RatiosStrategy: subvaults and ratios length mismatch"
         );
         IMultiVault multiVault = IMultiVault(vault);
