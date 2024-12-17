@@ -94,6 +94,23 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
         assets += shares == 0 ? 0 : IStrategy(strategy).sharesToUnderlyingView(shares);
     }
 
+    function transferedWithdrawalsOf(address account, uint256 limit, uint256 offset)
+        public
+        view
+        returns (uint256[] memory withdrawals)
+    {
+        AccountData storage accountData_ = _accountData[account];
+        EnumerableSet.UintSet storage transferedWithdrawals = accountData_.transferedWithdrawals;
+        uint256 length = transferedWithdrawals.length();
+        if (offset >= length) {
+            return withdrawals;
+        }
+        uint256 count = (length - offset).min(limit);
+        for (uint256 i = 0; i < count; i++) {
+            withdrawals[i] = transferedWithdrawals.at(i + offset);
+        }
+    }
+
     /// --------------- EXTERNAL MUTABLE FUNCTIONS ---------------
 
     function request(address account, uint256 assets, bool isSelfRequested) external {
@@ -124,6 +141,8 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
         WithdrawalData storage withdrawal = _withdrawals.push();
         withdrawal.data = data;
         withdrawal.assets = assets;
+        withdrawal.shares = shares[0];
+        withdrawal.sharesOf[account] = shares[0];
         AccountData storage accountData = _accountData[account];
         if (isSelfRequested) {
             if (accountData.withdrawals.length() + 1 > MAX_PENDING_WITHDRAWALS) {
@@ -133,7 +152,6 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
         } else {
             accountData.transferedWithdrawals.add(withdrawalIndex);
         }
-        withdrawal.sharesOf[account] = shares[0];
     }
 
     /// @inheritdoc IWithdrawalQueue
@@ -210,7 +228,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
         assets = maxAmount.min(accountData_.claimableAssets);
         if (assets != 0) {
             accountData_.claimableAssets -= assets;
-            IERC20(asset).safeTransfer(to, assets);
+            IERC20(IIsolatedEigenLayerVault(isolatedVault).asset()).safeTransfer(to, assets);
         }
     }
 
