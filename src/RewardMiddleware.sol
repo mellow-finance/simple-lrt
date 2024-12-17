@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
+import "./interfaces/tokens/IWETH.sol";
 import "@openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -24,6 +25,9 @@ contract RewardMiddleware is AccessControlEnumerable {
     bytes32 public constant ESCROW_ROLE = keccak256("ESCROW_ROLE");
     bytes32 public constant SEND_ROLE = keccak256("SEND_ROLE");
 
+    address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    IWETH public immutable weth;
+
     mapping(address token => bool isAllowed) public allowedTokens;
     mapping(address farm => bool isAllowed) public allowedFarms;
     mapping(address router => bool isAllowed) public allowedRouters;
@@ -34,8 +38,9 @@ contract RewardMiddleware is AccessControlEnumerable {
         return _escrows[id];
     }
 
-    constructor(address admin_) {
+    constructor(address admin_, address weth_) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
+        weth = IWETH(weth_);
     }
 
     function setRouterPermission(address router, bool isAllowed)
@@ -82,7 +87,15 @@ contract RewardMiddleware is AccessControlEnumerable {
     function send(address token, uint256 amount, address farm) external onlyRole(SEND_ROLE) {
         require(allowedTokens[token], "Token not allowed");
         require(allowedFarms[farm], "Farm not allowed");
-        IERC20(token).safeTransfer(farm, amount);
+        if (token == ETH) {
+            uint256 balance = address(this).balance;
+            if (balance < amount) {
+                weth.withdraw(amount - balance);
+            }
+            Address.sendValue(payable(farm), amount);
+        } else {
+            IERC20(token).safeTransfer(farm, amount);
+        }
     }
 
     function escrow(Escrow calldata escrow_) external onlyRole(ESCROW_ROLE) returns (uint256 id) {
@@ -130,4 +143,6 @@ contract RewardMiddleware is AccessControlEnumerable {
         escrow_.minAmountOut -= tokenOutAmount;
         _escrows[id] = escrow_;
     }
+
+    receive() external payable {}
 }
