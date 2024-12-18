@@ -45,6 +45,8 @@ contract RatiosStrategy is IRatiosStrategy {
         for (uint256 i = 0; i < n; i++) {
             vaultRatios_[subvaults[i]] = ratios_[i];
         }
+
+        emit RatiosSet(vault, subvaults, ratios_);
     }
 
     /// @inheritdoc IRatiosStrategy
@@ -259,12 +261,12 @@ contract RatiosStrategy is IRatiosStrategy {
         uint256 pending = 0;
         for (uint256 i = 0; i < n; i++) {
             data[i].subvaultIndex = i;
-            data[i].claim = state[i].claimable;
+            data[i].claimable = state[i].claimable;
             liquid += state[i].claimable;
             pending += state[i].pending;
             if (state[i].staked > state[i].max) {
-                data[i].request = state[i].staked - state[i].max;
-                pending += data[i].request;
+                data[i].staked = state[i].staked - state[i].max;
+                pending += data[i].staked;
                 state[i].staked = state[i].max;
             }
             if (state[i].min > state[i].staked) {
@@ -278,10 +280,10 @@ contract RatiosStrategy is IRatiosStrategy {
                 if (state[i].staked > state[i].min) {
                     uint256 allowed = state[i].staked - state[i].min;
                     if (allowed > unstake) {
-                        data[i].request += unstake;
+                        data[i].staked += unstake;
                         unstake = 0;
                     } else {
-                        data[i].request += allowed;
+                        data[i].staked += allowed;
                         unstake -= allowed;
                     }
                 }

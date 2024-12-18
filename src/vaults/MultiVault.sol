@@ -76,6 +76,11 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
             initParams.eigenLayerAdapter,
             initParams.erc4626Adapter
         );
+        require(
+            initParams.defaultCollateral == address(0)
+                || IDefaultCollateral(initParams.defaultCollateral).asset() == initParams.asset,
+            "MultiVault: default collateral asset does not match the vault asset"
+        );
     }
 
     /// @inheritdoc IMultiVault
@@ -191,7 +196,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         IRebalanceStrategy.RebalanceData[] memory data =
             rebalanceStrategy().calculateRebalanceAmounts(this_);
         for (uint256 i = 0; i < data.length; i++) {
-            _withdraw(data[i].subvaultIndex, data[i].request, 0, data[i].claim, this_, this_);
+            _withdraw(data[i].subvaultIndex, data[i].staked, 0, data[i].claimable, this_, this_);
         }
         IDefaultCollateral collateral = defaultCollateral();
         if (address(collateral) != address(0)) {
@@ -208,7 +213,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     }
 
     /// @inheritdoc IMultiVault
-    function pushRewards(uint256 farmId, bytes calldata farmData) external {
+    function pushRewards(uint256 farmId, bytes calldata farmData) external nonReentrant {
         require(farmIdsContains(farmId), "MultiVault: farm not found");
         IMultiVaultStorage.RewardData memory data = rewardData(farmId);
         IERC20 rewardToken = IERC20(data.token);
@@ -247,7 +252,6 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
             return;
         }
         Subvault memory subvault = subvaultAt(subvaultIndex);
-        IERC20(asset()).safeIncreaseAllowance(subvault.vault, assets);
         Address.functionDelegateCall(
             address(adapterOf(subvault.protocol)),
             abi.encodeCall(IProtocolAdapter.deposit, (subvault.vault, assets))

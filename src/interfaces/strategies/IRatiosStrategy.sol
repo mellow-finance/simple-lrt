@@ -45,4 +45,6 @@ interface IRatiosStrategy is IDepositStrategy, IWithdrawalStrategy, IRebalanceSt
         external
         view
         returns (Amounts[] memory state, uint256 liquid);
+
+    event RatiosSet(address indexed vault, address[] subvaults, Ratio[] ratios);
 }

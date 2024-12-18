@@ -154,4 +154,7 @@ interface ISymbioticWithdrawalQueue is IWithdrawalQueue {
 
     /// @notice Emitted when assets are successfully withdrawn and transferred to a recipient.
     event Claimed(address indexed account, address indexed recipient, uint256 amount);
+
+    /// @notice Emitted when pending assets are successfully transferred from one account to another.
+    event Transfer(address indexed from, address indexed to, uint256 indexed epoch, uint256 amount);
 }

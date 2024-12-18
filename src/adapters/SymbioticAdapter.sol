@@ -5,6 +5,8 @@ import "../interfaces/adapters/ISymbioticAdapter.sol";
 import {SymbioticWithdrawalQueue} from "../queues/SymbioticWithdrawalQueue.sol";
 
 contract SymbioticAdapter is ISymbioticAdapter {
+    using SafeERC20 for IERC20;
+
     /// @inheritdoc IProtocolAdapter
     address public immutable vault;
     /// @inheritdoc ISymbioticAdapter
@@ -96,6 +98,7 @@ contract SymbioticAdapter is ISymbioticAdapter {
     /// @inheritdoc IProtocolAdapter
     function deposit(address symbioticVault, uint256 assets) external {
         require(address(this) == vault, "SymbioticAdapter: delegate call only");
+        IERC20(IERC4626(vault).asset()).safeIncreaseAllowance(symbioticVault, assets);
         ISymbioticVault(symbioticVault).deposit(vault, assets);
     }
 
