@@ -63,10 +63,23 @@ contract RatiosStrategy is IRatiosStrategy {
             liquid += collateral.balanceOf(vault);
         }
         uint256 totalAssets = liquid;
+        IMultiVaultStorage.Subvault memory subvault;
         for (uint256 i = 0; i < n; i++) {
-            (state[i].claimable, state[i].pending, state[i].staked) = multiVault.assetsOf(i);
-            totalAssets += state[i].staked + state[i].pending + state[i].claimable;
-            uint256 maxDeposit = multiVault.maxDeposit(i);
+            subvault = multiVault.subvaultAt(i);
+            IProtocolAdapter adapter = multiVault.adapterOf(subvault.protocol);
+            state[i].staked = adapter.stakedAt(subvault.vault);
+            if (!isDeposit && adapter.areWithdrawalsPaused(subvault.vault, vault)) {
+                revert("RatiosStrategy: withdrawals paused");
+            }
+            if (subvault.withdrawalQueue != address(0)) {
+                state[i].claimable =
+                    IWithdrawalQueue(subvault.withdrawalQueue).claimableAssetsOf(vault);
+                state[i].pending = IWithdrawalQueue(subvault.withdrawalQueue).pendingAssetsOf(vault);
+                totalAssets += state[i].staked + state[i].pending + state[i].claimable;
+            } else {
+                totalAssets += state[i].staked;
+            }
+            uint256 maxDeposit = adapter.maxDeposit(subvault.vault);
             if (type(uint256).max - state[i].staked > maxDeposit) {
                 state[i].max = maxDeposit + state[i].staked;
             } else {
@@ -239,7 +252,7 @@ contract RatiosStrategy is IRatiosStrategy {
         override
         returns (RebalanceData[] memory data)
     {
-        (Amounts[] memory state, uint256 liquid) = calculateState(vault, true, 0);
+        (Amounts[] memory state, uint256 liquid) = calculateState(vault, false, 0);
         uint256 n = state.length;
         data = new RebalanceData[](n);
         uint256 totalRequired = 0;

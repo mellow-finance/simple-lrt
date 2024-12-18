@@ -2,7 +2,12 @@
 pragma solidity 0.8.25;
 
 import {IDefaultCollateral, IERC20} from "../tokens/IDefaultCollateral.sol";
-import {IMultiVault} from "../vaults/IMultiVault.sol";
+import {
+    IMultiVault,
+    IMultiVaultStorage,
+    IProtocolAdapter,
+    IWithdrawalQueue
+} from "../vaults/IMultiVault.sol";
 import {IDepositStrategy} from "./IDepositStrategy.sol";
 import {IRebalanceStrategy} from "./IRebalanceStrategy.sol";
 import {IWithdrawalStrategy} from "./IWithdrawalStrategy.sol";

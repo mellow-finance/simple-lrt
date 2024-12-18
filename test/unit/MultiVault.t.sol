@@ -1110,8 +1110,8 @@ contract Unit is BaseTest {
         vault.deposit(0, user);
         vault.deposit(0, user, user);
         vault.mint(0, user);
-        vault.maxDeposit(0);
-        vault.assetsOf(0);
+        // vault.maxDeposit(0);
+        // vault.assetsOf(0);
         vault.totalAssets();
 
         vm.stopPrank();

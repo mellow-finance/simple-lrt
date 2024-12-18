@@ -98,4 +98,11 @@ contract SymbioticAdapter is ISymbioticAdapter {
         require(address(this) == vault, "SymbioticAdapter: delegate call only");
         ISymbioticVault(symbioticVault).deposit(vault, assets);
     }
+
+    /// @inheritdoc IProtocolAdapter
+    function areWithdrawalsPaused(address, /* symbioticVault */ address /* account */ )
+        external
+        view
+        returns (bool)
+    {}
 }

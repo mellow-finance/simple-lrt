@@ -26,27 +26,6 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
 
     // ------------------------------- EXTERNAL VIEW FUNCTIONS -------------------------------
 
-    /// @inheritdoc IMultiVault
-    function maxDeposit(uint256 subvaultIndex) public view returns (uint256) {
-        Subvault memory subvault = subvaultAt(subvaultIndex);
-        return adapterOf(subvault.protocol).maxDeposit(subvault.vault);
-    }
-
-    /// @inheritdoc IMultiVault
-    function assetsOf(uint256 subvaultIndex)
-        public
-        view
-        returns (uint256 claimable, uint256 pending, uint256 staked)
-    {
-        Subvault memory subvault = subvaultAt(subvaultIndex);
-        staked = adapterOf(subvault.protocol).stakedAt(subvault.vault);
-        if (subvault.withdrawalQueue != address(0)) {
-            address this_ = address(this);
-            claimable = IWithdrawalQueue(subvault.withdrawalQueue).claimableAssetsOf(this_);
-            pending = IWithdrawalQueue(subvault.withdrawalQueue).pendingAssetsOf(this_);
-        }
-    }
-
     /// @inheritdoc IERC4626
     function totalAssets()
         public
@@ -63,9 +42,14 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         }
 
         uint256 length = subvaultsCount();
+        Subvault memory subvault;
         for (uint256 i = 0; i < length; i++) {
-            (uint256 claimable, uint256 pending, uint256 staked) = assetsOf(i);
-            assets_ += claimable + pending + staked;
+            subvault = subvaultAt(i);
+            assets_ += adapterOf(subvault.protocol).stakedAt(subvault.vault);
+            if (subvault.withdrawalQueue != address(0)) {
+                assets_ += IWithdrawalQueue(subvault.withdrawalQueue).claimableAssetsOf(this_)
+                    + IWithdrawalQueue(subvault.withdrawalQueue).pendingAssetsOf(this_);
+            }
         }
     }
 

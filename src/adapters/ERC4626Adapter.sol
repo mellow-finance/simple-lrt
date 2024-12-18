@@ -60,4 +60,11 @@ contract ERC4626Adapter is IERC4626Adapter {
         require(address(this) == vault, "ERC4626Adapter: delegate call only");
         IERC4626(token).deposit(assets, vault);
     }
+
+    /// @inheritdoc IProtocolAdapter
+    function areWithdrawalsPaused(address token, address account) external view returns (bool) {
+        IERC4626 token_ = IERC4626(token);
+        uint256 balance = token_.balanceOf(account);
+        return balance != 0 && token_.maxRedeem(account) == 0;
+    }
 }
