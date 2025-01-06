@@ -19,12 +19,16 @@ contract VaultRateOracle {
         vault = vault_;
     }
 
+    function _getDeprecatedRate() internal view virtual returns (uint256) {
+        // flow for mellow-lrt@Vault
+        (, uint256[] memory amounts) = IDeprecatedVault(vault).underlyingTvl();
+        require(amounts.length == 1, "VaultRateOracle: invalid length");
+        return Math.mulDiv(amounts[0], 1 ether, IERC20(vault).totalSupply());
+    }
+
     function getRate() external view returns (uint256) {
         if (!isERC4626Compatible) {
-            // flow for mellow-lrt@Vault
-            (, uint256[] memory amounts) = IDeprecatedVault(vault).underlyingTvl();
-            require(amounts.length == 1, "VaultRateOracle: invalid length");
-            return Math.mulDiv(amounts[0], 1 ether, IERC20(vault).totalSupply());
+            return _getDeprecatedRate();
         }
         return IERC4626(vault).convertToAssets(1 ether);
     }
