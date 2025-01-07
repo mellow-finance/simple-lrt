@@ -26,11 +26,15 @@ contract VaultRateOracle {
         return Math.mulDiv(amounts[0], shares, IERC20(vault).totalSupply());
     }
 
-    function convertToAssets(uint256 shares) external view returns (uint256) {
+    function convertToAssets(uint256 shares) public view returns (uint256) {
         if (!isERC4626Compatible) {
             return _getDeprecatedRate(shares);
         }
         return IERC4626(vault).convertToAssets(shares);
+    }
+
+    function getRate() external view returns (uint256) {
+        return convertToAssets(1 ether);
     }
 
     function migrationCallback() external {

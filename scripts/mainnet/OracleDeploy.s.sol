@@ -10,7 +10,8 @@ contract Deploy is Script {
         vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
         VaultRateOracle oracle = new VaultRateOracle(0x7a4EffD87C2f3C55CA251080b1343b605f327E3a);
 
-        console2.log("rate:", oracle.getRate());
+        console2.log("rate:", oracle.convertToShares(1 ether));
         vm.stopBroadcast();
+        revert("ok");
     }
 }
