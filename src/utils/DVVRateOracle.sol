@@ -11,7 +11,7 @@ contract DVVRateOracle is VaultRateOracle {
         wsteth = wsteth_;
     }
 
-    function _getDeprecatedRate() internal view override returns (uint256) {
+    function _getDeprecatedRate(uint256 shares) internal view override returns (uint256) {
         // flow for mellow-lrt@Vault
         (address[] memory tokens, uint256[] memory amounts) =
             IDeprecatedVault(vault).underlyingTvl();
@@ -19,6 +19,6 @@ contract DVVRateOracle is VaultRateOracle {
         uint256 wstethIndex = wsteth == tokens[0] ? 0 : 1;
         uint256 wstethValue =
             amounts[wstethIndex] + IWSTETH(wsteth).getWstETHByStETH(amounts[wstethIndex ^ 1]);
-        return Math.mulDiv(wstethValue, 1 ether, IERC20(vault).totalSupply());
+        return Math.mulDiv(wstethValue, shares, IERC20(vault).totalSupply());
     }
 }

@@ -13,7 +13,7 @@ contract Unit is Test {
         vm.expectRevert();
         oracle.migrationCallback();
 
-        console2.log(oracle.getRate());
+        console2.log(oracle.convertToAssets(1 ether));
     }
 
     function testVaultRateOracleAfterMigration() external {
@@ -21,7 +21,7 @@ contract Unit is Test {
 
         oracle.migrationCallback();
 
-        console2.log(oracle.getRate());
+        console2.log(oracle.convertToAssets(1 ether));
     }
 
     function testVaultRateOracleDVV() external {
@@ -32,6 +32,6 @@ contract Unit is Test {
         vm.expectRevert();
         oracle.migrationCallback();
 
-        console2.log(oracle.getRate());
+        console2.log(oracle.convertToAssets(1 ether));
     }
 }
