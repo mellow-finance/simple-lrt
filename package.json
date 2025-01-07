@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "repository": "https://github.com/mellow-finance/simple-lrt",
   "scripts": {
-    "prettier": "forge fmt && forge fmt ./test/**",
+    "prettier": "forge fmt && forge fmt ./test/** && forge fmt ./scripts/**",
     "test": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --gas-limit 1000000000000000 --fork-block-number 2686616",
     "test:solvency": "forge test -vv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2686616 --match-path test/solvency\\**.sol",
     "test:migrations:mainnet": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20760000 --contracts ./migration-test",
@@ -14,7 +14,6 @@
     "scc:report": "scc src --sort names --no-cocomo --exclude-dir interfaces --by-file --format wide > scc-report.txt",
     "coverage": "forge coverage --force --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --gas-limit 1000000000000000 --fork-block-number 2686616",
     "coverage:report": "forge coverage --force --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --gas-limit 1000000000000000 --fork-block-number 2686616 --report lcov && genhtml lcov.info -o report --branch-coverage && rm lcov.info",
-    "deploy:holesky:factory": "forge script --use 0.8.25 scripts/holesky/HoleskyDeploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
-    "deploy:mainnet": "forge script --use 0.8.25 scripts/mainnet/MainnetDeploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)"
+    "deploy:holesky:multi-vault": "forge script --use 0.8.25 scripts/holesky/MultiVault.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)"
   }
 }
