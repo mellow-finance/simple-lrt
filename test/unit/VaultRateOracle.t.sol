@@ -8,7 +8,9 @@ import "../mocks/MockMultiVault.sol";
 
 contract Unit is Test {
     function testVaultRateOracleBeforeMigration() external {
-        VaultRateOracle oracle = new VaultRateOracle(0xBF706Bb08D760a766D990697477F6da2f1834993);
+        VaultRateOracle oracle = new VaultRateOracle(
+            0xBF706Bb08D760a766D990697477F6da2f1834993, Constants.HOLESKY_WSTETH
+        );
 
         vm.expectRevert();
         oracle.migrationCallback();
@@ -17,7 +19,9 @@ contract Unit is Test {
     }
 
     function testVaultRateOracleAfterMigration() external {
-        VaultRateOracle oracle = new VaultRateOracle(0x7B25d3a9DE72025F120eb5DcFD6E9E311487be7A);
+        VaultRateOracle oracle = new VaultRateOracle(
+            0x7B25d3a9DE72025F120eb5DcFD6E9E311487be7A, Constants.HOLESKY_WSTETH
+        );
 
         oracle.migrationCallback();
 
@@ -25,9 +29,8 @@ contract Unit is Test {
     }
 
     function testVaultRateOracleDVV() external {
-        DVVRateOracle oracle = new DVVRateOracle(
-            0x7F31eb85aBE328EBe6DD07f9cA651a6FE623E69B, 0xC937e208aCd2Ea6126A3B7731C7c72f6E9307D1b
-        );
+        DVVRateOracle oracle =
+            new DVVRateOracle(0x7F31eb85aBE328EBe6DD07f9cA651a6FE623E69B, Constants.HOLESKY_WSTETH);
 
         vm.expectRevert();
         oracle.migrationCallback();

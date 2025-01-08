@@ -14,8 +14,8 @@ interface IDeprecatedVault {
 
 contract VaultRateOracle {
     address public immutable vault;
+    address public immutable wsteth;
     bool public isERC4626Compatible = false;
-    address public wsteth;
 
     constructor(address vault_, address wsteth_) {
         vault = vault_;
