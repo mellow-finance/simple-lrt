@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
+import "../../../src/interfaces/queues/IEigenLayerWithdrawalQueue.sol";
 import "../../../src/interfaces/queues/ISymbioticWithdrawalQueue.sol";
 import "../../../src/interfaces/vaults/IMultiVault.sol";
 import "./Oracle.sol";
@@ -12,6 +13,7 @@ contract Collector {
     struct Withdrawal {
         uint256 subvaultIndex;
         uint256 assets;
+        bool isTimestamp;
         uint256 claimingTime; // if 0 - assets == claimable assets, otherwise = pending assets
     }
 
@@ -105,7 +107,6 @@ contract Collector {
 
         withdrawals = new Withdrawal[](vault.subvaultsCount() * 50);
         uint256 iterator = 0;
-        uint256 counter = 0;
         uint256 subvaultsCount = vault.subvaultsCount();
         IMultiVaultStorage.Subvault memory subvault;
         for (uint256 subvaultIndex = 0; subvaultIndex < subvaultsCount; subvaultIndex++) {
@@ -119,33 +120,67 @@ contract Collector {
             uint256 claimable = queue.claimableAssetsOf(user);
 
             if (claimable != 0) {
-                withdrawals[iterator++] =
-                    Withdrawal({subvaultIndex: subvaultIndex, assets: claimable, claimingTime: 0});
+                withdrawals[iterator++] = Withdrawal({
+                    subvaultIndex: subvaultIndex,
+                    assets: claimable,
+                    isTimestamp: false,
+                    claimingTime: 0
+                });
             }
 
             if (pending == 0) {
                 continue;
             }
 
-            Withdrawal memory withdrawal = Withdrawal({
-                subvaultIndex: subvaultIndex,
-                assets: pending + claimable,
-                claimingTime: pending == 0 ? 0 : queue.claimingTimeOf(user)
-            });
-
             if (subvault.protocol == IMultiVault.Protocol.SYMBIOTIC) {
                 ISymbioticWithdrawalQueue q = ISymbioticWithdrawalQueue(subvault.withdrawalQueue);
-                (
-                    uint256 sharesToClaimPrev,
-                    uint256 sharesToClaim,
-                    uint256 claimableAssets,
-                    uint256 claimEpoch
-                ) = q.getAccountData(user);
+                (uint256 sharesToClaimPrev, uint256 sharesToClaim,,) = q.getAccountData(user);
                 ISymbioticVault symbioticVault = q.symbioticVault();
+                uint256 currentEpoch = q.getCurrentEpoch();
+                uint256 epochDuration = symbioticVault.epochDuration();
+                uint256 currentEpochStart = symbioticVault.currentEpochStart();
                 if (sharesToClaimPrev != 0) {
-                    uint256 assets = q.getEpochData(epoch);
+                    ISymbioticWithdrawalQueue.EpochData memory epochData =
+                        q.getEpochData(currentEpoch);
+
+                    if (!epochData.isClaimed) {
+                        uint256 assets = Math.mulDiv(
+                            symbioticVault.withdrawalsOf(address(q), currentEpoch),
+                            sharesToClaimPrev,
+                            epochData.sharesToClaim
+                        );
+                        if (assets != 0) {
+                            withdrawals[iterator++] = Withdrawal({
+                                subvaultIndex: subvaultIndex,
+                                assets: assets,
+                                isTimestamp: true,
+                                claimingTime: currentEpochStart + epochDuration
+                            });
+                        }
+                    }
                 }
-            } else if (subvault.protocol == IMultiVault.Protocol.EIGEN_LAYER) {} else {
+                if (sharesToClaim != 0) {
+                    ISymbioticWithdrawalQueue.EpochData memory epochData =
+                        q.getEpochData(currentEpoch + 1);
+                    if (!epochData.isClaimed) {
+                        uint256 assets = Math.mulDiv(
+                            symbioticVault.withdrawalsOf(address(q), currentEpoch + 1),
+                            sharesToClaimPrev,
+                            epochData.sharesToClaim
+                        );
+                        if (assets != 0) {
+                            withdrawals[iterator++] = Withdrawal({
+                                subvaultIndex: subvaultIndex,
+                                assets: assets,
+                                isTimestamp: true,
+                                claimingTime: currentEpochStart + 2 * epochDuration
+                            });
+                        }
+                    }
+                }
+            } else if (subvault.protocol == IMultiVault.Protocol.EIGEN_LAYER) {
+                IEigenLayerWithdrawalQueue q = IEigenLayerWithdrawalQueue(subvault.withdrawalQueue);
+            } else {
                 revert("Invalid state");
             }
         }
