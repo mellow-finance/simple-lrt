@@ -3,7 +3,9 @@ pragma solidity 0.8.25;
 
 import "../../../src/interfaces/queues/IEigenLayerWithdrawalQueue.sol";
 import "../../../src/interfaces/queues/ISymbioticWithdrawalQueue.sol";
-import "../../../src/interfaces/vaults/IMultiVault.sol";
+
+import "../../../src/interfaces/tokens/IWSTETH.sol";
+import "../../../src/vaults/MultiVault.sol";
 import "./Oracle.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -54,11 +56,12 @@ contract Collector {
     uint256 private constant Q96 = 2 ** 96;
     uint256 private constant D9 = 1e9;
     uint256 private constant D18 = 1e18;
-    address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    address public immutable WSTETH;
-    address public immutable WETH;
-    address public immutable STETH;
+    address public constant eth = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address public immutable usd = address(bytes20(keccak256("usd-token-address")));
+    address public immutable wsteth;
+    address public immutable weth;
+    address public immutable steth;
     address public owner;
     Oracle public oracle;
 
@@ -68,9 +71,9 @@ contract Collector {
     }
 
     constructor(address wsteth_, address weth_, address steth_, address owner_) {
-        WSTETH = wsteth_;
-        WETH = weth_;
-        STETH = steth_;
+        wsteth = wsteth_;
+        weth = weth_;
+        steth = steth_;
         owner = owner_;
     }
 
@@ -78,8 +81,12 @@ contract Collector {
         owner = owner_;
     }
 
+    function setOracle(address oracle_) external onlyOwner {
+        oracle = Oracle(oracle_);
+    }
+
     function collect(address user, IERC4626 vault_) public view returns (Response memory r) {
-        IMultiVault vault = IMultiVault(address(vault_));
+        MultiVault vault = MultiVault(address(vault_));
 
         r.vault = address(vault_);
         r.asset = vault_.asset();
@@ -89,23 +96,23 @@ contract Collector {
         r.totalLP = vault_.totalSupply();
         r.totalUnderlying = vault_.totalAssets();
         r.totalETH = oracle.getValue(r.asset, r.totalUnderlying);
-        r.totalUSD = oracle.getUsdValue(r.asset, USD, r.totalUnderlying);
+        r.totalUSD = oracle.getValue(r.asset, usd, r.totalUnderlying);
 
-        r.limitLP = vault.isDepositLimit() ? vault.depositLimit() : type(uint256).max;
+        r.limitLP = vault.limit();
         r.limitUnderlying = vault.convertToAssets(r.limitLP);
         r.limitETH = oracle.getValue(r.asset, r.limitUnderlying);
-        r.limitUSD = oracle.getUsdValue(r.asset, USD, r.limitUnderlying);
+        r.limitUSD = oracle.getValue(r.asset, usd, r.limitUnderlying);
 
         r.userLP = vault.balanceOf(user);
         r.userUnderlying = vault.convertToAssets(r.userLP);
         r.userETH = oracle.getValue(r.asset, r.userUnderlying);
-        r.userUSD = oracle.getUsdValue(r.asset, USD, r.userUnderlying);
+        r.userUSD = oracle.getValue(r.asset, usd, r.userUnderlying);
 
         r.lpPriceUSD = Math.mulDiv(1 ether, r.totalUSD, r.totalLP);
         r.lpPriceETH = Math.mulDiv(1 ether, r.totalETH, r.totalLP);
         r.lpPriceUnderlying = Math.mulDiv(1 ether, r.totalUnderlying, r.totalLP);
 
-        withdrawals = new Withdrawal[](vault.subvaultsCount() * 50);
+        Withdrawal[] memory withdrawals = new Withdrawal[](vault.subvaultsCount() * 50);
         uint256 iterator = 0;
         uint256 subvaultsCount = vault.subvaultsCount();
         IMultiVaultStorage.Subvault memory subvault;
@@ -116,36 +123,36 @@ contract Collector {
             }
 
             IWithdrawalQueue queue = IWithdrawalQueue(subvault.withdrawalQueue);
-            uint256 pending = queue.pendingAssetsOf(user);
-            uint256 claimable = queue.claimableAssetsOf(user);
 
-            if (claimable != 0) {
-                withdrawals[iterator++] = Withdrawal({
-                    subvaultIndex: subvaultIndex,
-                    assets: claimable,
-                    isTimestamp: false,
-                    claimingTime: 0
-                });
+            {
+                uint256 claimable = queue.claimableAssetsOf(user);
+                if (claimable != 0) {
+                    withdrawals[iterator++] = Withdrawal({
+                        subvaultIndex: subvaultIndex,
+                        assets: claimable,
+                        isTimestamp: false,
+                        claimingTime: 0
+                    });
+                }
             }
 
-            if (pending == 0) {
+            if (queue.pendingAssetsOf(user) == 0) {
                 continue;
             }
 
-            if (subvault.protocol == IMultiVault.Protocol.SYMBIOTIC) {
+            if (subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC) {
                 ISymbioticWithdrawalQueue q = ISymbioticWithdrawalQueue(subvault.withdrawalQueue);
                 (uint256 sharesToClaimPrev, uint256 sharesToClaim,,) = q.getAccountData(user);
                 ISymbioticVault symbioticVault = q.symbioticVault();
                 uint256 currentEpoch = q.getCurrentEpoch();
-                uint256 epochDuration = symbioticVault.epochDuration();
-                uint256 currentEpochStart = symbioticVault.currentEpochStart();
+
                 if (sharesToClaimPrev != 0) {
                     ISymbioticWithdrawalQueue.EpochData memory epochData =
                         q.getEpochData(currentEpoch);
 
                     if (!epochData.isClaimed) {
                         uint256 assets = Math.mulDiv(
-                            symbioticVault.withdrawalsOf(address(q), currentEpoch),
+                            symbioticVault.withdrawalsOf(currentEpoch - 1, address(q)),
                             sharesToClaimPrev,
                             epochData.sharesToClaim
                         );
@@ -154,7 +161,8 @@ contract Collector {
                                 subvaultIndex: subvaultIndex,
                                 assets: assets,
                                 isTimestamp: true,
-                                claimingTime: currentEpochStart + epochDuration
+                                claimingTime: symbioticVault.currentEpochStart()
+                                    + symbioticVault.epochDuration()
                             });
                         }
                     }
@@ -164,8 +172,8 @@ contract Collector {
                         q.getEpochData(currentEpoch + 1);
                     if (!epochData.isClaimed) {
                         uint256 assets = Math.mulDiv(
-                            symbioticVault.withdrawalsOf(address(q), currentEpoch + 1),
-                            sharesToClaimPrev,
+                            symbioticVault.withdrawalsOf(currentEpoch + 1, address(q)),
+                            sharesToClaim,
                             epochData.sharesToClaim
                         );
                         if (assets != 0) {
@@ -173,12 +181,13 @@ contract Collector {
                                 subvaultIndex: subvaultIndex,
                                 assets: assets,
                                 isTimestamp: true,
-                                claimingTime: currentEpochStart + 2 * epochDuration
+                                claimingTime: symbioticVault.currentEpochStart()
+                                    + 2 * symbioticVault.epochDuration()
                             });
                         }
                     }
                 }
-            } else if (subvault.protocol == IMultiVault.Protocol.EIGEN_LAYER) {
+            } else if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
                 // TODO: add logic into the EigenLayerWithdrawalQueue
                 // IEigenLayerWithdrawalQueue q = IEigenLayerWithdrawalQueue(subvault.withdrawalQueue);
                 // q.getAccountData(account);
@@ -231,81 +240,76 @@ contract Collector {
         }
     }
 
-    // function fetchWithdrawalAmounts(uint256 lpAmount, address vault)
-    //     external
-    //     view
-    //     returns (uint256[] memory expectedAmounts, uint256[] memory expectedAmountsUSDC)
-    // {
-    //     expectedAmounts = new uint256[](1);
-    //     expectedAmountsUSDC = new uint256[](1);
-    //     expectedAmounts[0] = MellowSymbioticVault(vault).previewRedeem(lpAmount);
-    //     expectedAmountsUSDC[0] =
-    //         oracle.getUsdValue(MellowSymbioticVault(vault).asset(), expectedAmounts[0]);
-    // }
+    function fetchWithdrawalAmounts(uint256 lpAmount, address vault)
+        external
+        view
+        returns (uint256[] memory expectedAmounts, uint256[] memory expectedAmountsUSDC)
+    {
+        expectedAmounts = new uint256[](1);
+        expectedAmountsUSDC = new uint256[](1);
+        expectedAmounts[0] = IERC4626(vault).previewRedeem(lpAmount);
+        expectedAmountsUSDC[0] = oracle.getValue(IERC4626(vault).asset(), usd, expectedAmounts[0]);
+    }
 
-    // function fetchDepositWrapperParams(address vault, address user, address token, uint256 amount)
-    //     external
-    //     view
-    //     returns (
-    //         bool isDepositPossible,
-    //         bool isDepositorWhitelisted,
-    //         bool isWhitelistedToken,
-    //         uint256 lpAmount,
-    //         uint256 depositValueUSDC
-    //     )
-    // {
-    //     if (MellowSymbioticVault(vault).depositPause()) {
-    //         return (false, false, false, 0, 0);
-    //     }
-    //     isDepositPossible = true;
-    //     if (
-    //         MellowSymbioticVault(vault).depositWhitelist()
-    //             && !MellowSymbioticVault(vault).isDepositorWhitelisted(user)
-    //     ) {
-    //         return (isDepositPossible, false, false, 0, 0);
-    //     }
-    //     isDepositorWhitelisted = true;
+    function fetchDepositWrapperParams(address vault, address user, address token, uint256 amount)
+        external
+        view
+        returns (
+            bool isDepositPossible,
+            bool isDepositorWhitelisted,
+            bool isWhitelistedToken,
+            uint256 lpAmount,
+            uint256 depositValueUSDC
+        )
+    {
+        if (MultiVault(vault).depositPause()) {
+            return (false, false, false, 0, 0);
+        }
+        isDepositPossible = true;
+        if (MultiVault(vault).depositWhitelist() && !MultiVault(vault).isDepositorWhitelisted(user))
+        {
+            return (isDepositPossible, false, false, 0, 0);
+        }
+        isDepositorWhitelisted = true;
 
-    //     if (MellowSymbioticVault(vault).asset() != wsteth) {
-    //         return (isDepositPossible, isDepositorWhitelisted, false, 0, 0);
-    //     }
-    //     if (token == weth || token == steth || token == wsteth || token == eth) {
-    //         isWhitelistedToken = true;
-    //     } else {
-    //         return (isDepositPossible, isDepositorWhitelisted, false, 0, 0);
-    //     }
-    //     if (token != wsteth) {
-    //         amount = IWSTETH(wsteth).getWstETHByStETH(amount);
-    //     }
-    //     lpAmount = MellowSymbioticVault(vault).previewDeposit(amount);
-    //     depositValueUSDC = oracle.getUsdValue(wsteth, amount);
-    // }
+        if (MultiVault(vault).asset() != wsteth) {
+            return (isDepositPossible, isDepositorWhitelisted, false, 0, 0);
+        }
+        if (token == weth || token == steth || token == wsteth || token == eth) {
+            isWhitelistedToken = true;
+        } else {
+            return (isDepositPossible, isDepositorWhitelisted, false, 0, 0);
+        }
+        if (token != wsteth) {
+            amount = IWSTETH(wsteth).getWstETHByStETH(amount);
+        }
+        lpAmount = MultiVault(vault).previewDeposit(amount);
+        depositValueUSDC = oracle.getValue(wsteth, usd, amount);
+    }
 
-    // function fetchDepositAmounts(uint256[] memory amounts, address vault, address user)
-    //     external
-    //     view
-    //     returns (FetchDepositAmountsResponse memory r)
-    // {
-    //     if (MellowSymbioticVault(vault).depositPause()) {
-    //         return r;
-    //     }
-    //     r.isDepositPossible = true;
-    //     if (
-    //         MellowSymbioticVault(vault).depositWhitelist()
-    //             && !MellowSymbioticVault(vault).isDepositorWhitelisted(user)
-    //     ) {
-    //         return r;
-    //     }
-    //     r.isDepositorWhitelisted = true;
-    //     r.ratiosD18 = new uint256[](1);
-    //     r.ratiosD18[0] = D18;
-    //     r.tokens = new address[](1);
-    //     r.tokens[0] = MellowSymbioticVault(vault).asset();
-    //     r.expectedLpAmount = MellowSymbioticVault(vault).previewDeposit(amounts[0]);
-    //     r.expectedLpAmountUSDC = oracle.getUsdValue(MellowSymbioticVault(vault).asset(), amounts[0]);
-    //     r.expectedAmounts = new uint256[](1);
-    //     r.expectedAmounts[0] = amounts[0];
-    //     r.expectedAmountsUSDC = new uint256[](1);
-    //     r.expectedAmountsUSDC[0] = r.expectedLpAmountUSDC;
-    // }
+    function fetchDepositAmounts(uint256[] memory amounts, address vault, address user)
+        external
+        view
+        returns (FetchDepositAmountsResponse memory r)
+    {
+        if (MultiVault(vault).depositPause()) {
+            return r;
+        }
+        r.isDepositPossible = true;
+        if (MultiVault(vault).depositWhitelist() && !MultiVault(vault).isDepositorWhitelisted(user))
+        {
+            return r;
+        }
+        r.isDepositorWhitelisted = true;
+        r.ratiosD18 = new uint256[](1);
+        r.ratiosD18[0] = D18;
+        r.tokens = new address[](1);
+        r.tokens[0] = MultiVault(vault).asset();
+        r.expectedLpAmount = MultiVault(vault).previewDeposit(amounts[0]);
+        r.expectedLpAmountUSDC = oracle.getValue(MultiVault(vault).asset(), usd, amounts[0]);
+        r.expectedAmounts = new uint256[](1);
+        r.expectedAmounts[0] = amounts[0];
+        r.expectedAmountsUSDC = new uint256[](1);
+        r.expectedAmountsUSDC[0] = r.expectedLpAmountUSDC;
+    }
 }
