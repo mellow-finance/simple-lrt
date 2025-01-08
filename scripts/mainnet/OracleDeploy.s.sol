@@ -8,7 +8,9 @@ import "forge-std/Script.sol";
 contract Deploy is Script {
     function run() external {
         vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
-        VaultRateOracle oracle = new VaultRateOracle(0x7a4EffD87C2f3C55CA251080b1343b605f327E3a);
+        VaultRateOracle oracle = new VaultRateOracle(
+            0x7a4EffD87C2f3C55CA251080b1343b605f327E3a, 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0
+        );
 
         console2.log("rate:", oracle.convertToAssets(1 ether));
         vm.stopBroadcast();

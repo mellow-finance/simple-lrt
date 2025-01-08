@@ -5,11 +5,7 @@ import "../interfaces/tokens/IWSTETH.sol";
 import "./VaultRateOracle.sol";
 
 contract DVVRateOracle is VaultRateOracle {
-    address public immutable wsteth;
-
-    constructor(address vault_, address wsteth_) VaultRateOracle(vault_) {
-        wsteth = wsteth_;
-    }
+    constructor(address vault_, address wsteth_) VaultRateOracle(vault_, wsteth_) {}
 
     function _getDeprecatedRate(uint256 shares) internal view override returns (uint256) {
         // flow for mellow-lrt@Vault
