@@ -179,7 +179,25 @@ contract Collector {
                     }
                 }
             } else if (subvault.protocol == IMultiVault.Protocol.EIGEN_LAYER) {
-                IEigenLayerWithdrawalQueue q = IEigenLayerWithdrawalQueue(subvault.withdrawalQueue);
+                // TODO: add logic into the EigenLayerWithdrawalQueue
+                // IEigenLayerWithdrawalQueue q = IEigenLayerWithdrawalQueue(subvault.withdrawalQueue);
+                // q.getAccountData(account);
+                // AccountData storage accountData_ = _accountData[account];
+                // uint256[] memory indices = accountData_.withdrawals.values();
+                // uint256 block_ = latestWithdrawableBlock();
+                // uint256 counter = 0;
+                // uint256 shares = 0;
+                // for (uint256 i = 0; i < indices.length; i++) {
+                //     WithdrawalData storage withdrawal = _withdrawals[indices[i]];
+                //     if (withdrawal.isClaimed) {
+                //         continue;
+                //     } else if (block_ >= withdrawal.data.startBlock && counter < MAX_CLAIMING_WITHDRAWALS) {
+                //         counter++;
+                //     } else {
+                //         shares += withdrawal.sharesOf[account];
+                //     }
+                // }
+                // assets = shares == 0 ? 0 : IStrategy(strategy).sharesToUnderlyingView(shares);
             } else {
                 revert("Invalid state");
             }
