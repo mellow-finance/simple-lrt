@@ -18,32 +18,33 @@ contract Deploy is Script {
         MultiVault singleton = new MultiVault("MultiVault", 1);
         address deployer = vm.addr(holeskyDeployerPk);
 
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-            address(singleton),
-            deployer,
-            new bytes(0)
-        );
-    
+        TransparentUpgradeableProxy proxy =
+            new TransparentUpgradeableProxy(address(singleton), deployer, new bytes(0));
+
         EthWrapper ethWrapper = new EthWrapper(
-            Constants.HOLESKY_WETH,
-            Constants.HOLESKY_WSTETH,
-            Constants.HOLESKY_STETH
+            Constants.HOLESKY_WETH, Constants.HOLESKY_WSTETH, Constants.HOLESKY_STETH
         );
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
 
-        address proxyAdmin = address(uint160(uint256(vm.load(
-            address(proxy),
-            0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103
-        ))));
+        address proxyAdmin = address(
+            uint160(
+                uint256(
+                    vm.load(
+                        address(proxy),
+                        0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103
+                    )
+                )
+            )
+        );
 
         console2.log("proxy admin:", proxyAdmin);
 
         MultiVault multiVault = MultiVault(address(proxy));
-        
 
-        SymbioticAdapter symbioticAdapter =
-            new SymbioticAdapter(address(proxy), address(claimer), Constants.symbioticDeployment().vaultFactory);
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(proxy), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
 
         multiVault.initialize(
             IMultiVault.InitParams({
@@ -55,7 +56,7 @@ contract Deploy is Script {
                 asset: Constants.HOLESKY_WSTETH,
                 name: "MultiVault-test-1",
                 symbol: "MV-1",
-                depositStrategy: address(strategy), 
+                depositStrategy: address(strategy),
                 withdrawalStrategy: address(strategy),
                 rebalanceStrategy: address(strategy),
                 defaultCollateral: Constants.HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL,
@@ -82,11 +83,7 @@ contract Deploy is Script {
         }
 
         ethWrapper.deposit{value: 0.1 ether}(
-            ethWrapper.ETH(),
-            0.1 ether,
-            address(multiVault),
-            address(deployer),
-            address(deployer)
+            ethWrapper.ETH(), 0.1 ether, address(multiVault), address(deployer), address(deployer)
         );
 
         multiVault.rebalance();
