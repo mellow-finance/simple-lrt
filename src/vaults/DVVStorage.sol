@@ -4,10 +4,8 @@ pragma solidity 0.8.25;
 import "../interfaces/tokens/IWETH.sol";
 import "../interfaces/tokens/IWSTETH.sol";
 import "../interfaces/utils/IStakingModule.sol";
-import "./ERC4626CompatVault.sol";
 import "./VaultControlStorage.sol";
-import {ERC20Upgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import "@openzeppelin/contracts/access/IAccessControl.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";

@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "./ERC4626Vault.sol";
-import {ERC20Upgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import {ERC4626Vault} from "./ERC4626Vault.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 
-/// ---------------------------------------------------------------------------
-/// ------------- NOTE: MellowVaultCompat copy-and-paste below ----------------
-/// ---------------------------------------------------------------------------
-abstract contract ERC4626CompatVault is ERC4626Vault {
+abstract contract MellowVaultCompat is ERC4626Vault {
     bytes32 private constant ERC20CompatStorageSlot = 0;
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.ERC20")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant ERC20UpgradeableStorageSlot =

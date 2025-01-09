@@ -2,11 +2,11 @@
 pragma solidity 0.8.25;
 
 import "./DVVStorage.sol";
-import "./ERC4626CompatVault.sol";
+import "./MellowVaultCompat.sol";
 import "./VaultControlStorage.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract DVV is ERC4626CompatVault, DVVStorage {
+contract DVV is MellowVaultCompat, DVVStorage {
     using SafeERC20 for IERC20;
 
     constructor(bytes32 name_, uint256 version_, address wsteth_, address weth_)
