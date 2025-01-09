@@ -135,7 +135,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
     }
 
     /// @inheritdoc IProtocolAdapter
-    function areWithdrawalsPaused(address isolatedVault, address account)
+    function areWithdrawalsPaused(address isolatedVault, address /* account */ )
         external
         view
         returns (bool)

@@ -10,16 +10,24 @@ contract SymbioticAdapter is ISymbioticAdapter {
     /// @inheritdoc IProtocolAdapter
     address public immutable vault;
     /// @inheritdoc ISymbioticAdapter
-    address public immutable claimer;
-    /// @inheritdoc ISymbioticAdapter
     IRegistry public immutable vaultFactory;
+
+    address public immutable withdrawalQueueSingleton;
+
+    address public immutable proxyAdmin;
     /// @inheritdoc ISymbioticAdapter
     mapping(address symbioticVault => address withdrawalQueue) public withdrawalQueues;
 
-    constructor(address vault_, address claimer_, address vaultFactory_) {
+    constructor(
+        address vault_,
+        address vaultFactory_,
+        address withdrawalQueueSingleton_,
+        address proxyAdmin_
+    ) {
         vault = vault_;
-        claimer = claimer_;
         vaultFactory = IRegistry(vaultFactory_);
+        withdrawalQueueSingleton = withdrawalQueueSingleton_;
+        proxyAdmin = proxyAdmin_;
     }
 
     /// @inheritdoc IProtocolAdapter
@@ -58,8 +66,10 @@ contract SymbioticAdapter is ISymbioticAdapter {
         }
         require(vaultFactory.isEntity(symbioticVault), "SymbioticAdapter: invalid symbiotic vault");
         withdrawalQueue = address(
-            new SymbioticWithdrawalQueue{salt: keccak256(abi.encodePacked(symbioticVault))}(
-                vault, symbioticVault, claimer
+            new TransparentUpgradeableProxy(
+                withdrawalQueueSingleton,
+                proxyAdmin,
+                abi.encodeCall(SymbioticWithdrawalQueue.initialize, (vault, symbioticVault))
             )
         );
         withdrawalQueues[symbioticVault] = withdrawalQueue;

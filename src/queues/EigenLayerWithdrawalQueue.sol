@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import "../interfaces/queues/IEigenLayerWithdrawalQueue.sol";
 
-contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
+contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -12,33 +12,40 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
     uint256 public constant MAX_CLAIMING_WITHDRAWALS = 5;
 
     /// @inheritdoc IEigenLayerWithdrawalQueue
-    address public immutable isolatedVault;
-    /// @inheritdoc IEigenLayerWithdrawalQueue
     address public immutable claimer;
     /// @inheritdoc IEigenLayerWithdrawalQueue
-    address public immutable asset;
-    /// @inheritdoc IEigenLayerWithdrawalQueue
-    address public immutable strategy;
-    /// @inheritdoc IEigenLayerWithdrawalQueue
     address public immutable delegation;
+
     /// @inheritdoc IEigenLayerWithdrawalQueue
-    address public immutable operator;
+    address public isolatedVault;
+    /// @inheritdoc IEigenLayerWithdrawalQueue
+    address public strategy;
+    /// @inheritdoc IEigenLayerWithdrawalQueue
+    address public operator;
 
     WithdrawalData[] private _withdrawals;
     mapping(address account => AccountData) private _accountData;
 
-    constructor(
-        address isolatedVault_,
-        address claimer_,
-        address strategy_,
-        address delegation_,
-        address operator_
-    ) {
-        isolatedVault = isolatedVault_;
+    constructor(address claimer_, address delegation_) {
         claimer = claimer_;
-        asset = address(IStrategy(strategy_).underlyingToken());
-        strategy = strategy_;
         delegation = delegation_;
+        _disableInitializers();
+    }
+
+    function initialize(address isolatedVault_, address strategy_, address operator_)
+        external
+        initializer
+    {
+        __init_EigenLayerWithdrawalQueue(isolatedVault_, strategy_, operator_);
+    }
+
+    function __init_EigenLayerWithdrawalQueue(
+        address isolatedVault_,
+        address strategy_,
+        address operator_
+    ) internal onlyInitializing {
+        isolatedVault = isolatedVault_;
+        strategy = strategy_;
         operator = operator_;
     }
 
@@ -114,7 +121,8 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
     /// --------------- EXTERNAL MUTABLE FUNCTIONS ---------------
 
     function request(address account, uint256 assets, bool isSelfRequested) external {
-        require(msg.sender == isolatedVault, "EigenLayerWithdrawalQueue: forbidden");
+        address isolatedVault_ = isolatedVault;
+        require(msg.sender == isolatedVault_, "EigenLayerWithdrawalQueue: forbidden");
         handleWithdrawals(account);
         IStrategy[] memory strategies = new IStrategy[](1);
         uint256[] memory shares = new uint256[](1);
@@ -123,10 +131,10 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
         IDelegationManager delegationManager = IDelegationManager(delegation);
 
         IDelegationManager.Withdrawal memory data = IDelegationManager.Withdrawal({
-            staker: isolatedVault,
+            staker: isolatedVault_,
             delegatedTo: operator,
-            withdrawer: isolatedVault,
-            nonce: delegationManager.cumulativeWithdrawalsQueued(isolatedVault),
+            withdrawer: isolatedVault_,
+            nonce: delegationManager.cumulativeWithdrawalsQueued(isolatedVault_),
             startBlock: uint32(block.number),
             strategies: strategies,
             shares: shares
@@ -134,8 +142,8 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
 
         IDelegationManager.QueuedWithdrawalParams[] memory requests =
             new IDelegationManager.QueuedWithdrawalParams[](1);
-        requests[0] = IDelegationManager.QueuedWithdrawalParams(strategies, shares, isolatedVault);
-        IIsolatedEigenLayerVault(isolatedVault).queueWithdrawals(delegationManager, requests);
+        requests[0] = IDelegationManager.QueuedWithdrawalParams(strategies, shares, isolatedVault_);
+        IIsolatedEigenLayerVault(isolatedVault_).queueWithdrawals(delegationManager, requests);
 
         uint256 withdrawalIndex = _withdrawals.length;
         WithdrawalData storage withdrawal = _withdrawals.push();
@@ -163,13 +171,14 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
         handleWithdrawals(from);
         AccountData storage accountData_ = _accountData[from];
         uint256 pendingWithdrawals = accountData_.withdrawals.length();
+        IStrategy strategy_ = IStrategy(strategy);
         for (uint256 i = 0; i < pendingWithdrawals;) {
             uint256 withdrawalIndex = accountData_.withdrawals.at(i);
             WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
             uint256 accountShares = withdrawal.sharesOf[from];
             uint256 accountAssets = withdrawal.isClaimed
                 ? Math.mulDiv(withdrawal.assets, accountShares, withdrawal.shares)
-                : IStrategy(strategy).sharesToUnderlyingView(accountShares);
+                : strategy_.sharesToUnderlyingView(accountShares);
             if (accountAssets == 0) {
                 i++;
                 continue;

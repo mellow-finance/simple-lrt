@@ -5,6 +5,8 @@ import {IIsolatedEigenLayerVault} from "../adapters/IIsolatedEigenLayerVault.sol
 import {IWithdrawalQueue} from "./IWithdrawalQueue.sol";
 import {IDelegationManager} from "@eigenlayer-interfaces/IDelegationManager.sol";
 import {IStrategy} from "@eigenlayer-interfaces/IStrategy.sol";
+
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -25,10 +27,13 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
     }
 
     function isolatedVault() external view returns (address);
+
     function claimer() external view returns (address);
-    function asset() external view returns (address);
+
     function delegation() external view returns (address);
+
     function strategy() external view returns (address);
+
     function operator() external view returns (address);
 
     function latestWithdrawableBlock() external view returns (uint256);

@@ -13,7 +13,6 @@ import "../src/adapters/EigenLayerWstETHAdapter.sol";
 import "../src/adapters/IsolatedEigenLayerVault.sol";
 import "../src/adapters/IsolatedEigenLayerVaultFactory.sol";
 import "../src/adapters/IsolatedEigenLayerWstETHVault.sol";
-import "../src/adapters/IsolatedEigenLayerWstETHVaultFactory.sol";
 import "../src/adapters/SymbioticAdapter.sol";
 
 import "../src/queues/EigenLayerWithdrawalQueue.sol";

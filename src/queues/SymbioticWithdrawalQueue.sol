@@ -3,27 +3,37 @@ pragma solidity 0.8.25;
 
 import "../interfaces/queues/ISymbioticWithdrawalQueue.sol";
 
-contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
+contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue, Initializable {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
-    /// @inheritdoc ISymbioticWithdrawalQueue
-    address public immutable vault;
     /// @inheritdoc IWithdrawalQueue
     address public immutable claimer;
     /// @inheritdoc ISymbioticWithdrawalQueue
-    ISymbioticVault public immutable symbioticVault;
+    address public vault;
     /// @inheritdoc ISymbioticWithdrawalQueue
-    address public immutable collateral;
+    ISymbioticVault public symbioticVault;
+    /// @inheritdoc ISymbioticWithdrawalQueue
+    address public collateral;
 
     mapping(uint256 epoch => EpochData data) private _epochData;
     mapping(address account => AccountData data) private _accountData;
 
-    constructor(address _vault, address _symbioticVault, address claimer_) {
-        vault = _vault;
-        symbioticVault = ISymbioticVault(_symbioticVault);
-        collateral = symbioticVault.collateral();
+    constructor(address claimer_) {
         claimer = claimer_;
+    }
+
+    function initialize(address vault_, address symbioticVault_) external initializer {
+        __init_SymbioticWithdrawalQueue(vault_, symbioticVault_);
+    }
+
+    function __init_SymbioticWithdrawalQueue(address vault_, address symbioticVault_)
+        internal
+        onlyInitializing
+    {
+        vault = vault_;
+        symbioticVault = ISymbioticVault(symbioticVault_);
+        collateral = ISymbioticVault(symbioticVault_).collateral();
     }
 
     /// @inheritdoc ISymbioticWithdrawalQueue
@@ -58,8 +68,9 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
     function pendingAssets() public view returns (uint256) {
         uint256 epoch = getCurrentEpoch();
         address this_ = address(this);
-        return symbioticVault.withdrawalsOf(epoch, this_)
-            + symbioticVault.withdrawalsOf(epoch + 1, this_);
+        ISymbioticVault symbioticVault_ = symbioticVault;
+        return symbioticVault_.withdrawalsOf(epoch, this_)
+            + symbioticVault_.withdrawalsOf(epoch + 1, this_);
     }
 
     /// @inheritdoc ISymbioticWithdrawalQueue
@@ -285,13 +296,14 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
         }
         epochData.isClaimed = true;
         address this_ = address(this);
-        if (symbioticVault.isWithdrawalsClaimed(epoch, this_)) {
+        ISymbioticVault symbioticVault_ = symbioticVault;
+        if (symbioticVault_.isWithdrawalsClaimed(epoch, this_)) {
             return;
         }
-        if (symbioticVault.withdrawalsOf(epoch, this_) == 0) {
+        if (symbioticVault_.withdrawalsOf(epoch, this_) == 0) {
             return;
         }
-        uint256 claimedAssets = symbioticVault.claim(this_, epoch);
+        uint256 claimedAssets = symbioticVault_.claim(this_, epoch);
         epochData.claimableAssets = claimedAssets;
         emit EpochClaimed(epoch, claimedAssets);
     }

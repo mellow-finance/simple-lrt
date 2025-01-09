@@ -10,10 +10,18 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
     IWSTETH public immutable wsteth;
     ISTETH public immutable steth;
 
-    constructor(address vault_, address wsteth_) IsolatedEigenLayerVault(vault_) {
-        require(wsteth_ == IERC4626(vault_).asset(), "IsolatedEigenLayerWstETHVault: invalid asset");
+    constructor(address wsteth_) {
         wsteth = IWSTETH(wsteth_);
         steth = wsteth.stETH();
+        _disableInitializers();
+    }
+
+    function initialize(address vault_) external override initializer {
+        require(
+            address(wsteth) == IERC4626(vault_).asset(),
+            "IsolatedEigenLayerWstETHVault: invalid asset"
+        );
+        __init_IsolatedEigenLayerVault(vault_);
     }
 
     /// @inheritdoc IIsolatedEigenLayerVault

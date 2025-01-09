@@ -3,19 +3,23 @@ pragma solidity 0.8.25;
 
 import "../interfaces/adapters/IIsolatedEigenLayerVault.sol";
 
-contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
+contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
     using SafeERC20 for IERC20;
 
-    address public immutable factory;
-    address public immutable vault;
-    address public immutable asset;
+    address public factory;
+    address public vault;
+    address public asset;
 
     modifier onlyVault() {
         require(msg.sender == vault, "Only vault");
         _;
     }
 
-    constructor(address vault_) {
+    function initialize(address vault_) external virtual initializer {
+        __init_IsolatedEigenLayerVault(vault_);
+    }
+
+    function __init_IsolatedEigenLayerVault(address vault_) internal onlyInitializing {
         factory = msg.sender;
         vault = vault_;
         asset = IERC4626(vault_).asset();
@@ -37,9 +41,10 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         virtual
         onlyVault
     {
-        IERC20(asset).safeTransferFrom(vault, address(this), assets);
-        IERC20(asset).safeIncreaseAllowance(manager, assets);
-        IStrategyManager(manager).depositIntoStrategy(IStrategy(strategy), IERC20(asset), assets);
+        IERC20 asset_ = IERC20(asset);
+        asset_.safeTransferFrom(vault, address(this), assets);
+        asset_.safeIncreaseAllowance(manager, assets);
+        IStrategyManager(manager).depositIntoStrategy(IStrategy(strategy), asset_, assets);
     }
 
     /// @inheritdoc IIsolatedEigenLayerVault

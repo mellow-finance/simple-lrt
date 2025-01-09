@@ -7,6 +7,8 @@ import {IDelegationManager} from "@eigenlayer-interfaces/IDelegationManager.sol"
 import {IRewardsCoordinator} from "@eigenlayer-interfaces/IRewardsCoordinator.sol";
 import {ISignatureUtils} from "@eigenlayer-interfaces/ISignatureUtils.sol";
 import {IStrategy, IStrategyManager} from "@eigenlayer-interfaces/IStrategyManager.sol";
+
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
