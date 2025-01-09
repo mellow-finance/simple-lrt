@@ -163,7 +163,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
         handleWithdrawals(from);
         AccountData storage accountData_ = _accountData[from];
         uint256 pendingWithdrawals = accountData_.withdrawals.length();
-        for (uint256 i = 0; i < pendingWithdrawals; i++) {
+        for (uint256 i = 0; i < pendingWithdrawals;) {
             uint256 withdrawalIndex = accountData_.withdrawals.at(i);
             WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
             uint256 accountShares = withdrawal.sharesOf[from];
@@ -171,6 +171,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
                 ? Math.mulDiv(withdrawal.assets, accountShares, withdrawal.shares)
                 : IStrategy(strategy).sharesToUnderlyingView(accountShares);
             if (accountAssets == 0) {
+                i++;
                 continue;
             }
             _accountData[to].transferedWithdrawals.add(withdrawalIndex);
@@ -180,6 +181,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue {
                 balances[to] += accountShares;
                 accountData_.withdrawals.remove(withdrawalIndex);
                 amount -= accountAssets;
+                pendingWithdrawals--;
             } else {
                 uint256 shares_ = accountShares.mulDiv(amount, accountAssets);
                 balances[from] -= shares_;

@@ -37,6 +37,8 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         virtual
         onlyVault
     {
+        IERC20(asset).safeTransferFrom(vault, address(this), assets);
+        IERC20(asset).safeIncreaseAllowance(manager, assets);
         IStrategyManager(manager).depositIntoStrategy(IStrategy(strategy), IERC20(asset), assets);
     }
 
