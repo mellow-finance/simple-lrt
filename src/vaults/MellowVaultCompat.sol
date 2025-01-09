@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {ERC4626Vault} from "./ERC4626Vault.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 abstract contract MellowVaultCompat is ERC4626Vault {
     bytes32 private constant ERC20CompatStorageSlot = 0;

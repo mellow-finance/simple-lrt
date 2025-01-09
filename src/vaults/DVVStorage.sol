@@ -5,14 +5,10 @@ import "../interfaces/tokens/IWETH.sol";
 import "../interfaces/tokens/IWSTETH.sol";
 import "../interfaces/utils/IStakingModule.sol";
 import "./VaultControlStorage.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import "@openzeppelin/contracts/access/IAccessControl.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 abstract contract DVVStorage is VaultControlStorage {
-    using SafeERC20 for IERC20;
-
     struct DVVStorageStruct {
         address yieldVault;
         address stakingModule;
