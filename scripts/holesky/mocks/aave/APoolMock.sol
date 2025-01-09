@@ -19,12 +19,9 @@ contract APoolMock is IAToken, IAPool, ERC4626 {
         return asset();
     }
 
-    function supply(
-        address asset_,
-        uint256 amount,
-        address, /* onBehalfOf */
-        uint16 /* referralCode */
-    ) external {
+    function supply(address asset_, uint256 amount, address onBehalfOf, uint16 /* referralCode */ )
+        external
+    {
         require(onBehalfOf == msg.sender, "APoolMock: onBehalfOf mismatch");
         require(asset() == asset_, "APoolMock: asset mismatch");
         IERC20(asset()).safeTransferFrom(msg.sender, address(this), amount);
