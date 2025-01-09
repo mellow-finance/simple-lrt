@@ -1,84 +1,35 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "../interfaces/tokens/IWETH.sol";
-import "../interfaces/tokens/IWSTETH.sol";
-import "./ERC4626Vault.sol";
+import "./DVVStorage.sol";
+import "./ERC4626CompatVault.sol";
 import "./VaultControlStorage.sol";
-import {ERC20Upgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin/contracts/access/IAccessControl.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
 
-interface IStakingModule {
-    function stake(bytes calldata data, address caller) external;
-
-    function forceStake(uint256 amount) external;
-}
-
-contract DefaultStakingModule is IStakingModule {
-    bytes32 public constant STAKER_ROLE = keccak256("STAKER_ROLE");
-    IWSTETH public constant WSTETH = IWSTETH(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
-    IERC20 public constant WETH = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-
-    function stake(bytes calldata, /* data */ address caller) external {
-        address this_ = address(this);
-        require(IAccessControl(this_).hasRole(STAKER_ROLE, caller), "StakingModule: forbidden");
-        forceStake(WETH.balanceOf(this_));
-    }
-
-    function forceStake(uint256 amount) public {
-        IWETH(address(WETH)).withdraw(amount);
-        Address.sendValue(payable(address(WSTETH)), amount);
-    }
-}
-
-contract DVV is ERC4626Vault {
+contract DVV is ERC4626CompatVault, DVVStorage {
     using SafeERC20 for IERC20;
 
-    struct DVVStorage {
-        address yieldVault;
-        address stakingModule;
-    }
+    constructor(bytes32 name_, uint256 version_, address wsteth_, address weth_)
+        DVVStorage(name_, version_, wsteth_, weth_)
+    {}
 
-    function initialize(
-        address _admin,
-        uint256 _limit,
-        bool _depositPause,
-        bool _withdrawalPause,
-        bool _depositWhitelist,
-        address _asset,
-        string memory _name,
-        string memory _symbol,
-        address _stakingModule,
-        address _yieldVault
-    ) external initializer {
+    function initialize(address _admin, address _stakingModule, address _yieldVault)
+        external
+        initializer
+    {
+        uint256 balance =
+            WSTETH.balanceOf(address(this)) + WSTETH.getWstETHByStETH(WETH.balanceOf(address(this)));
         __initializeERC4626(
             _admin,
-            _limit,
-            _depositPause,
-            _withdrawalPause,
-            _depositWhitelist,
-            _asset,
-            _name,
-            _symbol
+            balance,
+            false,
+            false,
+            false,
+            address(WSTETH),
+            "Decentralized Validator Token",
+            "DVstETH"
         );
-        _dvvStorage().stakingModule = _stakingModule;
-        _dvvStorage().yieldVault = _yieldVault;
-    }
-
-    IWSTETH public constant WSTETH = IWSTETH(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
-    IERC20 public constant WETH = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-
-    bytes32 private immutable storageSlotRef;
-
-    function yieldVault() public view returns (IERC4626) {
-        return IERC4626(_dvvStorage().yieldVault);
-    }
-
-    function stakingModule() public view returns (IStakingModule) {
-        return IStakingModule(_dvvStorage().stakingModule);
+        __init_DVVStorage(_stakingModule, _yieldVault);
     }
 
     function totalAssets()
@@ -92,7 +43,6 @@ contract DVV is ERC4626Vault {
         IERC4626 yieldVault_ = yieldVault();
         return WSTETH.balanceOf(this_) + yieldVault_.previewRedeem(yieldVault_.balanceOf(this_))
             + WSTETH.getWstETHByStETH(WETH.balanceOf(this_));
-        // NOTE: in case of lido v3 integration add *+ stakingModule().assetsOf(this_)*
     }
 
     function previewEthDeposit(uint256 ethAssets) public view returns (uint256 shares) {
@@ -104,7 +54,7 @@ contract DVV is ERC4626Vault {
     }
 
     function setStakingModule(address newStakingModule) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _dvvStorage().stakingModule = newStakingModule;
+        _setStakingModule(newStakingModule);
     }
 
     function ethDeposit(uint256 ethAssets, address receiver, address referral)
@@ -121,10 +71,10 @@ contract DVV is ERC4626Vault {
         address caller = _msgSender();
 
         if (msg.value == ethAssets) {
-            IWETH(address(WETH)).deposit{value: ethAssets}();
+            WETH.deposit{value: ethAssets}();
         } else {
             require(msg.value == 0, "DVV: msg.value must be zero for WETH deposit");
-            IERC20(address(WETH)).safeTransferFrom(caller, address(this), ethAssets);
+            IERC20(WETH).safeTransferFrom(caller, address(this), ethAssets);
         }
 
         _mint(receiver, shares);
@@ -192,149 +142,5 @@ contract DVV is ERC4626Vault {
         IERC4626 yieldVault_ = yieldVault();
         IERC20(address(WSTETH)).safeIncreaseAllowance(address(yieldVault_), wstethBalance);
         yieldVault_.deposit(wstethBalance, this_);
-    }
-
-    function _dvvStorage() private view returns (DVVStorage storage $) {
-        bytes32 slot = storageSlotRef;
-        assembly {
-            $.slot := slot
-        }
-    }
-
-    /// ---------------------------------------------------------------------------
-    /// ------------- NOTE: MellowVaultCompat copy-and-paste below ----------------
-    /// ---------------------------------------------------------------------------
-    bytes32 private constant ERC20CompatStorageSlot = 0;
-    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.ERC20")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant ERC20UpgradeableStorageSlot =
-        0x52c63247e1f47db19d5ce0460030c497f067ca4cebf71ba98eeadabe20bace00;
-
-    function _getERC20CompatStorage() private pure returns (ERC20Storage storage $) {
-        assembly {
-            $.slot := ERC20CompatStorageSlot
-        }
-    }
-
-    function _getERC20UpgradeableStorage() private pure returns (ERC20Storage storage $) {
-        assembly {
-            $.slot := ERC20UpgradeableStorageSlot
-        }
-    }
-
-    constructor(bytes32 name_, uint256 version_) VaultControlStorage(name_, version_) {
-        storageSlotRef = keccak256(
-            abi.encode(
-                uint256(
-                    keccak256(abi.encodePacked("mellow.simple-lrt.storage.DVV", name_, version_))
-                ) - 1
-            )
-        ) & ~bytes32(uint256(0xff));
-    }
-
-    function compatTotalSupply() external view returns (uint256) {
-        return _getERC20CompatStorage()._totalSupply;
-    }
-
-    function migrateMultiple(address[] calldata users) external {
-        for (uint256 i = 0; i < users.length; ++i) {
-            migrate(users[i]);
-        }
-    }
-
-    function migrate(address user) public {
-        ERC20Storage storage compatStorage = _getERC20CompatStorage();
-        uint256 balance = compatStorage._balances[user];
-        if (balance == 0) {
-            return;
-        }
-        ERC20Storage storage upgradeableStorage = _getERC20UpgradeableStorage();
-        delete compatStorage._balances[user];
-        unchecked {
-            upgradeableStorage._balances[user] += balance;
-            compatStorage._totalSupply -= balance;
-            upgradeableStorage._totalSupply += balance;
-        }
-    }
-
-    function migrateApproval(address from, address to) public {
-        ERC20Storage storage compatStorage = _getERC20CompatStorage();
-        uint256 allowance_ = compatStorage._allowances[from][to];
-        if (allowance_ == 0) {
-            return;
-        }
-        delete compatStorage._allowances[from][to];
-        super._approve(from, to, allowance_, false);
-    }
-
-    /**
-     * @inheritdoc ERC20Upgradeable
-     * @notice Updates balances for token transfers, ensuring any pre-existing balances in the old storage are migrated before performing the update.
-     * @param from The address sending the tokens.
-     * @param to The address receiving the tokens.
-     * @param value The amount of tokens being transferred.
-     */
-    function _update(address from, address to, uint256 value) internal virtual override {
-        migrate(from);
-        migrate(to);
-        super._update(from, to, value);
-    }
-
-    /**
-     * @inheritdoc ERC20Upgradeable
-     * @notice Updates the allowance for the spender, ensuring any pre-existing allowances in the old storage are migrated before performing the update.
-     * @param owner The address allowing the spender to spend tokens.
-     * @param spender The address allowed to spend tokens.
-     * @param value The amount of tokens the spender is allowed to spend.
-     * @param emitEvent A flag to signal if the approval event should be emitted.
-     */
-    function _approve(address owner, address spender, uint256 value, bool emitEvent)
-        internal
-        virtual
-        override(ERC20Upgradeable)
-    {
-        migrateApproval(owner, spender);
-        super._approve(owner, spender, value, emitEvent);
-    }
-
-    /**
-     * @inheritdoc IERC20
-     * @notice Returns the allowance for the given owner and spender, combining both pre-migration and post-migration allowances.
-     * @param owner The address allowing the spender to spend tokens.
-     * @param spender The address allowed to spend tokens.
-     * @return The combined allowance for the owner and spender.
-     */
-    function allowance(address owner, address spender)
-        public
-        view
-        virtual
-        override(ERC20Upgradeable, IERC20)
-        returns (uint256)
-    {
-        return
-            _getERC20CompatStorage()._allowances[owner][spender] + super.allowance(owner, spender);
-    }
-
-    /**
-     * @inheritdoc IERC20
-     * @notice Returns the balance of the given account, combining both pre-migration and post-migration balances.
-     * @param account The address of the account to query.
-     * @return The combined balance of the account.
-     */
-    function balanceOf(address account)
-        public
-        view
-        override(IERC20, ERC20Upgradeable)
-        returns (uint256)
-    {
-        return _getERC20CompatStorage()._balances[account] + super.balanceOf(account);
-    }
-
-    /**
-     * @inheritdoc IERC20
-     * @notice Returns the total supply of tokens, combining both pre-migration and post-migration supplies.
-     * @return The combined total supply of tokens.
-     */
-    function totalSupply() public view override(IERC20, ERC20Upgradeable) returns (uint256) {
-        return _getERC20CompatStorage()._totalSupply + super.totalSupply();
     }
 }
