@@ -129,6 +129,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
             fromData.sharesToClaim[nextEpoch] -= shares;
             toData.sharesToClaim[nextEpoch] += shares;
             toData.claimEpoch = nextEpoch;
+            emit Transfer(from, to, nextEpoch, shares);
         } else {
             uint256 currentSharesToClaim = fromData.sharesToClaim[epoch];
             uint256 currentPending = _withdrawalsOf(epoch, currentSharesToClaim);
@@ -141,12 +142,14 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue {
                 toData.sharesToClaim[nextEpoch] += nextSharesToClaim;
                 delete fromData.sharesToClaim[nextEpoch];
                 amount -= nextPending;
+                emit Transfer(from, to, nextEpoch, nextPending);
             }
 
             uint256 shares = currentSharesToClaim.mulDiv(amount, currentPending);
             fromData.sharesToClaim[epoch] = currentSharesToClaim - shares;
             toData.sharesToClaim[epoch] += shares;
             toData.claimEpoch = nextEpoch;
+            emit Transfer(from, to, epoch, shares);
         }
     }
 

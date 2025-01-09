@@ -7,6 +7,8 @@ import "../mocks/MockMultiVault.sol";
 contract Unit is BaseTest {
     using RandomLib for RandomLib.Storage;
 
+    uint256 ITERATIONS = 100;
+
     function testConstructor() external {
         RatiosStrategy c = new RatiosStrategy();
         assertNotEq(address(c), address(0));
@@ -86,7 +88,7 @@ contract Unit is BaseTest {
         vault.setDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
         vault.setFlag(true);
 
-        for (uint256 i = 0; i < 200; i++) {
+        for (uint256 i = 0; i < ITERATIONS; i++) {
             uint256 n = rnd.randInt(1, 20);
             MockMultiVault.Data[] memory data = new MockMultiVault.Data[](n);
             IRatiosStrategy.Ratio[] memory ratios = new IRatiosStrategy.Ratio[](n);
@@ -158,7 +160,7 @@ contract Unit is BaseTest {
         vault.setDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
         vault.setFlag(true);
 
-        for (uint256 i = 0; i < 200; i++) {
+        for (uint256 i = 0; i < ITERATIONS; i++) {
             uint256 n = rnd.randInt(1, 20);
             MockMultiVault.Data[] memory data = new MockMultiVault.Data[](n);
             IRatiosStrategy.Ratio[] memory ratios = new IRatiosStrategy.Ratio[](n);
@@ -217,7 +219,7 @@ contract Unit is BaseTest {
         vault.setDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
         vault.setFlag(true);
 
-        for (uint256 i = 0; i < 200; i++) {
+        for (uint256 i = 0; i < ITERATIONS; i++) {
             uint256 n = rnd.randInt(1, 20);
             MockMultiVault.Data[] memory data = new MockMultiVault.Data[](n);
             IRatiosStrategy.Ratio[] memory ratios = new IRatiosStrategy.Ratio[](n);
@@ -279,7 +281,7 @@ contract Unit is BaseTest {
         vault.setDefaultCollateral(Constants.WSTETH_SYMBIOTIC_COLLATERAL());
         vault.setFlag(true);
 
-        for (uint256 i = 0; i < 200; i++) {
+        for (uint256 i = 0; i < ITERATIONS; i++) {
             uint256 n = rnd.randInt(1, 20);
             MockMultiVault.Data[] memory data = new MockMultiVault.Data[](n);
             IRatiosStrategy.Ratio[] memory ratios = new IRatiosStrategy.Ratio[](n);

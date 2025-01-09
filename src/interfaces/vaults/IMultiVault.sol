@@ -48,13 +48,6 @@ interface IMultiVault is IMultiVaultStorage {
 
     function pushRewards(uint256 farmId, bytes calldata data) external;
 
-    function maxDeposit(uint256 subvaultIndex) external view returns (uint256 assets);
-
-    function assetsOf(uint256 subvaultIndex)
-        external
-        view
-        returns (uint256 claimable, uint256 pending, uint256 staked);
-
     event Rebalance(IRebalanceStrategy.RebalanceData[] data, uint256 timestamp);
 
     event DepositIntoCollateral(uint256 assets);

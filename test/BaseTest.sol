@@ -17,7 +17,9 @@ abstract contract BaseTest is Test {
         )
     {
         vault = new MultiVault("MultiVault", 1);
-        adapter = new SymbioticAdapter(address(vault), address(new Claimer()));
+        adapter = new SymbioticAdapter(
+            address(vault), address(new Claimer()), Constants.symbioticDeployment().vaultFactory
+        );
 
         strategy = new RatiosStrategy();
 

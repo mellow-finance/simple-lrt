@@ -5,16 +5,21 @@ import "../interfaces/adapters/ISymbioticAdapter.sol";
 import {SymbioticWithdrawalQueue} from "../queues/SymbioticWithdrawalQueue.sol";
 
 contract SymbioticAdapter is ISymbioticAdapter {
+    using SafeERC20 for IERC20;
+
     /// @inheritdoc IProtocolAdapter
     address public immutable vault;
     /// @inheritdoc ISymbioticAdapter
     address public immutable claimer;
     /// @inheritdoc ISymbioticAdapter
+    IRegistry public immutable vaultFactory;
+    /// @inheritdoc ISymbioticAdapter
     mapping(address symbioticVault => address withdrawalQueue) public withdrawalQueues;
 
-    constructor(address vault_, address claimer_) {
+    constructor(address vault_, address claimer_, address vaultFactory_) {
         vault = vault_;
         claimer = claimer_;
+        vaultFactory = IRegistry(vaultFactory_);
     }
 
     /// @inheritdoc IProtocolAdapter
@@ -51,6 +56,7 @@ contract SymbioticAdapter is ISymbioticAdapter {
         if (withdrawalQueue != address(0)) {
             return withdrawalQueue;
         }
+        require(vaultFactory.isEntity(symbioticVault), "SymbioticAdapter: invalid symbiotic vault");
         withdrawalQueue = address(
             new SymbioticWithdrawalQueue{salt: keccak256(abi.encodePacked(symbioticVault))}(
                 vault, symbioticVault, claimer
@@ -92,6 +98,14 @@ contract SymbioticAdapter is ISymbioticAdapter {
     /// @inheritdoc IProtocolAdapter
     function deposit(address symbioticVault, uint256 assets) external {
         require(address(this) == vault, "SymbioticAdapter: delegate call only");
+        IERC20(IERC4626(vault).asset()).safeIncreaseAllowance(symbioticVault, assets);
         ISymbioticVault(symbioticVault).deposit(vault, assets);
     }
+
+    /// @inheritdoc IProtocolAdapter
+    function areWithdrawalsPaused(address, /* symbioticVault */ address /* account */ )
+        external
+        view
+        returns (bool)
+    {}
 }

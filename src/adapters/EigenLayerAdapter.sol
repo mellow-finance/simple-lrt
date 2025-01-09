@@ -7,6 +7,9 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
     using SafeERC20 for IERC20;
 
     uint8 public constant PAUSED_DEPOSITS = 0;
+    uint8 public constant PAUSED_WITHDRAWALS = 1;
+    uint8 public constant PAUSED_ENTER_WITHDRAWAL_QUEUE = 1;
+    uint8 public constant PAUSED_EXIT_WITHDRAWAL_QUEUE = 2;
 
     address public immutable vault;
 
@@ -118,6 +121,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
     /// @inheritdoc IProtocolAdapter
     function deposit(address isolatedVault, uint256 assets) external delegateCallOnly {
         (,, address strategy,) = factory.instances(isolatedVault);
+        IERC20(IERC4626(vault).asset()).safeIncreaseAllowance(isolatedVault, assets);
         IIsolatedEigenLayerVault(isolatedVault).deposit(address(strategyManager), strategy, assets);
     }
 
@@ -128,5 +132,18 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         returns (uint256 assets)
     {
         return IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(delegationManager, data);
+    }
+
+    /// @inheritdoc IProtocolAdapter
+    function areWithdrawalsPaused(address isolatedVault, address account)
+        external
+        view
+        returns (bool)
+    {
+        IPausable manager = IPausable(address(strategyManager));
+        (,, address strategy,) = factory.instances(isolatedVault);
+        return manager.paused(PAUSED_ENTER_WITHDRAWAL_QUEUE)
+            || manager.paused(PAUSED_EXIT_WITHDRAWAL_QUEUE)
+            || IPausable(strategy).paused(PAUSED_WITHDRAWALS);
     }
 }

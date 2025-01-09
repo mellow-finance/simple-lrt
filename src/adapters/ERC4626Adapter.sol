@@ -4,6 +4,8 @@ pragma solidity 0.8.25;
 import "../interfaces/adapters/IERC4626Adapter.sol";
 
 contract ERC4626Adapter is IERC4626Adapter {
+    using SafeERC20 for IERC20;
+
     address public immutable vault;
 
     constructor(address vault_) {
@@ -58,6 +60,14 @@ contract ERC4626Adapter is IERC4626Adapter {
     /// @inheritdoc IProtocolAdapter
     function deposit(address token, uint256 assets) external {
         require(address(this) == vault, "ERC4626Adapter: delegate call only");
+        IERC20(IERC4626(vault).asset()).safeIncreaseAllowance(token, assets);
         IERC4626(token).deposit(assets, vault);
+    }
+
+    /// @inheritdoc IProtocolAdapter
+    function areWithdrawalsPaused(address token, address account) external view returns (bool) {
+        IERC4626 token_ = IERC4626(token);
+        uint256 balance = token_.balanceOf(account);
+        return balance != 0 && token_.maxRedeem(account) == 0;
     }
 }

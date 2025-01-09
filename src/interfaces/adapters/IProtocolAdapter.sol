@@ -16,14 +16,16 @@ interface IProtocolAdapter {
         external;
 
     function withdraw(
-        address vault,
+        address subvault,
         address withdrawalQueue,
         address receiver,
         uint256 request,
         address owner
     ) external;
 
-    function deposit(address vault, uint256 assets) external;
+    function deposit(address subvault, uint256 assets) external;
 
-    function handleVault(address vault) external returns (address withdrawalQueue);
+    function handleVault(address subvault) external returns (address withdrawalQueue);
+
+    function areWithdrawalsPaused(address subvault, address account) external view returns (bool);
 }

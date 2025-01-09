@@ -45,6 +45,8 @@ contract RatiosStrategy is IRatiosStrategy {
         for (uint256 i = 0; i < n; i++) {
             vaultRatios_[subvaults[i]] = ratios_[i];
         }
+
+        emit RatiosSet(vault, subvaults, ratios_);
     }
 
     /// @inheritdoc IRatiosStrategy
@@ -63,10 +65,23 @@ contract RatiosStrategy is IRatiosStrategy {
             liquid += collateral.balanceOf(vault);
         }
         uint256 totalAssets = liquid;
+        IMultiVaultStorage.Subvault memory subvault;
         for (uint256 i = 0; i < n; i++) {
-            (state[i].claimable, state[i].pending, state[i].staked) = multiVault.assetsOf(i);
-            totalAssets += state[i].staked + state[i].pending + state[i].claimable;
-            uint256 maxDeposit = multiVault.maxDeposit(i);
+            subvault = multiVault.subvaultAt(i);
+            IProtocolAdapter adapter = multiVault.adapterOf(subvault.protocol);
+            state[i].staked = adapter.stakedAt(subvault.vault);
+            if (!isDeposit && adapter.areWithdrawalsPaused(subvault.vault, vault)) {
+                revert("RatiosStrategy: withdrawals paused");
+            }
+            if (subvault.withdrawalQueue != address(0)) {
+                state[i].claimable =
+                    IWithdrawalQueue(subvault.withdrawalQueue).claimableAssetsOf(vault);
+                state[i].pending = IWithdrawalQueue(subvault.withdrawalQueue).pendingAssetsOf(vault);
+                totalAssets += state[i].staked + state[i].pending + state[i].claimable;
+            } else {
+                totalAssets += state[i].staked;
+            }
+            uint256 maxDeposit = adapter.maxDeposit(subvault.vault);
             if (type(uint256).max - state[i].staked > maxDeposit) {
                 state[i].max = maxDeposit + state[i].staked;
             } else {
@@ -239,19 +254,19 @@ contract RatiosStrategy is IRatiosStrategy {
         override
         returns (RebalanceData[] memory data)
     {
-        (Amounts[] memory state, uint256 liquid) = calculateState(vault, true, 0);
+        (Amounts[] memory state, uint256 liquid) = calculateState(vault, false, 0);
         uint256 n = state.length;
         data = new RebalanceData[](n);
         uint256 totalRequired = 0;
         uint256 pending = 0;
         for (uint256 i = 0; i < n; i++) {
             data[i].subvaultIndex = i;
-            data[i].claim = state[i].claimable;
+            data[i].claimable = state[i].claimable;
             liquid += state[i].claimable;
             pending += state[i].pending;
             if (state[i].staked > state[i].max) {
-                data[i].request = state[i].staked - state[i].max;
-                pending += data[i].request;
+                data[i].staked = state[i].staked - state[i].max;
+                pending += data[i].staked;
                 state[i].staked = state[i].max;
             }
             if (state[i].min > state[i].staked) {
@@ -265,10 +280,10 @@ contract RatiosStrategy is IRatiosStrategy {
                 if (state[i].staked > state[i].min) {
                     uint256 allowed = state[i].staked - state[i].min;
                     if (allowed > unstake) {
-                        data[i].request += unstake;
+                        data[i].staked += unstake;
                         unstake = 0;
                     } else {
-                        data[i].request += allowed;
+                        data[i].staked += allowed;
                         unstake -= allowed;
                     }
                 }

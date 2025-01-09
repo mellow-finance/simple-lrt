@@ -5,8 +5,12 @@ import "./Imports.sol";
 import "./mocks/MockERC4626.sol";
 
 contract MultiVaultTest is Test {
+    using RandomLib for RandomLib.Storage;
+
     string private constant NAME = "MultiVaultTest";
     uint256 private constant VERSION = 1;
+
+    RandomLib.Storage private rnd;
 
     address private admin = vm.createWallet("multi-vault-admin").addr;
     uint256 private limit = 1000 ether;
@@ -75,7 +79,9 @@ contract MultiVaultTest is Test {
         MultiVault mv = new MultiVault(bytes32("MultiVaultTest"), VERSION);
 
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(mv), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(mv), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory =
             new IsolatedEigenLayerWstETHVaultFactory(delegationManager, address(claimer), wsteth);
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
@@ -275,6 +281,261 @@ contract MultiVaultTest is Test {
         vm.stopPrank();
     }
 
+    function testMultiVaultEigenLayerNoPause() public {
+        MultiVault mv = new MultiVault(bytes32("MultiVaultTest"), VERSION);
+
+        Claimer claimer = new Claimer();
+        IsolatedEigenLayerWstETHVaultFactory factory =
+            new IsolatedEigenLayerWstETHVaultFactory(delegationManager, address(claimer), wsteth);
+        EigenLayerWstETHAdapter eigenLayerAdapter = new EigenLayerWstETHAdapter(
+            address(factory),
+            address(mv),
+            IStrategyManager(strategyManager),
+            IRewardsCoordinator(rewardsCoordinator),
+            wsteth
+        );
+
+        RatiosStrategy strategy = new RatiosStrategy();
+
+        mv.initialize(
+            IMultiVault.InitParams({
+                admin: admin,
+                limit: limit,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                asset: wsteth,
+                name: NAME,
+                symbol: NAME,
+                depositStrategy: address(strategy),
+                withdrawalStrategy: address(strategy),
+                rebalanceStrategy: address(strategy),
+                defaultCollateral: address(0),
+                symbioticAdapter: address(0),
+                eigenLayerAdapter: address(eigenLayerAdapter),
+                erc4626Adapter: address(0)
+            })
+        );
+
+        vm.startPrank(admin);
+
+        mv.grantRole(keccak256("ADD_SUBVAULT_ROLE"), admin);
+        mv.grantRole(keccak256("REMOVE_SUBVAULT_ROLE"), admin);
+        mv.grantRole(keccak256("RATIOS_STRATEGY_SET_RATIOS_ROLE"), admin);
+        mv.grantRole(keccak256("REBALANCE_ROLE"), admin);
+
+        address isolatedVault;
+        address delegationManagerOwner;
+        address wq;
+        {
+            ISignatureUtils.SignatureWithExpiry memory signature;
+            bytes32 salt = 0;
+            address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
+            address eigenStrategy = 0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3;
+
+            (isolatedVault, wq) = factory.getOrCreate(
+                address(mv), operator, eigenStrategy, abi.encode(signature, salt)
+            );
+
+            vm.stopPrank();
+            delegationManagerOwner = Ownable(Constants.HOLESKY_EL_DELEGATION_MANAGER).owner();
+            vm.startPrank(delegationManagerOwner);
+            IDelegationManager(Constants.HOLESKY_EL_DELEGATION_MANAGER).setMinWithdrawalDelayBlocks(
+                0
+            );
+            IStrategy[] memory strategies = new IStrategy[](1);
+            strategies[0] = IStrategy(eigenStrategy);
+            IDelegationManager(Constants.HOLESKY_EL_DELEGATION_MANAGER)
+                .setStrategyWithdrawalDelayBlocks(strategies, new uint256[](1));
+            vm.stopPrank();
+            vm.startPrank(admin);
+        }
+
+        address[] memory subvaults = new address[](1);
+        subvaults[0] = isolatedVault;
+        RatiosStrategy.Ratio[] memory ratios = new RatiosStrategy.Ratio[](1);
+        ratios[0].minRatioD18 = 0.94 ether;
+        ratios[0].maxRatioD18 = 0.95 ether;
+
+        mv.addSubvault(isolatedVault, IMultiVaultStorage.Protocol.EIGEN_LAYER);
+        strategy.setRatios(address(mv), subvaults, ratios);
+
+        mv.rebalance();
+
+        for (uint256 i = 0; i < 500; i++) {
+            uint256 t = uint256(keccak256(abi.encodePacked(blockhash(block.number - i - 1), i))) % 7;
+
+            vm.startPrank(admin);
+            if (t == 0) {
+                uint256 amount = 1 ether;
+                uint256 stethAmount = IWSTETH(Constants.WSTETH()).getStETHByWstETH(amount) + 1;
+                deal(admin, stethAmount);
+                Address.sendValue(payable(Constants.WSTETH()), stethAmount);
+                IERC20(wsteth).approve(address(mv), amount);
+                mv.deposit(amount, admin, admin);
+            } else if (t == 1) {
+                mv.rebalance();
+            } else if (t == 2) {
+                mv.redeem(mv.balanceOf(admin), admin, admin);
+            } else if (t == 3) {
+                skip(1 days);
+            } else if (t == 4) {
+                uint256[][] memory indices = new uint256[][](1);
+                indices[0] = EigenLayerWithdrawalQueue(wq).transferedWithdrawalsOf(
+                    admin, type(uint256).max, 0
+                );
+                claimer.multiAcceptAndClaim(
+                    address(mv), new uint256[](1), indices, admin, type(uint256).max
+                );
+            } else if (t == 5) {
+                vm.stopPrank();
+                vm.startPrank(delegationManagerOwner);
+                IDelegationManager(Constants.HOLESKY_EL_DELEGATION_MANAGER)
+                    .setMinWithdrawalDelayBlocks(0);
+            } else if (t == 6) {
+                vm.stopPrank();
+                vm.startPrank(delegationManagerOwner);
+                IDelegationManager(Constants.HOLESKY_EL_DELEGATION_MANAGER)
+                    .setMinWithdrawalDelayBlocks(1);
+            }
+            vm.stopPrank();
+        }
+    }
+
+    function testFuzz_Eigen(uint256 seed_) public {
+        rnd.seed = seed_;
+        MultiVault mv = new MultiVault(bytes32("MultiVaultTest"), VERSION);
+
+        Claimer claimer = new Claimer();
+        IsolatedEigenLayerWstETHVaultFactory factory =
+            new IsolatedEigenLayerWstETHVaultFactory(delegationManager, address(claimer), wsteth);
+        EigenLayerWstETHAdapter eigenLayerAdapter = new EigenLayerWstETHAdapter(
+            address(factory),
+            address(mv),
+            IStrategyManager(strategyManager),
+            IRewardsCoordinator(rewardsCoordinator),
+            wsteth
+        );
+
+        RatiosStrategy strategy = new RatiosStrategy();
+
+        mv.initialize(
+            IMultiVault.InitParams({
+                admin: admin,
+                limit: limit,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                asset: wsteth,
+                name: NAME,
+                symbol: NAME,
+                depositStrategy: address(strategy),
+                withdrawalStrategy: address(strategy),
+                rebalanceStrategy: address(strategy),
+                defaultCollateral: address(0),
+                symbioticAdapter: address(0),
+                eigenLayerAdapter: address(eigenLayerAdapter),
+                erc4626Adapter: address(0)
+            })
+        );
+
+        vm.startPrank(admin);
+
+        mv.grantRole(keccak256("ADD_SUBVAULT_ROLE"), admin);
+        mv.grantRole(keccak256("REMOVE_SUBVAULT_ROLE"), admin);
+        mv.grantRole(keccak256("RATIOS_STRATEGY_SET_RATIOS_ROLE"), admin);
+        mv.grantRole(keccak256("REBALANCE_ROLE"), admin);
+
+        address isolatedVault;
+        address delegationManagerOwner;
+        address wq;
+        {
+            ISignatureUtils.SignatureWithExpiry memory signature;
+            bytes32 salt = 0;
+            address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
+            address eigenStrategy = 0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3;
+
+            (isolatedVault, wq) = factory.getOrCreate(
+                address(mv), operator, eigenStrategy, abi.encode(signature, salt)
+            );
+
+            vm.stopPrank();
+            delegationManagerOwner = Ownable(Constants.HOLESKY_EL_DELEGATION_MANAGER).owner();
+            vm.startPrank(delegationManagerOwner);
+            IDelegationManager(Constants.HOLESKY_EL_DELEGATION_MANAGER).setMinWithdrawalDelayBlocks(
+                0
+            );
+            IStrategy[] memory strategies = new IStrategy[](1);
+            strategies[0] = IStrategy(eigenStrategy);
+            IDelegationManager(Constants.HOLESKY_EL_DELEGATION_MANAGER)
+                .setStrategyWithdrawalDelayBlocks(strategies, new uint256[](1));
+            vm.stopPrank();
+            vm.startPrank(admin);
+        }
+
+        address[] memory subvaults = new address[](1);
+        subvaults[0] = isolatedVault;
+        RatiosStrategy.Ratio[] memory ratios = new RatiosStrategy.Ratio[](1);
+        ratios[0].minRatioD18 = 0.94 ether;
+        ratios[0].maxRatioD18 = 0.95 ether;
+
+        mv.addSubvault(isolatedVault, IMultiVaultStorage.Protocol.EIGEN_LAYER);
+        strategy.setRatios(address(mv), subvaults, ratios);
+
+        mv.rebalance();
+
+        for (uint256 i = 0; i < 50; i++) {
+            uint256 t = rnd.randInt(7);
+
+            vm.startPrank(admin);
+            if (t == 0) {
+                uint256 amount = 1 ether;
+                uint256 stethAmount = IWSTETH(Constants.WSTETH()).getStETHByWstETH(amount) + 1;
+                deal(admin, stethAmount);
+                Address.sendValue(payable(Constants.WSTETH()), stethAmount);
+                IERC20(wsteth).approve(address(mv), amount);
+                mv.deposit(amount, admin, admin);
+            } else if (t == 1) {
+                mv.rebalance();
+            } else if (t == 2) {
+                if (rnd.randBool()) {
+                    mv.redeem(mv.balanceOf(admin), admin, admin);
+                } else {
+                    uint256 lpAmount = mv.balanceOf(admin);
+                    if (lpAmount == 0) {
+                        continue;
+                    }
+                    uint256 iters = rnd.randInt(1, 10);
+                    for (uint256 j = 0; j < iters; j++) {
+                        uint256 amount = j + 1 == iters ? mv.balanceOf(admin) : lpAmount / iters;
+                        try mv.redeem(amount, admin, admin) returns (uint256) {} catch {}
+                    }
+                }
+            } else if (t == 3) {
+                skip(1 days);
+            } else if (t == 4) {
+                uint256[][] memory indices = new uint256[][](1);
+                indices[0] = EigenLayerWithdrawalQueue(wq).transferedWithdrawalsOf(
+                    admin, type(uint256).max, 0
+                );
+                claimer.multiAcceptAndClaim(
+                    address(mv), new uint256[](1), indices, admin, type(uint256).max
+                );
+            } else if (t == 5) {
+                vm.stopPrank();
+                vm.startPrank(delegationManagerOwner);
+                IDelegationManager(Constants.HOLESKY_EL_DELEGATION_MANAGER)
+                    .setMinWithdrawalDelayBlocks(0);
+            } else if (t == 6) {
+                vm.stopPrank();
+                vm.startPrank(delegationManagerOwner);
+                IDelegationManager(Constants.HOLESKY_EL_DELEGATION_MANAGER)
+                    .setMinWithdrawalDelayBlocks(1);
+            }
+            vm.stopPrank();
+        }
+    }
+
     function logState(MultiVault mv) internal view {
         console2.log("totalSupply: %d, totalAssets: %d", mv.totalSupply(), mv.totalAssets());
     }
@@ -283,7 +544,9 @@ contract MultiVaultTest is Test {
         MultiVault mv = new MultiVault(bytes32("MultiVaultTest"), VERSION);
 
         Claimer claimer = new Claimer();
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(address(mv), address(claimer));
+        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
+            address(mv), address(claimer), Constants.symbioticDeployment().vaultFactory
+        );
         IsolatedEigenLayerWstETHVaultFactory factory =
             new IsolatedEigenLayerWstETHVaultFactory(delegationManager, address(claimer), wsteth);
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(

@@ -14,7 +14,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     bytes32 public constant ADD_SUBVAULT_ROLE = keccak256("ADD_SUBVAULT_ROLE");
     bytes32 public constant REMOVE_SUBVAULT_ROLE = keccak256("REMOVE_SUBVAULT_ROLE");
     bytes32 public constant SET_STRATEGY_ROLE = keccak256("SET_STRATEGY_ROLE");
-    bytes32 public constant SET_REWARDS_DATA_ROLE = keccak256("SET_REWARDS_DATA_ROLE");
+    bytes32 public constant SET_FARM_ROLE = keccak256("SET_FARM_ROLE");
     bytes32 public constant REBALANCE_ROLE = keccak256("REBALANCE_ROLE");
     bytes32 public constant SET_DEFAULT_COLLATERAL_ROLE = keccak256("SET_DEFAULT_COLLATERAL_ROLE");
     bytes32 public constant SET_ADAPTER_ROLE = keccak256("SET_ADAPTER_ROLE");
@@ -25,27 +25,6 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     {}
 
     // ------------------------------- EXTERNAL VIEW FUNCTIONS -------------------------------
-
-    /// @inheritdoc IMultiVault
-    function maxDeposit(uint256 subvaultIndex) public view returns (uint256) {
-        Subvault memory subvault = subvaultAt(subvaultIndex);
-        return adapterOf(subvault.protocol).maxDeposit(subvault.vault);
-    }
-
-    /// @inheritdoc IMultiVault
-    function assetsOf(uint256 subvaultIndex)
-        public
-        view
-        returns (uint256 claimable, uint256 pending, uint256 staked)
-    {
-        Subvault memory subvault = subvaultAt(subvaultIndex);
-        staked = adapterOf(subvault.protocol).stakedAt(subvault.vault);
-        if (subvault.withdrawalQueue != address(0)) {
-            address this_ = address(this);
-            claimable = IWithdrawalQueue(subvault.withdrawalQueue).claimableAssetsOf(this_);
-            pending = IWithdrawalQueue(subvault.withdrawalQueue).pendingAssetsOf(this_);
-        }
-    }
 
     /// @inheritdoc IERC4626
     function totalAssets()
@@ -63,9 +42,14 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         }
 
         uint256 length = subvaultsCount();
+        Subvault memory subvault;
         for (uint256 i = 0; i < length; i++) {
-            (uint256 claimable, uint256 pending, uint256 staked) = assetsOf(i);
-            assets_ += claimable + pending + staked;
+            subvault = subvaultAt(i);
+            assets_ += adapterOf(subvault.protocol).stakedAt(subvault.vault);
+            if (subvault.withdrawalQueue != address(0)) {
+                assets_ += IWithdrawalQueue(subvault.withdrawalQueue).claimableAssetsOf(this_)
+                    + IWithdrawalQueue(subvault.withdrawalQueue).pendingAssetsOf(this_);
+            }
         }
     }
 
@@ -91,6 +75,11 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
             initParams.symbioticAdapter,
             initParams.eigenLayerAdapter,
             initParams.erc4626Adapter
+        );
+        require(
+            initParams.defaultCollateral == address(0)
+                || IDefaultCollateral(initParams.defaultCollateral).asset() == initParams.asset,
+            "MultiVault: default collateral asset does not match the vault asset"
         );
     }
 
@@ -150,6 +139,10 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
             address(defaultCollateral()) == address(0) && defaultCollateral_ != address(0),
             "MultiVault: default collateral already set or cannot be zero address"
         );
+        require(
+            IDefaultCollateral(defaultCollateral_).asset() == asset(),
+            "MultiVault: default collateral asset does not match the vault asset"
+        );
         _setDefaultCollateral(defaultCollateral_);
     }
 
@@ -174,9 +167,13 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     /// @inheritdoc IMultiVault
     function setRewardsData(uint256 farmId, RewardData calldata rewardData)
         external
-        onlyRole(SET_REWARDS_DATA_ROLE)
+        onlyRole(SET_FARM_ROLE)
     {
         if (rewardData.token != address(0)) {
+            require(
+                rewardData.token != asset() && rewardData.token != address(defaultCollateral()),
+                "MultiVault: reward token cannot be the same as the asset or default collateral"
+            );
             require(rewardData.curatorFeeD6 <= D6, "MultiVault: curator fee exceeds 100%");
             require(
                 rewardData.distributionFarm != address(0),
@@ -199,7 +196,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         IRebalanceStrategy.RebalanceData[] memory data =
             rebalanceStrategy().calculateRebalanceAmounts(this_);
         for (uint256 i = 0; i < data.length; i++) {
-            _withdraw(data[i].subvaultIndex, data[i].request, 0, data[i].claim, this_, this_);
+            _withdraw(data[i].subvaultIndex, data[i].staked, 0, data[i].claimable, this_, this_);
         }
         IDefaultCollateral collateral = defaultCollateral();
         if (address(collateral) != address(0)) {
@@ -216,7 +213,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     }
 
     /// @inheritdoc IMultiVault
-    function pushRewards(uint256 farmId, bytes calldata farmData) external {
+    function pushRewards(uint256 farmId, bytes calldata farmData) external nonReentrant {
         require(farmIdsContains(farmId), "MultiVault: farm not found");
         IMultiVaultStorage.RewardData memory data = rewardData(farmId);
         IERC20 rewardToken = IERC20(data.token);
@@ -255,7 +252,6 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
             return;
         }
         Subvault memory subvault = subvaultAt(subvaultIndex);
-        IERC20(asset()).safeIncreaseAllowance(subvault.vault, assets);
         Address.functionDelegateCall(
             address(adapterOf(subvault.protocol)),
             abi.encodeCall(IProtocolAdapter.deposit, (subvault.vault, assets))

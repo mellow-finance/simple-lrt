@@ -53,9 +53,8 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         address this_ = address(this);
         (,,, address queue) = IIsolatedEigenLayerVaultFactory(factory).instances(this_);
         require(msg.sender == queue, "IsolatedEigenLayerWstETHVault: forbidden");
-        IERC20 asset_ = IERC20(asset);
         IERC20[] memory tokens = new IERC20[](1);
-        tokens[0] = asset_;
+        tokens[0] = IERC20(steth);
         manager.completeQueuedWithdrawal(data, tokens, 0, true);
         assets = steth.balanceOf(this_);
         if (assets == 0) {
