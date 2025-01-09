@@ -7,6 +7,7 @@ import "./VaultControlStorage.sol";
 import {ERC4626Upgradeable} from
     "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract DVV is MellowVaultCompat, DVVStorage {
     using SafeERC20 for IERC20;
@@ -137,12 +138,12 @@ contract DVV is MellowVaultCompat, DVVStorage {
 
     function _pushIntoYieldVault() internal {
         address this_ = address(this);
-        uint256 wstethBalance = WSTETH.balanceOf(this_);
-        if (wstethBalance == 0) {
+        IERC4626 yieldVault_ = yieldVault();
+        uint256 assets = Math.min(WSTETH.balanceOf(this_), yieldVault_.maxDeposit(this_));
+        if (assets == 0) {
             return;
         }
-        IERC4626 yieldVault_ = yieldVault();
-        IERC20(address(WSTETH)).safeIncreaseAllowance(address(yieldVault_), wstethBalance);
-        yieldVault_.deposit(wstethBalance, this_);
+        IERC20(address(WSTETH)).safeIncreaseAllowance(address(yieldVault_), assets);
+        yieldVault_.deposit(assets, this_);
     }
 }

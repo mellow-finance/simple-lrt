@@ -6,6 +6,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 interface IAToken is IERC20 {
     function POOL() external view returns (IAPool);
+
+    function UNDERLYING_ASSET_ADDRESS() external view returns (address);
 }
 
 interface IAPool {
@@ -42,16 +44,15 @@ interface IAPool {
 contract AaveToken is ERC4626Upgradeable {
     using SafeERC20 for IERC20;
 
-    IERC4626 public vault;
     IAToken public aToken;
     IAPool public pool;
 
-    function initialize(IERC4626 vault_, IAToken aToken_) external initializer {
-        vault = vault_;
-        __ERC20_init(
-            string.concat("AaveERC4626_", vault_.name()), string.concat("AAVE-", vault_.symbol())
-        );
-        __ERC4626_init(IERC20(vault_.asset()));
+    function initialize(IAToken aToken_, string memory name_, string memory symbol_)
+        external
+        initializer
+    {
+        __ERC20_init(name_, symbol_);
+        __ERC4626_init(IERC20(aToken_.UNDERLYING_ASSET_ADDRESS()));
         aToken = aToken_;
         pool = aToken_.POOL();
     }
