@@ -7,7 +7,18 @@ import "./IsolatedEigenLayerVault.sol";
 import {TransparentUpgradeableProxy} from
     "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
+/**
+ * @title IsolatedEigenLayerVaultFactory
+ * @notice Factory contract for deploying and managing isolated EigenLayer vaults and their associated withdrawal queues.
+ */
 contract IsolatedEigenLayerVaultFactory {
+    /**
+     * @notice Data structure representing an isolated vault instance.
+     * @param owner The owner of the isolated vault.
+     * @param operator The operator assigned to the isolated vault.
+     * @param strategy The strategy associated with the isolated vault.
+     * @param withdrawalQueue The address of the withdrawal queue linked to the isolated vault.
+     */
     struct Data {
         address owner;
         address operator;
@@ -34,11 +45,28 @@ contract IsolatedEigenLayerVaultFactory {
         withdrawalQueueSingleton = withdrawalQueueSingleton_;
         proxyAdmin = proxyAdmin_;
     }
-
+    
+    /**
+     * @notice Generates a unique key for an isolated vault based on its owner, operator, and strategy.
+     * @param owner The address of the vault owner.
+     * @param operator The address of the operator.
+     * @param strategy The address of the associated strategy.
+     * returns a unique `bytes32` key for the vault.
+     */
     function key(address owner, address operator, address strategy) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(owner, strategy, operator));
     }
 
+    /**
+     * @notice Retrieves or creates an isolated EigenLayer vault and its associated withdrawal queue.
+     * @dev If the vault already exists, it returns the existing addresses; otherwise, it deploys new instances.
+     * @param owner The address of the vault owner.
+     * @param operator The address of the operator.
+     * @param strategy The address of the associated strategy.
+     * @param data Encoded initialization data, including delegation signature and salt.
+     * @return isolatedVault The address of the isolated vault.
+     * @return withdrawalQueue The address of the withdrawal queue linked to the isolated vault.
+     */
     function getOrCreate(address owner, address operator, address strategy, bytes calldata data)
         external
         returns (address isolatedVault, address withdrawalQueue)

@@ -3,6 +3,11 @@ pragma solidity 0.8.25;
 
 import "../interfaces/adapters/IERC4626Adapter.sol";
 
+/**
+ * @title ERC4626Adapter
+ * @notice Adapter for interacting with ERC4626-compliant tokenized vaults.
+ * @dev Implements the `IERC4626Adapter` interface and extends functionality for managing deposits, withdrawals, and rewards.
+ */
 contract ERC4626Adapter is IERC4626Adapter {
     using SafeERC20 for IERC20;
 

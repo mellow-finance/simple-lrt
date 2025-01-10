@@ -3,6 +3,11 @@ pragma solidity 0.8.25;
 
 import "../interfaces/utils/IEthWrapper.sol";
 
+/**
+ * @title EthWrapper
+ * @notice Manages interactions between ETH, WETH, stETH, and wstETH tokens.
+ * @dev Implements the `IEthWrapper` interface.
+ */
 contract EthWrapper is IEthWrapper {
     using SafeERC20 for IERC20;
 

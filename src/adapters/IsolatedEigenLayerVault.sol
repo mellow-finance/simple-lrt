@@ -3,6 +3,11 @@ pragma solidity 0.8.25;
 
 import "../interfaces/adapters/IIsolatedEigenLayerVault.sol";
 
+/**
+ * @title IsolatedEigenLayerVault
+ * @notice Implements isolated vaults for interacting with EigenLayer strategies.
+ * @dev Provides functionality for delegation, deposits, withdrawals, claims, and management of rewards in EigenLayer.
+ */
 contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
     using SafeERC20 for IERC20;
 
@@ -15,10 +20,20 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
         _;
     }
 
+    /**
+     * @notice Initializes the isolated EigenLayer vault.
+     * @dev Sets the factory, primary vault, and underlying asset addresses.
+     * @param vault_ Address of the primary vault interacting with this isolated vault.
+     */
     function initialize(address vault_) external virtual initializer {
         __init_IsolatedEigenLayerVault(vault_);
     }
 
+    /**
+     * @notice Internal function to initialize vault properties.
+     * @dev Called during contract deployment or upgrade.
+     * @param vault_ Address of the primary vault.
+     */
     function __init_IsolatedEigenLayerVault(address vault_) internal onlyInitializing {
         factory = msg.sender;
         vault = vault_;

@@ -3,6 +3,11 @@ pragma solidity 0.8.25;
 
 import "../interfaces/queues/ISymbioticWithdrawalQueue.sol";
 
+/**
+ * @title SymbioticWithdrawalQueue
+ * @notice Manages withdrawal requests and claims for symbiotic vaults.
+ * @dev Implements the `ISymbioticWithdrawalQueue` interface, handling withdrawal queue logic specific to symbiotic vaults.
+ */
 contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue, Initializable {
     using SafeERC20 for IERC20;
     using Math for uint256;
@@ -23,10 +28,21 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue, Initializable {
         claimer = claimer_;
     }
 
+    /**
+     * @notice Initializes the withdrawal queue for a specific symbiotic vault.
+     * @dev Can only be called once during the lifetime of the contract.
+     * @param vault_ Address of the primary vault associated with this withdrawal queue.
+     * @param symbioticVault_ Address of the symbiotic vault associated with this withdrawal queue.
+     */
     function initialize(address vault_, address symbioticVault_) external initializer {
         __init_SymbioticWithdrawalQueue(vault_, symbioticVault_);
     }
 
+    /**
+     * @notice Internal function to set up the withdrawal queue for a specific symbiotic vault.
+     * @param vault_ Address of the primary vault.
+     * @param symbioticVault_ Address of the symbiotic vault.
+     */
     function __init_SymbioticWithdrawalQueue(address vault_, address symbioticVault_)
         internal
         onlyInitializing
@@ -312,7 +328,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue, Initializable {
      * @notice Returns the claimable collateral amount for a given `accountData` at a specific `epoch`.
      * @param accountData The storage struct containing specific claim data for the account.
      * @param epoch The epoch number at which the claim is being checked.
-     * @return The amount of claimable collateral corresponding to the given account's shares at the specified epoch.
+     * returns the amount of claimable collateral corresponding to the given account's shares at the specified epoch.
      */
     function _claimable(AccountData storage accountData, uint256 epoch)
         private

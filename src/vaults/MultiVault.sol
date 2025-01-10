@@ -6,6 +6,11 @@ import {ERC4626Vault} from "./ERC4626Vault.sol";
 import {MultiVaultStorage} from "./MultiVaultStorage.sol";
 import {VaultControlStorage} from "./VaultControlStorage.sol";
 
+/**
+ * @title MultiVault
+ * @notice Extends the ERC4626Vault to support multi-subvault operations with deposit and withdrawal strategies.
+ * @dev Combines functionality from `IMultiVault`, `ERC4626Vault`, and `MultiVaultStorage`.
+ */
 contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
     using SafeERC20 for IERC20;
     using Math for uint256;
@@ -308,6 +313,14 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         emit DepositIntoCollateral(assets);
     }
 
+    /**
+     * @notice Handles deposits into the vault and distributes assets among subvaults based on the deposit strategy.
+     * @dev Overridden `_deposit` function that integrates with a deposit strategy to allocate assets.
+     * @param caller The address initiating the deposit.
+     * @param receiver The address receiving the vault shares.
+     * @param assets The amount of assets being deposited.
+     * @param shares The amount of vault shares being minted.
+     */
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
         internal
         virtual
@@ -327,6 +340,15 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
         _depositIntoCollateral();
     }
 
+    /**
+     * @notice Handles withdrawals from the vault and retrieves assets from subvaults based on the withdrawal strategy.
+     * @dev Overridden `_withdraw` function that integrates with a withdrawal strategy to retrieve assets.
+     * @param caller The address initiating the withdrawal.
+     * @param receiver The address receiving the withdrawn assets.
+     * @param owner The address owning the vault shares being burned.
+     * @param assets The amount of assets being withdrawn.
+     * @param shares The amount of vault shares being burned.
+     */
     function _withdraw(
         address caller,
         address receiver,

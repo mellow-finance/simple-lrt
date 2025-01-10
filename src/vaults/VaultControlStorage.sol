@@ -3,6 +3,15 @@ pragma solidity 0.8.25;
 
 import "../interfaces/vaults/IVaultControlStorage.sol";
 
+/**
+ * @title VaultControlStorage
+ * @notice Provides the foundational storage structure and utility functions for vault control mechanisms.
+ * @dev This abstract contract is designed to be inherited by vault control contracts, enabling efficient state management.
+ * Inherits:
+ * - `IVaultControlStorage`: Interface defining the structure and API for vault-related storage.
+ * - `Initializable`: Allows the contract to be initialized once and protects against re-initialization.
+ * - `ContextUpgradeable`: Provides information about the current execution context, including the sender and data.
+ */
 abstract contract VaultControlStorage is IVaultControlStorage, Initializable, ContextUpgradeable {
     bytes32 private immutable storageSlotRef;
 

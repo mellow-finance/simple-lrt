@@ -4,6 +4,11 @@ pragma solidity 0.8.25;
 import "../interfaces/vaults/IERC4626Vault.sol";
 import {VaultControl} from "./VaultControl.sol";
 
+/**
+ * @title ERC4626Vault
+ * @notice Abstract implementation of an ERC4626-compliant vault with extended control features.
+ * @dev Inherits from `VaultControl`, `ERC4626Upgradeable`, and implements `IERC4626Vault`.
+ */
 abstract contract ERC4626Vault is VaultControl, ERC4626Upgradeable, IERC4626Vault {
     bytes32[16] private _reserved; // Reserved storage space for backward compatibility.
 

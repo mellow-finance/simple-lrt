@@ -4,6 +4,16 @@ pragma solidity 0.8.25;
 import "../interfaces/vaults/IVaultControl.sol";
 import {VaultControlStorage} from "./VaultControlStorage.sol";
 
+/**
+ * @title VaultControl
+ * @notice Provides essential control mechanisms for a vault, including access control, state management, and reentrancy protection.
+ * @dev This abstract contract combines multiple inherited functionalities to offer a robust foundation for vault management.
+ * Inherits:
+ * - `IVaultControl`: Interface defining the vault control API.
+ * - `VaultControlStorage`: Implements state storage for vault configurations.
+ * - `ReentrancyGuardUpgradeable`: Prevents reentrant calls to functions.
+ * - `AccessControlEnumerableUpgradeable`: Provides role-based access control with enumeration capabilities.
+ */
 abstract contract VaultControl is
     IVaultControl,
     VaultControlStorage,

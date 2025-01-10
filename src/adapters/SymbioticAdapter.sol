@@ -4,6 +4,11 @@ pragma solidity 0.8.25;
 import "../interfaces/adapters/ISymbioticAdapter.sol";
 import {SymbioticWithdrawalQueue} from "../queues/SymbioticWithdrawalQueue.sol";
 
+/**
+ * @title SymbioticAdapter
+ * @notice Adapter for managing interactions with symbiotic vaults and withdrawal queues.
+ * @dev Implements the `ISymbioticAdapter` interface, providing functionality for deposits, withdrawals, and rewards.
+ */
 contract SymbioticAdapter is ISymbioticAdapter {
     using SafeERC20 for IERC20;
 
