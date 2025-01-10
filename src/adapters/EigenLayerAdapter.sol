@@ -3,6 +3,11 @@ pragma solidity 0.8.25;
 
 import "../interfaces/adapters/IEigenLayerAdapter.sol";
 
+/**
+ * @title EigenLayerAdapter
+ * @notice Adapter for interacting with EigenLayer strategies and isolated vaults.
+ * @dev Implements the `IEigenLayerAdapter` interface and extends functionality for managing deposits, withdrawals, and rewards in EigenLayer strategies.
+ */
 contract EigenLayerAdapter is IEigenLayerAdapter {
     using SafeERC20 for IERC20;
 

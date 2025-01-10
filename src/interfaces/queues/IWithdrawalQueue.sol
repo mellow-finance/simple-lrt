@@ -54,7 +54,23 @@ interface IWithdrawalQueue {
         external
         returns (uint256 amount);
 
+    /**
+     * @notice Transfers a specified amount of pending assets to a recipient.
+     * @dev This function is used to handle the transfer of assets that are pending withdrawal.
+     *      It assumes that the caller has sufficient pending assets to transfer.
+     * @param recipient The address to receive the pending assets.
+     * @param assets The amount of assets to transfer.
+     *
+     * Requirements:
+     * - The caller must have sufficient pending assets.
+     * - The `recipient` address must be valid.
+     */
     function transferPendingAssets(address recipient, uint256 assets) external;
 
+    /**
+     * @notice Returns the address of the claimer contract associated with this system.
+     * @dev The claimer is typically responsible for managing claims on assets or rewards.
+     * returns the address of the claimer contract.
+     */
     function claimer() external view returns (address);
 }

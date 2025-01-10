@@ -3,6 +3,11 @@ pragma solidity 0.8.25;
 
 import "../interfaces/queues/IEigenLayerWithdrawalQueue.sol";
 
+/**
+ * @title EigenLayerWithdrawalQueue
+ * @notice Manages the withdrawal requests and claims for isolated EigenLayer vaults.
+ * @dev Implements the `IEigenLayerWithdrawalQueue` interface, providing functionality for tracking and processing withdrawals.
+ */
 contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable {
     using SafeERC20 for IERC20;
     using Math for uint256;
@@ -32,6 +37,13 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         _disableInitializers();
     }
 
+    /**
+     * @notice Initializes the withdrawal queue for a specific isolated vault.
+     * @dev Can only be called once during the lifetime of the contract.
+     * @param isolatedVault_ Address of the isolated vault.
+     * @param strategy_ Address of the strategy associated with the vault.
+     * @param operator_ Address of the operator managing the vault.
+     */
     function initialize(address isolatedVault_, address strategy_, address operator_)
         external
         initializer
@@ -39,6 +51,12 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         __init_EigenLayerWithdrawalQueue(isolatedVault_, strategy_, operator_);
     }
 
+    /**
+     * @notice Internal function to set up the withdrawal queue.
+     * @param isolatedVault_ Address of the isolated vault.
+     * @param strategy_ Address of the strategy associated with the vault.
+     * @param operator_ Address of the operator managing the vault.
+     */
     function __init_EigenLayerWithdrawalQueue(
         address isolatedVault_,
         address strategy_,
@@ -100,6 +118,13 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         }
         assets += shares == 0 ? 0 : IStrategy(strategy).sharesToUnderlyingView(shares);
     }
+    /**
+     * @notice Retrieves transferred withdrawals for a specific account.
+     * @param account Address of the account to query.
+     * @param limit Maximum number of results to return.
+     * @param offset Number of withdrawals to skip.
+     * @return withdrawals Array of withdrawal indices.
+     */
 
     function transferedWithdrawalsOf(address account, uint256 limit, uint256 offset)
         public
@@ -120,6 +145,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
 
     /// --------------- EXTERNAL MUTABLE FUNCTIONS ---------------
 
+    /// @inheritdoc IEigenLayerWithdrawalQueue
     function request(address account, uint256 assets, bool isSelfRequested) external {
         address isolatedVault_ = isolatedVault;
         require(msg.sender == isolatedVault_, "EigenLayerWithdrawalQueue: forbidden");
@@ -264,6 +290,11 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
 
     /// --------------- INTERNAL MUTABLE FUNCTIONS ---------------
 
+    /**
+     * @notice Internal function to process and pull a withdrawal.
+     * @param withdrawal The withdrawal data to process.
+     * @return True if the withdrawal was successfully claimed, false otherwise.
+     */
     function _pull(WithdrawalData storage withdrawal) private returns (bool) {
         if (withdrawal.isClaimed) {
             return true;
@@ -282,6 +313,13 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         return false;
     }
 
+    /**
+     * @notice Internal function to handle an account's withdrawal.
+     * @param withdrawalIndex Index of the withdrawal in the global array.
+     * @param withdrawal The withdrawal data to process.
+     * @param account Address of the account associated with the withdrawal.
+     * @param accountData_ The account's specific data structure.
+     */
     function _handleWithdrawal(
         uint256 withdrawalIndex,
         WithdrawalData storage withdrawal,

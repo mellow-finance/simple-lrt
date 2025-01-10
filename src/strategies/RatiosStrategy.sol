@@ -3,6 +3,11 @@ pragma solidity 0.8.25;
 
 import "../interfaces/strategies/IRatiosStrategy.sol";
 
+/**
+ * @title RatiosStrategy
+ * @notice Implements logic for managing and setting ratio-based strategies for vaults and subvaults.
+ * @dev Adheres to the `IRatiosStrategy` interface.
+ */
 contract RatiosStrategy is IRatiosStrategy {
     /// @inheritdoc IRatiosStrategy
     uint256 public constant D18 = 1e18;

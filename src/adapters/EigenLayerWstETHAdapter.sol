@@ -4,6 +4,11 @@ pragma solidity 0.8.25;
 import "../interfaces/tokens/IWSTETH.sol";
 import "./EigenLayerAdapter.sol";
 
+/**
+ * @title EigenLayerWstETHAdapter
+ * @notice Adapter for managing deposits and interactions with wrapped stETH (wstETH) in EigenLayer strategies.
+ * @dev Extends `EigenLayerAdapter` to provide functionality specific to wstETH and stETH tokens.
+ */
 contract EigenLayerWstETHAdapter is EigenLayerAdapter {
     using SafeERC20 for IERC20;
 

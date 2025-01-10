@@ -4,6 +4,11 @@ pragma solidity 0.8.25;
 import "../interfaces/tokens/IWSTETH.sol";
 import "./IsolatedEigenLayerVault.sol";
 
+/**
+ * @title IsolatedEigenLayerWstETHVault
+ * @notice An isolated EigenLayer vault for handling wrapped stETH (wstETH) and stETH deposits and withdrawals.
+ * @dev Extends `IsolatedEigenLayerVault` with specific functionality for wstETH and stETH tokens.
+ */
 contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
     using SafeERC20 for IERC20;
 
@@ -16,6 +21,7 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         _disableInitializers();
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVault
     function initialize(address vault_) external override initializer {
         require(
             address(wsteth) == IERC4626(vault_).asset(),
