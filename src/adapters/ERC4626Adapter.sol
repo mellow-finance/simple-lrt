@@ -5,8 +5,21 @@ import "../interfaces/adapters/IERC4626Adapter.sol";
 
 /**
  * @title ERC4626Adapter
- * @notice Adapter for interacting with ERC4626-compliant tokenized vaults.
- * @dev Implements the `IERC4626Adapter` interface and extends functionality for managing deposits, withdrawals, and rewards.
+ * @notice Implements a tokenized vault adhering to the ERC-4626 standard with notable deviations.
+ * @dev This contract violates certain ERC-4626 requirements due to the following limitations:
+ * - Withdrawals are not instant. Instead, withdrawn amounts are only partially received immediately,
+ *   with the remainder distributed as shares. Consequently, the associated `Withdraw` event may
+ *   provide inaccurate information.
+ * - The function `totalAssets` and other functions relying on it (e.g., `convertToShares`,
+ *   `convertToAssets`, `maxDeposit`, `maxWithdraw`, `maxMint`, `maxRedeem`) must not revert
+ *   according to the ERC-4626 specification. However:
+ *   - For ERC-4626 adapters, the function `totalAssets` calls `ERC4626Adapter.stakedAt`, which in
+ *     turn calls `ERC4626.previewRedeem`. The `previewRedeem` function may revert when a call to
+ *     `redeem` would revert, violating the standard.
+ *   - The function `RatiosStrategy.calculateState` reverts when funds are withdrawn from the protocol,
+ *     and one of the ERC-4626 sub-vaults is paused, as detected by `areWithdrawalsPaused`.
+ *     The functions `maxWithdraw` and `maxRedeem` do not account for these withdrawal restrictions and
+ *     fail to return 0 as required by ERC-4626.
  */
 contract ERC4626Adapter is IERC4626Adapter {
     using SafeERC20 for IERC20;

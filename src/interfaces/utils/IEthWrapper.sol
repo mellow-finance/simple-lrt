@@ -39,7 +39,7 @@ interface IEthWrapper {
      * @return The special address representing ETH.
      */
     function ETH() external view returns (address);
-    
+
     /**
      * @notice Deposits a specified `amount` of the `depositToken` into the provided `vault`, crediting the specified `receiver` with shares.
      * @param depositToken The address of the token being deposited (WETH, wstETH, stETH, or ETH).

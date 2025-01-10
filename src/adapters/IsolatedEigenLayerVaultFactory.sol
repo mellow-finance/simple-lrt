@@ -45,7 +45,7 @@ contract IsolatedEigenLayerVaultFactory {
         withdrawalQueueSingleton = withdrawalQueueSingleton_;
         proxyAdmin = proxyAdmin_;
     }
-    
+
     /**
      * @notice Generates a unique key for an isolated vault based on its owner, operator, and strategy.
      * @param owner The address of the vault owner.

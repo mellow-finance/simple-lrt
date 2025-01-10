@@ -20,6 +20,13 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  */
 interface IIsolatedEigenLayerVault {
     /**
+     * @notice Initializes the isolated EigenLayer vault.
+     * @dev Sets the factory, primary vault, and underlying asset addresses.
+     * @param vault_ Address of the primary vault interacting with this isolated vault.
+     */
+    function initialize(address vault_) external;
+
+    /**
      * @notice Returns the address of the factory that created this vault.
      * returns the factory address.
      */

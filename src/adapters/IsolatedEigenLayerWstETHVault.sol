@@ -21,11 +21,7 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         _disableInitializers();
     }
 
-    /**
-     * @notice Initializes the vault with the specified primary vault address.
-     * @dev Ensures the asset matches the wstETH token.
-     * @param vault_ The address of the primary vault.
-     */
+    /// @inheritdoc IIsolatedEigenLayerVault
     function initialize(address vault_) external override initializer {
         require(
             address(wsteth) == IERC4626(vault_).asset(),

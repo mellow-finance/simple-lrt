@@ -20,11 +20,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
         _;
     }
 
-    /**
-     * @notice Initializes the isolated EigenLayer vault.
-     * @dev Sets the factory, primary vault, and underlying asset addresses.
-     * @param vault_ Address of the primary vault interacting with this isolated vault.
-     */
+    /// @inheritdoc IIsolatedEigenLayerVault
     function initialize(address vault_) external virtual initializer {
         __init_IsolatedEigenLayerVault(vault_);
     }
