@@ -185,7 +185,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             }
             _accountData[to].transferedWithdrawals.add(withdrawalIndex);
             mapping(address => uint256) storage balances = withdrawal.sharesOf;
-            if (accountAssets <= amount) {
+            if (accountAssets < amount) {
                 delete balances[from];
                 balances[to] += accountShares;
                 accountData_.withdrawals.remove(withdrawalIndex);
