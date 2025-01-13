@@ -7,14 +7,7 @@ import "./IsolatedEigenLayerVault.sol";
 import {TransparentUpgradeableProxy} from
     "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-contract IsolatedEigenLayerVaultFactory {
-    struct Data {
-        address owner;
-        address strategy;
-        address operator;
-        address withdrawalQueue;
-    }
-
+contract IsolatedEigenLayerVaultFactory is IIsolatedEigenLayerVaultFactory {
     address public immutable delegation;
     address public immutable isolatedVaultSingleton;
     address public immutable withdrawalQueueSingleton;

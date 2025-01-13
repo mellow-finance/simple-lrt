@@ -16,7 +16,14 @@ abstract contract BaseTest is Test {
             address symbioticVault
         )
     {
-        vault = new MultiVault("MultiVault", 1);
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault(bytes32("MultiVaultTest"), 1)),
+                vm.createWallet("proxyAdmin").addr,
+                new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
         adapter = new SymbioticAdapter(
             address(vault),
             Constants.symbioticDeployment().vaultFactory,

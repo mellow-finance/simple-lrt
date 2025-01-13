@@ -4,18 +4,17 @@ pragma solidity 0.8.25;
 interface IIsolatedEigenLayerVaultFactory {
     struct Data {
         address owner;
-        address operator;
         address strategy;
+        address operator;
         address withdrawalQueue;
     }
 
     function delegation() external view returns (address);
-    function claimer() external view returns (address);
 
     function instances(address isolatedVault)
         external
         view
-        returns (address owner, address operator, address strategy, address withdrawalQueue);
+        returns (address owner, address strategy, address operator, address withdrawalQueue);
 
     function isolatedVaults(bytes32 key) external view returns (address);
 

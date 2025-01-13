@@ -38,7 +38,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function maxDeposit(address isolatedVault) external view virtual returns (uint256) {
-        (,, address strategy,) = factory.instances(isolatedVault);
+        (, address strategy,,) = factory.instances(isolatedVault);
         if (
             IPausable(address(strategyManager)).paused(PAUSED_DEPOSITS)
                 || IPausable(address(strategy)).paused(PAUSED_DEPOSITS)
@@ -61,7 +61,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function stakedAt(address isolatedVault) external view virtual returns (uint256) {
-        (,, address strategy,) = factory.instances(isolatedVault);
+        (, address strategy,,) = factory.instances(isolatedVault);
         return IStrategy(strategy).userUnderlyingView(isolatedVault);
     }
 
@@ -120,7 +120,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function deposit(address isolatedVault, uint256 assets) external delegateCallOnly {
-        (,, address strategy,) = factory.instances(isolatedVault);
+        (, address strategy,,) = factory.instances(isolatedVault);
         IERC20 asset_ = IERC20(IERC4626(vault).asset());
         asset_.safeIncreaseAllowance(isolatedVault, assets);
         IIsolatedEigenLayerVault(isolatedVault).deposit(address(strategyManager), strategy, assets);
@@ -136,7 +136,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         returns (bool)
     {
         IPausable manager = IPausable(address(delegationManager));
-        (,, address strategy,) = factory.instances(isolatedVault);
+        (, address strategy,,) = factory.instances(isolatedVault);
         return manager.paused(PAUSED_ENTER_WITHDRAWAL_QUEUE)
             || manager.paused(PAUSED_EXIT_WITHDRAWAL_QUEUE)
             || IPausable(strategy).paused(PAUSED_WITHDRAWALS);

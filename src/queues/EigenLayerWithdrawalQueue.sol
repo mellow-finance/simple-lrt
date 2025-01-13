@@ -128,6 +128,10 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         uint256[] memory shares = new uint256[](1);
         strategies[0] = IStrategy(strategy);
         shares[0] = IStrategy(strategies[0]).underlyingToSharesView(assets);
+        if (shares[0] == 0) {
+            // nothing to withdraw
+            return;
+        }
         IDelegationManager delegationManager = IDelegationManager(delegation);
 
         IDelegationManager.Withdrawal memory data = IDelegationManager.Withdrawal({
