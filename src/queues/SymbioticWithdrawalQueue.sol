@@ -154,7 +154,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue, Initializable {
                 toData.sharesToClaim[nextEpoch] += nextSharesToClaim;
                 delete fromData.sharesToClaim[nextEpoch];
                 amount -= nextPending;
-                emit Transfer(from, to, nextEpoch, nextPending);
+                emit Transfer(from, to, nextEpoch, nextSharesToClaim);
             }
 
             uint256 shares = currentSharesToClaim.mulDiv(amount, currentPending);
