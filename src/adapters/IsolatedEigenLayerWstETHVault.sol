@@ -30,7 +30,7 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         override
         onlyVault
     {
-        if (assets <= 1) {
+        if (IStrategy(strategy).underlyingToSharesView(wsteth.getStETHByWstETH(assets)) == 0) {
             // insignificant amount
             return;
         }
@@ -46,10 +46,6 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         override
         onlyVault
     {
-        if (request <= 1) {
-            // insignificant amount
-            return;
-        }
         IEigenLayerWithdrawalQueue(queue).request(reciever, wsteth.getStETHByWstETH(request), flag);
     }
 

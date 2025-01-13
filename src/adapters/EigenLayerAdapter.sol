@@ -121,8 +121,12 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
     /// @inheritdoc IProtocolAdapter
     function deposit(address isolatedVault, uint256 assets) external delegateCallOnly {
         (,, address strategy,) = factory.instances(isolatedVault);
-        IERC20(IERC4626(vault).asset()).safeIncreaseAllowance(isolatedVault, assets);
+        IERC20 asset_ = IERC20(IERC4626(vault).asset());
+        asset_.safeIncreaseAllowance(isolatedVault, assets);
         IIsolatedEigenLayerVault(isolatedVault).deposit(address(strategyManager), strategy, assets);
+        if (asset_.allowance(address(this), isolatedVault) != 0) {
+            asset_.forceApprove(isolatedVault, 0);
+        }
     }
 
     /// @inheritdoc IEigenLayerAdapter

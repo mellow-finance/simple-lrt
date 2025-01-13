@@ -45,6 +45,10 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
         virtual
         onlyVault
     {
+        if (IStrategy(strategy).underlyingToSharesView(assets) == 0) {
+            // insignificant amount
+            return;
+        }
         IERC20 asset_ = IERC20(asset);
         asset_.safeTransferFrom(vault, address(this), assets);
         asset_.safeIncreaseAllowance(manager, assets);
