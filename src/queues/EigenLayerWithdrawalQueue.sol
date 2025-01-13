@@ -199,7 +199,12 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             }
         }
         if (amount != 0) {
-            revert("EigenLayerWithdrawalQueue: insufficient pending assets");
+            if (amount < accountData_.claimableAssets) {
+                revert("EigenLayerWithdrawalQueue: insufficient pending assets");
+            } else {
+                accountData_.claimableAssets -= amount;
+                _accountData[to].claimableAssets += amount;
+            }
         }
     }
 
