@@ -6,8 +6,11 @@ import "../interfaces/adapters/IIsolatedEigenLayerVault.sol";
 contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
     using SafeERC20 for IERC20;
 
+    /// @inheritdoc IIsolatedEigenLayerVault
     address public factory;
+    /// @inheritdoc IIsolatedEigenLayerVault
     address public vault;
+    /// @inheritdoc IIsolatedEigenLayerVault
     address public asset;
 
     modifier onlyVault() {
@@ -19,14 +22,11 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
         _disableInitializers();
     }
 
+    /// --------------- EXTERNAL MUTABLE FUNCTIONS ---------------
+
+    /// @inheritdoc IIsolatedEigenLayerVault
     function initialize(address vault_) external virtual initializer {
         __init_IsolatedEigenLayerVault(vault_);
-    }
-
-    function __init_IsolatedEigenLayerVault(address vault_) internal onlyInitializing {
-        factory = msg.sender;
-        vault = vault_;
-        asset = IERC4626(vault_).asset();
     }
 
     /// @inheritdoc IIsolatedEigenLayerVault
@@ -103,5 +103,13 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
         (,,, address queue) = IIsolatedEigenLayerVaultFactory(factory).instances(address(this));
         require(msg.sender == queue, "IsolatedEigenLayerVault: forbidden");
         manager.queueWithdrawals(requests);
+    }
+
+    /// --------------- INTERNAL MUTABLE FUNCTIONS ---------------
+
+    function __init_IsolatedEigenLayerVault(address vault_) internal onlyInitializing {
+        factory = msg.sender;
+        vault = vault_;
+        asset = IERC4626(vault_).asset();
     }
 }

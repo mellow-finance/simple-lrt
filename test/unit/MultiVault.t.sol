@@ -95,8 +95,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -173,8 +173,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -261,8 +261,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -341,8 +341,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -420,8 +420,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -499,8 +499,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -579,8 +579,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -658,8 +658,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -735,8 +735,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -812,8 +812,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -1050,8 +1050,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -1158,8 +1158,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -1252,8 +1252,8 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
-                new EigenLayerWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
                 )
             ),
             vm.createWallet("proxyAdmin").addr

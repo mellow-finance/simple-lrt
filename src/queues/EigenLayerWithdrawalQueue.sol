@@ -23,8 +23,8 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     /// @inheritdoc IEigenLayerWithdrawalQueue
     address public operator;
 
-    WithdrawalData[] private _withdrawals;
-    mapping(address account => AccountData) private _accountData;
+    WithdrawalData[] internal _withdrawals;
+    mapping(address account => AccountData) internal _accountData;
 
     constructor(address claimer_, address delegation_) {
         claimer = claimer_;
@@ -34,20 +34,11 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
 
     /// @inheritdoc IEigenLayerWithdrawalQueue
     function initialize(address isolatedVault_, address strategy_, address operator_)
-        external
+        public
+        virtual
         initializer
     {
         __init_EigenLayerWithdrawalQueue(isolatedVault_, strategy_, operator_);
-    }
-
-    function __init_EigenLayerWithdrawalQueue(
-        address isolatedVault_,
-        address strategy_,
-        address operator_
-    ) internal onlyInitializing {
-        isolatedVault = isolatedVault_;
-        strategy = strategy_;
-        operator = operator_;
     }
 
     /// --------------- EXTERNAL VIEW FUNCTIONS ---------------
@@ -60,7 +51,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     }
 
     /// @inheritdoc IWithdrawalQueue
-    function pendingAssetsOf(address account) public view returns (uint256 assets) {
+    function pendingAssetsOf(address account) public view virtual returns (uint256 assets) {
         AccountData storage accountData_ = _accountData[account];
         uint256[] memory indices = accountData_.withdrawals.values();
         uint256 block_ = latestWithdrawableBlock();
@@ -80,7 +71,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     }
 
     /// @inheritdoc IWithdrawalQueue
-    function claimableAssetsOf(address account) public view returns (uint256 assets) {
+    function claimableAssetsOf(address account) public view virtual returns (uint256 assets) {
         AccountData storage accountData_ = _accountData[account];
         uint256[] memory indices = accountData_.withdrawals.values();
         uint256 block_ = latestWithdrawableBlock();
@@ -99,6 +90,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
                 shares += withdrawal.sharesOf[account];
             }
         }
+        assets += accountData_.claimableAssets;
         assets += shares == 0 ? 0 : IStrategy(strategy).sharesToUnderlyingView(shares);
     }
 
@@ -163,7 +155,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
 
     /// --------------- EXTERNAL MUTABLE FUNCTIONS ---------------
 
-    function request(address account, uint256 assets, bool isSelfRequested) external {
+    function request(address account, uint256 assets, bool isSelfRequested) public virtual {
         address isolatedVault_ = isolatedVault;
         require(msg.sender == isolatedVault_, "EigenLayerWithdrawalQueue: forbidden");
         handleWithdrawals(account);
@@ -210,7 +202,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     }
 
     /// @inheritdoc IWithdrawalQueue
-    function transferPendingAssets(address to, uint256 amount) external {
+    function transferPendingAssets(address to, uint256 amount) public virtual {
         address from = msg.sender;
         if (amount == 0 || from == to) {
             return;
@@ -260,12 +252,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             }
         }
         if (amount != 0) {
-            if (amount < accountDataFrom.claimableAssets) {
-                revert("EigenLayerWithdrawalQueue: insufficient pending assets");
-            } else {
-                accountDataFrom.claimableAssets -= amount;
-                accountDataTo.claimableAssets += amount;
-            }
+            _transferClaimableAsPending(accountDataFrom, accountDataTo, amount);
         }
     }
 
@@ -330,7 +317,30 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
 
     /// --------------- INTERNAL MUTABLE FUNCTIONS ---------------
 
-    function _pull(WithdrawalData storage withdrawal) private {
+    function __init_EigenLayerWithdrawalQueue(
+        address isolatedVault_,
+        address strategy_,
+        address operator_
+    ) internal onlyInitializing {
+        isolatedVault = isolatedVault_;
+        strategy = strategy_;
+        operator = operator_;
+    }
+
+    function _transferClaimableAsPending(
+        AccountData storage accountDataFrom,
+        AccountData storage accountDataTo,
+        uint256 assets
+    ) internal virtual {
+        if (assets < accountDataFrom.claimableAssets) {
+            revert("EigenLayerWithdrawalQueue: insufficient pending assets");
+        } else {
+            accountDataFrom.claimableAssets -= assets;
+            accountDataTo.claimableAssets += assets;
+        }
+    }
+
+    function _pull(WithdrawalData storage withdrawal) internal virtual {
         if (withdrawal.isClaimed) {
             return;
         }

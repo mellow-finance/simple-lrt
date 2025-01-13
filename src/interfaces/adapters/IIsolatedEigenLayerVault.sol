@@ -19,6 +19,8 @@ interface IIsolatedEigenLayerVault {
 
     function asset() external view returns (address);
 
+    function initialize(address vault) external;
+
     function delegateTo(
         address manager,
         address operator,

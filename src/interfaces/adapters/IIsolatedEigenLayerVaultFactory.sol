@@ -9,6 +9,12 @@ interface IIsolatedEigenLayerVaultFactory {
         address withdrawalQueue;
     }
 
+    function isolatedVaultSingleton() external view returns (address);
+
+    function withdrawalQueueSingleton() external view returns (address);
+
+    function proxyAdmin() external view returns (address);
+
     function delegation() external view returns (address);
 
     function instances(address isolatedVault)

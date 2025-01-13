@@ -16,6 +16,7 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         _disableInitializers();
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVault
     function initialize(address vault_) external override initializer {
         require(
             address(wsteth) == IERC4626(vault_).asset(),
@@ -41,15 +42,6 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
     }
 
     /// @inheritdoc IIsolatedEigenLayerVault
-    function withdraw(address queue, address reciever, uint256 request, bool flag)
-        external
-        override
-        onlyVault
-    {
-        IEigenLayerWithdrawalQueue(queue).request(reciever, wsteth.getStETHByWstETH(request), flag);
-    }
-
-    /// @inheritdoc IIsolatedEigenLayerVault
     function claimWithdrawal(
         IDelegationManager manager,
         IDelegationManager.Withdrawal calldata data
@@ -61,14 +53,6 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         tokens[0] = IERC20(steth);
         manager.completeQueuedWithdrawal(data, tokens, 0, true);
         assets = steth.balanceOf(this_);
-        if (assets == 0) {
-            return 0;
-        }
-        IERC20(steth).safeIncreaseAllowance(address(wsteth), assets);
-        assets = wsteth.wrap(assets);
-        if (assets == 0) {
-            return 0;
-        }
-        IERC20(wsteth).safeTransfer(queue, assets);
+        IERC20(steth).safeTransfer(queue, assets);
     }
 }

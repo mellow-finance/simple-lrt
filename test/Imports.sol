@@ -16,6 +16,7 @@ import "../src/adapters/IsolatedEigenLayerWstETHVault.sol";
 import "../src/adapters/SymbioticAdapter.sol";
 
 import "../src/queues/EigenLayerWithdrawalQueue.sol";
+import "../src/queues/EigenLayerWstETHWithdrawalQueue.sol";
 import "../src/queues/SymbioticWithdrawalQueue.sol";
 
 import "../src/strategies/RatiosStrategy.sol";

@@ -8,12 +8,18 @@ import {TransparentUpgradeableProxy} from
     "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract IsolatedEigenLayerVaultFactory is IIsolatedEigenLayerVaultFactory {
+    /// @inheritdoc IIsolatedEigenLayerVaultFactory
     address public immutable delegation;
+    /// @inheritdoc IIsolatedEigenLayerVaultFactory
     address public immutable isolatedVaultSingleton;
+    /// @inheritdoc IIsolatedEigenLayerVaultFactory
     address public immutable withdrawalQueueSingleton;
+    /// @inheritdoc IIsolatedEigenLayerVaultFactory
     address public immutable proxyAdmin;
 
+    /// @inheritdoc IIsolatedEigenLayerVaultFactory
     mapping(address isolatedVault => Data) public instances;
+    /// @inheritdoc IIsolatedEigenLayerVaultFactory
     mapping(bytes32 key => address isolatedVault) public isolatedVaults;
 
     constructor(
@@ -28,10 +34,12 @@ contract IsolatedEigenLayerVaultFactory is IIsolatedEigenLayerVaultFactory {
         proxyAdmin = proxyAdmin_;
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVaultFactory
     function key(address owner, address strategy, address operator) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(owner, strategy, operator));
     }
 
+    /// @inheritdoc IIsolatedEigenLayerVaultFactory
     function getOrCreate(address owner, address strategy, address operator, bytes calldata data)
         external
         returns (address isolatedVault, address withdrawalQueue)
