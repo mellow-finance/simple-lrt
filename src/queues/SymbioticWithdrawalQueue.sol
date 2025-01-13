@@ -21,6 +21,7 @@ contract SymbioticWithdrawalQueue is ISymbioticWithdrawalQueue, Initializable {
 
     constructor(address claimer_) {
         claimer = claimer_;
+        _disableInitializers();
     }
 
     function initialize(address vault_, address symbioticVault_) external initializer {

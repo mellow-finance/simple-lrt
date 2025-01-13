@@ -15,6 +15,10 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
         _;
     }
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(address vault_) external virtual initializer {
         __init_IsolatedEigenLayerVault(vault_);
     }
