@@ -66,7 +66,7 @@ contract SymbioticAdapter is ISymbioticAdapter {
         }
         require(vaultFactory.isEntity(symbioticVault), "SymbioticAdapter: invalid symbiotic vault");
         withdrawalQueue = address(
-            new TransparentUpgradeableProxy(
+            new TransparentUpgradeableProxy{salt: keccak256(abi.encodePacked(symbioticVault))}(
                 withdrawalQueueSingleton,
                 proxyAdmin,
                 abi.encodeCall(SymbioticWithdrawalQueue.initialize, (vault, symbioticVault))

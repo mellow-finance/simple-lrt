@@ -50,7 +50,7 @@ contract IsolatedEigenLayerVaultFactory {
         }
 
         isolatedVault = address(
-            new TransparentUpgradeableProxy(
+            new TransparentUpgradeableProxy{salt: key_}(
                 isolatedVaultSingleton,
                 proxyAdmin,
                 abi.encodeCall(IsolatedEigenLayerVault.initialize, (owner))
@@ -60,7 +60,7 @@ contract IsolatedEigenLayerVaultFactory {
             abi.decode(data, (ISignatureUtils.SignatureWithExpiry, bytes32));
         IIsolatedEigenLayerVault(isolatedVault).delegateTo(delegation, operator, signature, salt);
         withdrawalQueue = address(
-            new TransparentUpgradeableProxy(
+            new TransparentUpgradeableProxy{salt: key_}(
                 withdrawalQueueSingleton,
                 proxyAdmin,
                 abi.encodeCall(
