@@ -23,6 +23,8 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     /// @inheritdoc IEigenLayerWithdrawalQueue
     address public operator;
 
+    // bool public isForcedUndelegationHandled = false;
+
     WithdrawalData[] internal _withdrawals;
     mapping(address account => AccountData) internal _accountData;
 
@@ -267,15 +269,24 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         uint256[] memory indices = accountData_.withdrawals.values();
         uint256 counter = 0;
         uint256 block_ = latestWithdrawableBlock();
-        for (uint256 i = 0; i < indices.length; i++) {
+        uint256 length = indices.length;
+        for (uint256 i = 0; i < length;) {
             uint256 withdrawalIndex = indices[i];
             WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
             if (withdrawal.isClaimed) {
-                _handleWithdrawal(withdrawalIndex, withdrawal, account, accountData_);
+                if (!_handleWithdrawal(withdrawalIndex, withdrawal, account, accountData_)) {
+                    i++;
+                } else {
+                    length--;
+                }
             } else if (block_ >= withdrawal.data.startBlock && counter < MAX_CLAIMING_WITHDRAWALS) {
                 counter++;
                 _pull(withdrawal);
-                _handleWithdrawal(withdrawalIndex, withdrawal, account, accountData_);
+                if (!_handleWithdrawal(withdrawalIndex, withdrawal, account, accountData_)) {
+                    i++;
+                } else {
+                    length--;
+                }
             }
         }
     }
@@ -313,6 +324,11 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             withdrawals.length() <= MAX_PENDING_WITHDRAWALS,
             "EigenLayerWithdrawalQueue: max withdrawal requests reached"
         );
+    }
+
+    function shutdown(IDelegationManager.Withdrawal calldata data) external {
+        bytes32 withdrawalRoot = keccak256(abi.encode(data));
+        // TODO: fix this
     }
 
     /// --------------- INTERNAL MUTABLE FUNCTIONS ---------------
@@ -361,10 +377,10 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         WithdrawalData storage withdrawal,
         address account,
         AccountData storage accountData_
-    ) private {
+    ) private returns (bool) {
         uint256 accountShares = withdrawal.sharesOf[account];
         if (accountShares == 0) {
-            return;
+            return false;
         }
         uint256 assets = withdrawal.assets;
         uint256 shares = withdrawal.shares;
@@ -379,5 +395,6 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             withdrawal.shares = shares - accountShares;
         }
         accountData_.withdrawals.remove(withdrawalIndex);
+        return true;
     }
 }

@@ -50,6 +50,9 @@ contract EigenLayerWstETHAdapter is EigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function stakedAt(address isolatedVault) external view override returns (uint256) {
+        if (!delegationManager.isDelegated(isolatedVault)) {
+            revert("EigenLayerAdapter: not delegated");
+        }
         (, address strategy,,) = factory.instances(isolatedVault);
         uint256 stethValue = IStrategy(strategy).userUnderlyingView(isolatedVault);
         return stethValue == 0 ? 0 : wsteth.getWstETHByStETH(stethValue);

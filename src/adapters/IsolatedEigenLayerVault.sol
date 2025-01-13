@@ -13,6 +13,8 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
     /// @inheritdoc IIsolatedEigenLayerVault
     address public asset;
 
+    bool public isDelegated;
+
     modifier onlyVault() {
         require(msg.sender == vault, "Only vault");
         _;
@@ -36,6 +38,8 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
         ISignatureUtils.SignatureWithExpiry memory signature,
         bytes32 salt
     ) external {
+        require(!isDelegated, "IsolatedEigenLayerVault: already delegated");
+        isDelegated = true;
         IDelegationManager(manager).delegateTo(operator, signature, salt);
     }
 
