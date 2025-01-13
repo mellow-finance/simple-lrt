@@ -140,7 +140,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         view
         returns (bool)
     {
-        IPausable manager = IPausable(address(strategyManager));
+        IPausable manager = IPausable(address(delegationManager));
         (,, address strategy,) = factory.instances(isolatedVault);
         return manager.paused(PAUSED_ENTER_WITHDRAWAL_QUEUE)
             || manager.paused(PAUSED_EXIT_WITHDRAWAL_QUEUE)
