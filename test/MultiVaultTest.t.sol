@@ -90,7 +90,7 @@ contract MultiVaultTest is Test {
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
             address(mv),
             Constants.symbioticDeployment().vaultFactory,
-            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            address(new SymbioticWithdrawalQueue(address(claimer))),
             vm.createWallet("proxyAdmin").addr
         );
         IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
@@ -450,9 +450,6 @@ contract MultiVaultTest is Test {
     }
 
     function testFuzz_Eigen(uint256 seed_) public {
-        if (true) {
-            return;
-        }
         rnd.seed = seed_;
         MultiVault mv;
         {
@@ -621,7 +618,7 @@ contract MultiVaultTest is Test {
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
             address(mv),
             Constants.symbioticDeployment().vaultFactory,
-            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            address(new SymbioticWithdrawalQueue(address(claimer))),
             vm.createWallet("proxyAdmin").addr
         );
         IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
