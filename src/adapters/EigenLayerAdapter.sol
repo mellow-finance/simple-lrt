@@ -129,15 +129,6 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         }
     }
 
-    /// @inheritdoc IEigenLayerAdapter
-    function claimWithdrawal(address isolatedVault, IDelegationManager.Withdrawal calldata data)
-        external
-        delegateCallOnly
-        returns (uint256 assets)
-    {
-        return IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(delegationManager, data);
-    }
-
     /// @inheritdoc IProtocolAdapter
     function areWithdrawalsPaused(address isolatedVault, address /* account */ )
         external

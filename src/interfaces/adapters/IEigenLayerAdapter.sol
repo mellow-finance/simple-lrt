@@ -21,8 +21,4 @@ interface IEigenLayerAdapter is IProtocolAdapter {
     function strategyManager() external view returns (IStrategyManager);
 
     function delegationManager() external view returns (IDelegationManager);
-
-    function claimWithdrawal(address isolatedVault, IDelegationManager.Withdrawal calldata data)
-        external
-        returns (uint256 assets);
 }
