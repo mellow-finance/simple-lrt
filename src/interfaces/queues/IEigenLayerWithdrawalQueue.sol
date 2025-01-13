@@ -6,6 +6,7 @@ import {IWithdrawalQueue} from "./IWithdrawalQueue.sol";
 import {IDelegationManager} from "@eigenlayer-interfaces/IDelegationManager.sol";
 import {IStrategy} from "@eigenlayer-interfaces/IStrategy.sol";
 
+import {IDelegationManagerExtended} from "../utils/IDelegationManagerExtended.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -36,6 +37,8 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
 
     function operator() external view returns (address);
 
+    function isShutdown() external view returns (bool);
+
     function latestWithdrawableBlock() external view returns (uint256);
 
     function getAccountData(
@@ -58,9 +61,9 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
         view
         returns (
             IDelegationManager.Withdrawal memory data,
+            bool isClaimed,
             uint256 assets,
             uint256 shares,
-            bool isClaimed,
             uint256 accountShares
         );
 
@@ -71,4 +74,7 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
     function handleWithdrawals(address account) external;
 
     function acceptPendingAssets(address account, uint256[] calldata withdrawals_) external;
+
+    // permissionless function
+    function shutdown(uint32 blockNumber, uint256 shares) external;
 }

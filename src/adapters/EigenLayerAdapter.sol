@@ -61,10 +61,13 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function stakedAt(address isolatedVault) external view virtual returns (uint256) {
-        if (!delegationManager.isDelegated(isolatedVault)) {
-            revert("EigenLayerAdapter: not delegated");
+        (, address strategy,, address withdrawalQueue) = factory.instances(isolatedVault);
+        if (
+            !delegationManager.isDelegated(isolatedVault)
+                && !IEigenLayerWithdrawalQueue(withdrawalQueue).isShutdown()
+        ) {
+            revert("EigenLayerAdapter: isolated vault is neither delegated nor shut down");
         }
-        (, address strategy,,) = factory.instances(isolatedVault);
         return IStrategy(strategy).userUnderlyingView(isolatedVault);
     }
 
