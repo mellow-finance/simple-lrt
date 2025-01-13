@@ -32,6 +32,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         _disableInitializers();
     }
 
+    /// @inheritdoc IEigenLayerWithdrawalQueue
     function initialize(address isolatedVault_, address strategy_, address operator_)
         external
         initializer
@@ -92,7 +93,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
                 uint256 accountShares = withdrawal.sharesOf[account];
                 assets += totalShares == accountShares
                     ? withdrawal.assets
-                    : Math.mulDiv(withdrawal.assets, accountShares, totalShares);
+                    : withdrawal.assets.mulDiv(accountShares, totalShares);
             } else if (block_ >= withdrawal.data.startBlock && counter < MAX_CLAIMING_WITHDRAWALS) {
                 counter++;
                 shares += withdrawal.sharesOf[account];
@@ -101,21 +102,63 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         assets += shares == 0 ? 0 : IStrategy(strategy).sharesToUnderlyingView(shares);
     }
 
-    function transferedWithdrawalsOf(address account, uint256 limit, uint256 offset)
-        public
+    /// @inheritdoc IEigenLayerWithdrawalQueue
+    function getAccountData(
+        address account,
+        uint256 withdrawalsLimit,
+        uint256 withdrawalsOffset,
+        uint256 transferedWithdrawalsLimit,
+        uint256 transferedWithdrawalsOffset
+    )
+        external
         view
-        returns (uint256[] memory withdrawals)
+        returns (
+            uint256 claimableAssets,
+            uint256[] memory withdrawals,
+            uint256[] memory transferedWithdrawals
+        )
     {
         AccountData storage accountData_ = _accountData[account];
-        EnumerableSet.UintSet storage transferedWithdrawals = accountData_.transferedWithdrawals;
-        uint256 length = transferedWithdrawals.length();
-        if (offset >= length) {
-            return withdrawals;
+        claimableAssets = accountData_.claimableAssets;
+        {
+            EnumerableSet.UintSet storage withdrawals_ = accountData_.withdrawals;
+            uint256 length = withdrawals_.length();
+            if (withdrawalsOffset < length) {
+                uint256 count = (length - withdrawalsOffset).min(withdrawalsLimit);
+                withdrawals = new uint256[](count);
+                for (uint256 i = 0; i < count; i++) {
+                    withdrawals[i] = withdrawals_.at(i + withdrawalsOffset);
+                }
+            }
         }
-        uint256 count = (length - offset).min(limit);
-        for (uint256 i = 0; i < count; i++) {
-            withdrawals[i] = transferedWithdrawals.at(i + offset);
+        {
+            EnumerableSet.UintSet storage withdrawals_ = accountData_.transferedWithdrawals;
+            uint256 length = withdrawals_.length();
+            if (transferedWithdrawalsOffset < length) {
+                uint256 count =
+                    (length - transferedWithdrawalsOffset).min(transferedWithdrawalsLimit);
+                transferedWithdrawals = new uint256[](count);
+                for (uint256 i = 0; i < count; i++) {
+                    transferedWithdrawals[i] = withdrawals_.at(i + transferedWithdrawalsOffset);
+                }
+            }
         }
+    }
+
+    /// @inheritdoc IEigenLayerWithdrawalQueue
+    function getWithdrawalRequest(uint256 index, address account)
+        external
+        view
+        returns (IDelegationManager.Withdrawal memory, uint256, uint256, bool, uint256)
+    {
+        WithdrawalData storage withdrawal = _withdrawals[index];
+        return (
+            withdrawal.data,
+            withdrawal.assets,
+            withdrawal.shares,
+            withdrawal.isClaimed,
+            withdrawal.sharesOf[account]
+        );
     }
 
     /// --------------- EXTERNAL MUTABLE FUNCTIONS ---------------
@@ -173,41 +216,55 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             return;
         }
         handleWithdrawals(from);
-        AccountData storage accountData_ = _accountData[from];
-        uint256 pendingWithdrawals = accountData_.withdrawals.length();
+        AccountData storage accountDataFrom = _accountData[from];
+        AccountData storage accountDataTo = _accountData[to];
+        uint256 pendingWithdrawals = accountDataFrom.withdrawals.length();
         IStrategy strategy_ = IStrategy(strategy);
         for (uint256 i = 0; i < pendingWithdrawals;) {
-            uint256 withdrawalIndex = accountData_.withdrawals.at(i);
-            WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
-            uint256 accountShares = withdrawal.sharesOf[from];
-            uint256 accountAssets = withdrawal.isClaimed
-                ? Math.mulDiv(withdrawal.assets, accountShares, withdrawal.shares)
-                : strategy_.sharesToUnderlyingView(accountShares);
+            uint256 withdrawalIndex = accountDataFrom.withdrawals.at(i);
+            mapping(address => uint256) storage balances = _withdrawals[withdrawalIndex].sharesOf;
+            uint256 accountShares;
+            uint256 accountAssets;
+            {
+                WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
+                accountShares = balances[from];
+                accountAssets = withdrawal.isClaimed
+                    ? withdrawal.assets.mulDiv(accountShares, withdrawal.shares)
+                    : strategy_.sharesToUnderlyingView(accountShares);
+            }
             if (accountAssets == 0) {
                 i++;
-                continue;
-            }
-            _accountData[to].transferedWithdrawals.add(withdrawalIndex);
-            mapping(address => uint256) storage balances = withdrawal.sharesOf;
-            if (accountAssets < amount) {
+            } else if (accountAssets <= amount) {
                 delete balances[from];
                 balances[to] += accountShares;
-                accountData_.withdrawals.remove(withdrawalIndex);
+                accountDataFrom.withdrawals.remove(withdrawalIndex);
                 amount -= accountAssets;
                 pendingWithdrawals--;
+                if (!accountDataTo.withdrawals.contains(withdrawalIndex)) {
+                    accountDataTo.transferedWithdrawals.add(withdrawalIndex);
+                }
+                if (amount == 0) {
+                    return;
+                }
             } else {
                 uint256 shares_ = accountShares.mulDiv(amount, accountAssets);
+                if (shares_ == 0) {
+                    return;
+                }
                 balances[from] -= shares_;
                 balances[to] += shares_;
+                if (!accountDataTo.withdrawals.contains(withdrawalIndex)) {
+                    accountDataTo.transferedWithdrawals.add(withdrawalIndex);
+                }
                 return;
             }
         }
         if (amount != 0) {
-            if (amount < accountData_.claimableAssets) {
+            if (amount < accountDataFrom.claimableAssets) {
                 revert("EigenLayerWithdrawalQueue: insufficient pending assets");
             } else {
-                accountData_.claimableAssets -= amount;
-                _accountData[to].claimableAssets += amount;
+                accountDataFrom.claimableAssets -= amount;
+                accountDataTo.claimableAssets += amount;
             }
         }
     }
@@ -312,6 +369,5 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             withdrawal.shares = shares - accountShares;
         }
         accountData_.withdrawals.remove(withdrawalIndex);
-        accountData_.transferedWithdrawals.remove(withdrawalIndex);
     }
 }

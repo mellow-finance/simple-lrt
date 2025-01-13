@@ -428,9 +428,8 @@ contract MultiVaultTest is Test {
                 skip(1 days);
             } else if (t == 4) {
                 uint256[][] memory indices = new uint256[][](1);
-                indices[0] = EigenLayerWithdrawalQueue(wq).transferedWithdrawalsOf(
-                    admin, type(uint256).max, 0
-                );
+                (,, indices[0]) =
+                    EigenLayerWithdrawalQueue(wq).getAccountData(admin, 0, 0, type(uint256).max, 0);
                 claimer.multiAcceptAndClaim(
                     address(mv), new uint256[](1), indices, admin, type(uint256).max
                 );
@@ -578,9 +577,8 @@ contract MultiVaultTest is Test {
                 skip(1 days);
             } else if (t == 4) {
                 uint256[][] memory indices = new uint256[][](1);
-                indices[0] = EigenLayerWithdrawalQueue(wq).transferedWithdrawalsOf(
-                    admin, type(uint256).max, 0
-                );
+                (,, indices[0]) =
+                    EigenLayerWithdrawalQueue(wq).getAccountData(admin, 0, 0, type(uint256).max, 0);
                 claimer.multiAcceptAndClaim(
                     address(mv), new uint256[](1), indices, admin, type(uint256).max
                 );

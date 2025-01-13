@@ -38,6 +38,34 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
 
     function latestWithdrawableBlock() external view returns (uint256);
 
+    function getAccountData(
+        address account,
+        uint256 withdrawalsLimit,
+        uint256 withdrawalsOffset,
+        uint256 transferedWithdrawalsLimit,
+        uint256 transferedWithdrawalsOffset
+    )
+        external
+        view
+        returns (
+            uint256 claimableAssets,
+            uint256[] memory withdrawals,
+            uint256[] memory transferedWithdrawals
+        );
+
+    function getWithdrawalRequest(uint256 index, address account)
+        external
+        view
+        returns (
+            IDelegationManager.Withdrawal memory data,
+            uint256 assets,
+            uint256 shares,
+            bool isClaimed,
+            uint256 accountShares
+        );
+
+    function initialize(address isolatedVault_, address strategy_, address operator_) external;
+
     function request(address account, uint256 assets, bool isSelfRequested) external;
 
     function handleWithdrawals(address account) external;
