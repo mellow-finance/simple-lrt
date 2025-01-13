@@ -98,22 +98,13 @@ contract EigenLayerWstETHWithdrawalQueue is EigenLayerWithdrawalQueue {
     }
 
     function _pull(WithdrawalData storage withdrawal) internal override {
-        if (withdrawal.isClaimed) {
-            return;
-        }
-        IDelegationManager.Withdrawal memory data = withdrawal.data;
-        if (
-            data.startBlock + IDelegationManager(delegation).getWithdrawalDelay(data.strategies)
-                <= block.number
-        ) {
-            uint256 assets = IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(
-                IDelegationManager(delegation), data
-            );
-            IERC20(steth).safeIncreaseAllowance(address(wsteth), assets);
-            uint256 balance = wsteth.balanceOf(address(this));
-            wsteth.wrap(assets);
-            withdrawal.assets = wsteth.balanceOf(address(this)) - balance;
-            withdrawal.isClaimed = true;
-        }
+        uint256 assets = IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(
+            IDelegationManager(delegation), withdrawal.data
+        );
+        IERC20(steth).safeIncreaseAllowance(address(wsteth), assets);
+        uint256 balance = wsteth.balanceOf(address(this));
+        wsteth.wrap(assets);
+        withdrawal.assets = wsteth.balanceOf(address(this)) - balance;
+        withdrawal.isClaimed = true;
     }
 }

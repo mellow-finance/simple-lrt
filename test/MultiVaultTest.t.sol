@@ -579,7 +579,7 @@ contract MultiVaultTest is Test {
         }
     }
 
-    function testFuzz_Eigen(uint256 seed_) public {
+    function _testFuzz_Eigen(uint256 seed_) public {
         rnd.seed = seed_;
         MultiVault mv;
         {

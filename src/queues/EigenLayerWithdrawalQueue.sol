@@ -246,33 +246,44 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
 
     /// @inheritdoc IWithdrawalQueue
     function pull(uint256 withdrawalIndex) public {
-        _pull(_withdrawals[withdrawalIndex]);
+        WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
+        if (withdrawal.isClaimed) {
+            return;
+        }
+        IDelegationManager.Withdrawal memory data = withdrawal.data;
+        if (
+            data.startBlock + IDelegationManager(delegation).getWithdrawalDelay(data.strategies)
+                <= block.number
+        ) {
+            _pull(withdrawal);
+        }
     }
 
     /// @inheritdoc IEigenLayerWithdrawalQueue
     function handleWithdrawals(address account) public {
         AccountData storage accountData_ = _accountData[account];
-        uint256[] memory indices = accountData_.withdrawals.values();
+        EnumerableSet.UintSet storage withdrawals_ = accountData_.withdrawals;
         uint256 counter = 0;
         uint256 block_ = latestWithdrawableBlock();
-        uint256 length = indices.length;
+        uint256 length = withdrawals_.length();
         for (uint256 i = 0; i < length;) {
-            uint256 withdrawalIndex = indices[i];
-            WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
-            if (withdrawal.isClaimed) {
-                if (!_handleWithdrawal(withdrawalIndex, withdrawal, account, accountData_)) {
-                    i++;
-                } else {
-                    length--;
-                }
-            } else if (block_ >= withdrawal.data.startBlock && counter < MAX_CLAIMING_WITHDRAWALS) {
+            uint256 index = withdrawals_.at(i);
+            WithdrawalData storage withdrawal = _withdrawals[index];
+            bool isHandleable = withdrawal.isClaimed;
+            if (
+                !isHandleable && block_ >= withdrawal.data.startBlock
+                    && counter < MAX_CLAIMING_WITHDRAWALS
+            ) {
                 counter++;
                 _pull(withdrawal);
-                if (!_handleWithdrawal(withdrawalIndex, withdrawal, account, accountData_)) {
-                    i++;
-                } else {
-                    length--;
-                }
+                isHandleable = true;
+            }
+            if (isHandleable) {
+                accountData_.withdrawals.remove(index);
+                _handleWithdrawal(index, withdrawal, account, accountData_);
+                length--;
+            } else {
+                i++;
             }
         }
     }
@@ -390,19 +401,10 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     }
 
     function _pull(WithdrawalData storage withdrawal) internal virtual {
-        if (withdrawal.isClaimed) {
-            return;
-        }
-        IDelegationManager.Withdrawal memory data = withdrawal.data;
-        if (
-            data.startBlock + IDelegationManager(delegation).getWithdrawalDelay(data.strategies)
-                <= block.number
-        ) {
-            withdrawal.assets = IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(
-                IDelegationManager(delegation), data
-            );
-            withdrawal.isClaimed = true;
-        }
+        withdrawal.assets = IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(
+            IDelegationManager(delegation), withdrawal.data
+        );
+        withdrawal.isClaimed = true;
     }
 
     function _handleWithdrawal(
@@ -410,10 +412,10 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         WithdrawalData storage withdrawal,
         address account,
         AccountData storage accountData_
-    ) private returns (bool) {
+    ) private {
         uint256 accountShares = withdrawal.sharesOf[account];
         if (accountShares == 0) {
-            return false;
+            return;
         }
         uint256 assets = withdrawal.assets;
         uint256 shares = withdrawal.shares;
@@ -427,7 +429,5 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             withdrawal.assets = assets - assets_;
             withdrawal.shares = shares - accountShares;
         }
-        accountData_.withdrawals.remove(withdrawalIndex);
-        return true;
     }
 }
