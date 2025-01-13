@@ -70,5 +70,6 @@ contract IsolatedEigenLayerVaultFactory {
         );
 
         instances[isolatedVault] = Data(owner, operator, strategy, withdrawalQueue);
+        isolatedVaults[key_] = isolatedVault;
     }
 }
