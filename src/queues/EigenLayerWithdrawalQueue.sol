@@ -299,11 +299,11 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         }
         uint256 assets = withdrawal.assets;
         uint256 shares = withdrawal.shares;
+        delete withdrawal.sharesOf[account];
         if (accountShares == shares) {
             delete _withdrawals[withdrawalIndex];
             accountData_.claimableAssets += assets;
         } else {
-            delete withdrawal.sharesOf[account];
             uint256 assets_ = assets.mulDiv(accountShares, shares);
             accountData_.claimableAssets += assets_;
             withdrawal.assets = assets - assets_;
