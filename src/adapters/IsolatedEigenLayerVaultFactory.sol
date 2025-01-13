@@ -10,8 +10,8 @@ import {TransparentUpgradeableProxy} from
 contract IsolatedEigenLayerVaultFactory {
     struct Data {
         address owner;
-        address operator;
         address strategy;
+        address operator;
         address withdrawalQueue;
     }
 
@@ -35,11 +35,11 @@ contract IsolatedEigenLayerVaultFactory {
         proxyAdmin = proxyAdmin_;
     }
 
-    function key(address owner, address operator, address strategy) public pure returns (bytes32) {
+    function key(address owner, address strategy, address operator) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(owner, strategy, operator));
     }
 
-    function getOrCreate(address owner, address operator, address strategy, bytes calldata data)
+    function getOrCreate(address owner, address strategy, address operator, bytes calldata data)
         external
         returns (address isolatedVault, address withdrawalQueue)
     {
@@ -69,7 +69,7 @@ contract IsolatedEigenLayerVaultFactory {
             )
         );
 
-        instances[isolatedVault] = Data(owner, operator, strategy, withdrawalQueue);
+        instances[isolatedVault] = Data(owner, strategy, operator, withdrawalQueue);
         isolatedVaults[key_] = isolatedVault;
     }
 }
