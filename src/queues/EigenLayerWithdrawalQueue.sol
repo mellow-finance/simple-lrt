@@ -269,9 +269,9 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
 
     /// --------------- INTERNAL MUTABLE FUNCTIONS ---------------
 
-    function _pull(WithdrawalData storage withdrawal) private returns (bool) {
+    function _pull(WithdrawalData storage withdrawal) private {
         if (withdrawal.isClaimed) {
-            return true;
+            return;
         }
         IDelegationManager.Withdrawal memory data = withdrawal.data;
         if (
@@ -282,9 +282,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
                 IDelegationManager(delegation), data
             );
             withdrawal.isClaimed = true;
-            return true;
         }
-        return false;
     }
 
     function _handleWithdrawal(
