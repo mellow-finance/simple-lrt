@@ -11,6 +11,8 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@openzeppelin/contracts/utils/Strings.sol";
+
 contract Collector {
     struct Withdrawal {
         uint256 subvaultIndex;
@@ -147,55 +149,11 @@ contract Collector {
             }
 
             if (subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC) {
-                ISymbioticWithdrawalQueue q = ISymbioticWithdrawalQueue(subvault.withdrawalQueue);
-                (uint256 sharesToClaimPrev, uint256 sharesToClaim,,) = q.getAccountData(user);
-                ISymbioticVault symbioticVault = q.symbioticVault();
-                uint256 currentEpoch = q.getCurrentEpoch();
-
-                if (sharesToClaimPrev != 0) {
-                    ISymbioticWithdrawalQueue.EpochData memory epochData =
-                        q.getEpochData(currentEpoch);
-
-                    if (!epochData.isClaimed) {
-                        uint256 assets = Math.mulDiv(
-                            symbioticVault.withdrawalsOf(currentEpoch - 1, address(q)),
-                            sharesToClaimPrev,
-                            epochData.sharesToClaim
-                        );
-                        if (assets != 0) {
-                            withdrawals[iterator++] = Withdrawal({
-                                subvaultIndex: subvaultIndex,
-                                assets: assets,
-                                isTimestamp: true,
-                                claimingTime: symbioticVault.currentEpochStart()
-                                    + symbioticVault.epochDuration(),
-                                withdrawalIndex: 0,
-                                withdrawalRequestType: 0
-                            });
-                        }
-                    }
-                }
-                if (sharesToClaim != 0) {
-                    ISymbioticWithdrawalQueue.EpochData memory epochData =
-                        q.getEpochData(currentEpoch + 1);
-                    if (!epochData.isClaimed) {
-                        uint256 assets = Math.mulDiv(
-                            symbioticVault.withdrawalsOf(currentEpoch + 1, address(q)),
-                            sharesToClaim,
-                            epochData.sharesToClaim
-                        );
-                        if (assets != 0) {
-                            withdrawals[iterator++] = Withdrawal({
-                                subvaultIndex: subvaultIndex,
-                                assets: assets,
-                                isTimestamp: true,
-                                claimingTime: symbioticVault.currentEpochStart()
-                                    + 2 * symbioticVault.epochDuration(),
-                                withdrawalIndex: 0,
-                                withdrawalRequestType: 0
-                            });
-                        }
-                    }
+                Withdrawal[] memory w = collectSymbioticWithdrawals(
+                    user, subvaultIndex, ISymbioticWithdrawalQueue(subvault.withdrawalQueue)
+                );
+                for (uint256 i = 0; i < w.length; i++) {
+                    withdrawals[iterator++] = w[i];
                 }
             } else if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
                 Withdrawal[] memory w = collectEigenLayerWithdrawals(
@@ -222,6 +180,83 @@ contract Collector {
         uint256[] transferredWithdrawals;
         uint256 block_;
         IStrategy strategy;
+    }
+
+    function collectSymbioticWithdrawals(
+        address user,
+        uint256 subvaultIndex,
+        ISymbioticWithdrawalQueue q
+    ) public view returns (Withdrawal[] memory withdrawals_) {
+        withdrawals_ = new Withdrawal[](2);
+        uint256 iterator = 0;
+        (uint256 sharesToClaimPrev, uint256 sharesToClaim,, uint256 claimEpoch) =
+            q.getAccountData(user);
+        ISymbioticVault symbioticVault = q.symbioticVault();
+        uint256 currentEpoch = q.getCurrentEpoch();
+        if (claimEpoch == currentEpoch + 1) {
+            if (sharesToClaimPrev != 0) {
+                ISymbioticWithdrawalQueue.EpochData memory epochData = q.getEpochData(currentEpoch);
+                uint256 assets = Math.mulDiv(
+                    symbioticVault.withdrawalsOf(currentEpoch, address(q)),
+                    sharesToClaimPrev,
+                    epochData.sharesToClaim
+                );
+                if (assets != 0) {
+                    withdrawals_[iterator++] = Withdrawal({
+                        subvaultIndex: subvaultIndex,
+                        assets: assets,
+                        isTimestamp: true,
+                        claimingTime: symbioticVault.currentEpochStart()
+                            + symbioticVault.epochDuration(),
+                        withdrawalIndex: 0,
+                        withdrawalRequestType: 0
+                    });
+                }
+            }
+            if (sharesToClaim != 0) {
+                ISymbioticWithdrawalQueue.EpochData memory epochData =
+                    q.getEpochData(currentEpoch + 1);
+                uint256 assets = Math.mulDiv(
+                    symbioticVault.withdrawalsOf(currentEpoch + 1, address(q)),
+                    sharesToClaim,
+                    epochData.sharesToClaim
+                );
+                if (assets != 0) {
+                    withdrawals_[iterator++] = Withdrawal({
+                        subvaultIndex: subvaultIndex,
+                        assets: assets,
+                        isTimestamp: true,
+                        claimingTime: symbioticVault.currentEpochStart()
+                            + 2 * symbioticVault.epochDuration(),
+                        withdrawalIndex: 0,
+                        withdrawalRequestType: 0
+                    });
+                }
+            }
+        } else if (claimEpoch == currentEpoch) {
+            if (sharesToClaim != 0) {
+                ISymbioticWithdrawalQueue.EpochData memory epochData = q.getEpochData(currentEpoch);
+                uint256 assets = Math.mulDiv(
+                    symbioticVault.withdrawalsOf(currentEpoch, address(q)),
+                    sharesToClaim,
+                    epochData.sharesToClaim
+                );
+                if (assets != 0) {
+                    withdrawals_[iterator++] = Withdrawal({
+                        subvaultIndex: subvaultIndex,
+                        assets: assets,
+                        isTimestamp: true,
+                        claimingTime: symbioticVault.currentEpochStart()
+                            + 2 * symbioticVault.epochDuration(),
+                        withdrawalIndex: 0,
+                        withdrawalRequestType: 0
+                    });
+                }
+            }
+        }
+        assembly {
+            mstore(withdrawals_, iterator)
+        }
     }
 
     function collectEigenLayerWithdrawals(
@@ -425,33 +460,45 @@ contract Collector {
                 if (subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC) {
                     ISymbioticWithdrawalQueue queue =
                         ISymbioticWithdrawalQueue(subvault.withdrawalQueue);
-                    (, uint256 sharesToClaim,,) = queue.getAccountData(address(v));
+                    (, uint256 sharesToClaim,, uint256 claimEpoch) =
+                        queue.getAccountData(address(v));
                     ISymbioticVault symbioticVault = queue.symbioticVault();
-                    if (sharesToClaim != 0) {
-                        uint256 currentEpoch = queue.getCurrentEpoch();
-                        ISymbioticWithdrawalQueue.EpochData memory epochData =
-                            queue.getEpochData(currentEpoch + 1);
-                        uint256 assets = Math.mulDiv(
-                            symbioticVault.withdrawalsOf(currentEpoch + 1, address(queue)),
-                            sharesToClaim,
-                            epochData.sharesToClaim
-                        );
-                        if (assets != 0) {
-                            assets = Math.min(assets, data[i].pending);
-                            data[i].pending -= assets;
+                    uint256 currentEpoch = symbioticVault.currentEpoch();
+                    if (claimEpoch == currentEpoch + 1) {
+                        if (sharesToClaim != 0) {
+                            ISymbioticWithdrawalQueue.EpochData memory epochData =
+                                queue.getEpochData(currentEpoch + 1);
+                            uint256 assets = Math.mulDiv(
+                                symbioticVault.withdrawalsOf(currentEpoch + 1, address(queue)),
+                                sharesToClaim,
+                                epochData.sharesToClaim
+                            );
+                            if (assets != 0) {
+                                assets = Math.min(assets, data[i].pending);
+                                data[i].pending -= assets;
+                                withdrawals[n++] = Withdrawal({
+                                    subvaultIndex: data[i].subvaultIndex,
+                                    assets: assets,
+                                    isTimestamp: true,
+                                    claimingTime: symbioticVault.currentEpochStart()
+                                        + 2 * symbioticVault.epochDuration(),
+                                    withdrawalIndex: 0,
+                                    withdrawalRequestType: 0
+                                });
+                            }
+                        }
+                        if (data[i].pending != 0) {
                             withdrawals[n++] = Withdrawal({
                                 subvaultIndex: data[i].subvaultIndex,
-                                assets: assets,
+                                assets: data[i].pending,
                                 isTimestamp: true,
                                 claimingTime: symbioticVault.currentEpochStart()
-                                    + 2 * symbioticVault.epochDuration(),
+                                    + symbioticVault.epochDuration(),
                                 withdrawalIndex: 0,
                                 withdrawalRequestType: 0
                             });
                         }
-                    }
-
-                    if (data[i].pending != 0) {
+                    } else if (claimEpoch == currentEpoch) {
                         withdrawals[n++] = Withdrawal({
                             subvaultIndex: data[i].subvaultIndex,
                             assets: data[i].pending,
@@ -461,6 +508,8 @@ contract Collector {
                             withdrawalIndex: 0,
                             withdrawalRequestType: 0
                         });
+                    } else {
+                        revert("Invalid state!");
                     }
                 } else if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
                     EigenStack memory s;

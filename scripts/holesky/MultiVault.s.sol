@@ -11,8 +11,7 @@ import "./collector/Oracle.sol";
 import "forge-std/Script.sol";
 
 contract Deploy is Script {
-    function logVaultData(Collector collector, address vault) public view {
-        address user = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+    function logVaultData(Collector collector, address vault, address user) public view {
         {
             (
                 uint256 accountAssets,
@@ -172,34 +171,43 @@ contract Deploy is Script {
         uint256 pk = uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER")));
         vm.startBroadcast(pk);
 
-        Collector prevCollector = Collector(0x75bBece1190C927e7f5FAa0D0AF1a39939A2Ae50);
+        Collector prevCollector = Collector(0xB23a6fac33d5198b90db6d2D8344A7B9a5B56890);
         Collector collector =
             new Collector(prevCollector.wsteth(), prevCollector.weth(), prevCollector.owner());
-        Oracle oracle = new Oracle(collector.owner());
-        address[] memory tokens = new address[](5);
-        tokens[0] = Constants.HOLESKY_WSTETH;
-        tokens[1] = Constants.HOLESKY_WETH;
-        tokens[2] = Constants.HOLESKY_STETH;
-        tokens[3] = collector.usd();
-        tokens[4] = collector.eth();
-        uint256 Q96 = 2 ** 96;
-        Oracle.TokenOracle[] memory oracles = new Oracle.TokenOracle[](5);
-        oracles[0] =
-            Oracle.TokenOracle({constValue: (1.181476 ether) * Q96 / 1 ether, oracle: address(0)});
-        oracles[1] = Oracle.TokenOracle({constValue: Q96, oracle: address(0)});
-        oracles[2] = Oracle.TokenOracle({constValue: Q96, oracle: address(0)});
-        oracles[3] = Oracle.TokenOracle({constValue: Q96 * 1e10 / 3354, oracle: address(0)});
-        oracles[4] = Oracle.TokenOracle({constValue: Q96, oracle: address(0)});
-        oracle.setOracles(tokens, oracles);
-        collector.setOracle(address(oracle));
+        // Oracle oracle = new Oracle(collector.owner());
+        // address[] memory tokens = new address[](5);
+        // tokens[0] = Constants.HOLESKY_WSTETH;
+        // tokens[1] = Constants.HOLESKY_WETH;
+        // tokens[2] = Constants.HOLESKY_STETH;
+        // tokens[3] = collector.usd();
+        // tokens[4] = collector.eth();
+        // uint256 Q96 = 2 ** 96;
+        // Oracle.TokenOracle[] memory oracles = new Oracle.TokenOracle[](5);
+        // oracles[0] =
+        //     Oracle.TokenOracle({constValue: (1.181476 ether) * Q96 / 1 ether, oracle: address(0)});
+        // oracles[1] = Oracle.TokenOracle({constValue: Q96, oracle: address(0)});
+        // oracles[2] = Oracle.TokenOracle({constValue: Q96, oracle: address(0)});
+        // oracles[3] = Oracle.TokenOracle({constValue: Q96 * 1e10 / 3354, oracle: address(0)});
+        // oracles[4] = Oracle.TokenOracle({constValue: Q96, oracle: address(0)});
+        // oracle.setOracles(tokens, oracles);
+        collector.setOracle(address(prevCollector.oracle()));
 
-        // logVaultData(collector, 0xD1d9c7cd66721e43579Be95BC6D13b56817Dd54D);
-        // logVaultData(collector, 0xc119d25470f6C4AA842772521704e7049f540477);
-        // logVaultData(collector, 0xc3dA07f12344BE2E9212B2B40D3eB9e9aC2dBe27);
-        // logVaultData(collector, 0x7F31eb85aBE328EBe6DD07f9cA651a6FE623E69B);
+        // address user = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+
+        // logVaultData(collector, 0xD1d9c7cd66721e43579Be95BC6D13b56817Dd54D, user);
+        // logVaultData(collector, 0xc119d25470f6C4AA842772521704e7049f540477, user);
+        // logVaultData(collector, 0xc3dA07f12344BE2E9212B2B40D3eB9e9aC2dBe27, user);
+        // // logVaultData(collector, 0x7F31eb85aBE328EBe6DD07f9cA651a6FE623E69B, user);
+
+        // user = 0xceDC35457010Be27048C943d556c964f63867D64;
+
+        // logVaultData(collector, 0xD1d9c7cd66721e43579Be95BC6D13b56817Dd54D, user);
+        // logVaultData(collector, 0xc119d25470f6C4AA842772521704e7049f540477, user);
+        // logVaultData(collector, 0xc3dA07f12344BE2E9212B2B40D3eB9e9aC2dBe27, user);
+        // logVaultData(collector, 0x7F31eb85aBE328EBe6DD07f9cA651a6FE623E69B, user);
 
         vm.stopBroadcast();
-        // revert("ok");
+        revert("ok");
 
         // RatiosStrategy strategy = RatiosStrategy(0xba94DF565fA7760003ABD6C295ef514597b4650b);
         // MultiVault vault = MultiVault(0xc3dA07f12344BE2E9212B2B40D3eB9e9aC2dBe27);
