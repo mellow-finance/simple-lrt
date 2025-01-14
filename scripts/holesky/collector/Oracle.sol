@@ -56,6 +56,9 @@ contract Oracle {
     }
 
     function getValue(address token, uint256 amount) public view returns (uint256) {
+        if (amount > type(uint224).max) {
+            return type(uint256).max;
+        }
         return Math.mulDiv(priceX96(token), amount, Q96);
     }
 
@@ -64,6 +67,9 @@ contract Oracle {
         view
         returns (uint256)
     {
+        if (amount > type(uint224).max) {
+            return type(uint256).max;
+        }
         return Math.mulDiv(priceX96(token, priceToken), amount, Q96);
     }
 }

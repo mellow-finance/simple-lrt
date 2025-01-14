@@ -188,25 +188,12 @@ contract Collector {
                     }
                 }
             } else if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
-                // TODO: add logic into the EigenLayerWithdrawalQueue
-                // IEigenLayerWithdrawalQueue q = IEigenLayerWithdrawalQueue(subvault.withdrawalQueue);
-                // q.getAccountData(account);
-                // AccountData storage accountData_ = _accountData[account];
-                // uint256[] memory indices = accountData_.withdrawals.values();
-                // uint256 block_ = latestWithdrawableBlock();
-                // uint256 counter = 0;
-                // uint256 shares = 0;
-                // for (uint256 i = 0; i < indices.length; i++) {
-                //     WithdrawalData storage withdrawal = _withdrawals[indices[i]];
-                //     if (withdrawal.isClaimed) {
-                //         continue;
-                //     } else if (block_ >= withdrawal.data.startBlock && counter < MAX_CLAIMING_WITHDRAWALS) {
-                //         counter++;
-                //     } else {
-                //         shares += withdrawal.sharesOf[account];
-                //     }
-                // }
-                // assets = shares == 0 ? 0 : IStrategy(strategy).sharesToUnderlyingView(shares);
+                Withdrawal[] memory w = collectEigenLayerWithdrawals(
+                    user, IEigenLayerWithdrawalQueue(subvault.withdrawalQueue)
+                );
+                for (uint256 i = 0; i < w.length; i++) {
+                    withdrawals[iterator++] = w[i];
+                }
             } else {
                 revert("Invalid state");
             }
@@ -216,6 +203,16 @@ contract Collector {
             mstore(withdrawals, iterator)
         }
         r.withdrawals = withdrawals;
+    }
+
+    function collectEigenLayerWithdrawals(address user, IEigenLayerWithdrawalQueue queue)
+        public
+        view
+        returns (Withdrawal[] memory withdrawals)
+    {
+        (uint256 claimable, uint256[] memory withdrawals, uint256[] memory transferedWithdrawals) =
+            queue.getAccountData(user, type(uint256).max, 0, type(uint256).max, 0);
+        
     }
 
     function collect(address user, address[] memory vaults)
@@ -311,5 +308,19 @@ contract Collector {
         r.expectedAmounts[0] = amounts[0];
         r.expectedAmountsUSDC = new uint256[](1);
         r.expectedAmountsUSDC[0] = r.expectedLpAmountUSDC;
+    }
+
+    function getVaultAssets(address vault, address user, uint256 shares)
+        public
+        view
+        returns (
+            uint256 accountAssets,
+            uint256 accountInstantAssets,
+            uint256 totalAssets,
+            uint256 totalInstantAssets,
+            Withdrawal[] memory withdrawals
+        )
+    {
+        // NOT IMPLEMENTED YET
     }
 }
