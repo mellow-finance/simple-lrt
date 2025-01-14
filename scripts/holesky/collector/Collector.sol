@@ -217,70 +217,76 @@ contract Collector {
         r.timestamp = block.timestamp;
     }
 
+    struct CollectEigenLayerWithdrawalsStack {
+        uint256[] withdrawals;
+        uint256[] transferredWithdrawals;
+        uint256 block_;
+        IStrategy strategy;
+    }
+
     function collectEigenLayerWithdrawals(
         address user,
         uint256 subvaultIndex,
         IEigenLayerWithdrawalQueue queue
     ) public view returns (Withdrawal[] memory withdrawals_) {
-        IStrategy strategy = IStrategy(queue.strategy());
-        (, uint256[] memory withdrawals, uint256[] memory transferredWithdrawals) =
+        CollectEigenLayerWithdrawalsStack memory s;
+        s.strategy = IStrategy(queue.strategy());
+        (, s.withdrawals, s.transferredWithdrawals) =
             queue.getAccountData(user, type(uint256).max, 0, type(uint256).max, 0);
-        uint256 block_ = queue.latestWithdrawableBlock();
+        s.block_ = queue.latestWithdrawableBlock();
         uint256 counter = 0;
-        uint256 maxClaimingWithdrawals = queue.MAX_CLAIMING_WITHDRAWALS();
-        withdrawals_ = new Withdrawal[](withdrawals.length + transferredWithdrawals.length);
+        withdrawals_ = new Withdrawal[](s.withdrawals.length + s.transferredWithdrawals.length);
         uint256 n = 0;
-        for (uint256 i = 0; i < withdrawals.length; i++) {
-            (
-                IDelegationManager.Withdrawal memory data,
-                bool isClaimed,
-                uint256 assets,
-                uint256 shares,
-                uint256 accountShares
-            ) = queue.getWithdrawalRequest(withdrawals[i], user);
+        for (uint256 i = 0; i < s.withdrawals.length; i++) {
+            (IDelegationManager.Withdrawal memory data, bool isClaimed,,, uint256 accountShares) =
+                queue.getWithdrawalRequest(s.withdrawals[i], user);
             if (isClaimed) {
                 continue;
-            } else if (block_ >= data.startBlock && counter < maxClaimingWithdrawals) {
+            } else if (s.block_ >= data.startBlock && counter < queue.MAX_CLAIMING_WITHDRAWALS()) {
                 counter++;
             } else {
                 withdrawals_[n++] = Withdrawal({
                     subvaultIndex: subvaultIndex,
-                    assets: strategy.sharesToUnderlyingView(accountShares),
+                    assets: s.strategy.sharesToUnderlyingView(accountShares),
                     isTimestamp: false,
-                    claimingTime: data.startBlock + block.number - block_,
-                    withdrawalIndex: withdrawals[i],
+                    claimingTime: data.startBlock + block.number - s.block_,
+                    withdrawalIndex: s.withdrawals[i],
                     withdrawalRequestType: 0
                 });
             }
         }
 
-        for (uint256 i = 0; i < transferredWithdrawals.length; i++) {
+        for (uint256 i = 0; i < s.transferredWithdrawals.length; i++) {
             (
                 IDelegationManager.Withdrawal memory data,
                 bool isClaimed,
                 uint256 assets,
                 uint256 shares,
                 uint256 accountShares
-            ) = queue.getWithdrawalRequest(transferredWithdrawals[i], user);
+            ) = queue.getWithdrawalRequest(s.transferredWithdrawals[i], user);
             if (isClaimed) {
                 withdrawals_[n++] = Withdrawal({
                     subvaultIndex: subvaultIndex,
                     assets: Math.mulDiv(assets, accountShares, shares),
                     isTimestamp: false,
                     claimingTime: 0,
-                    withdrawalIndex: transferredWithdrawals[i],
+                    withdrawalIndex: s.transferredWithdrawals[i],
                     withdrawalRequestType: 1
                 });
             } else {
                 withdrawals_[n++] = Withdrawal({
                     subvaultIndex: subvaultIndex,
-                    assets: strategy.sharesToUnderlyingView(accountShares),
+                    assets: s.strategy.sharesToUnderlyingView(accountShares),
                     isTimestamp: false,
-                    claimingTime: data.startBlock + block.number - block_,
-                    withdrawalIndex: transferredWithdrawals[i],
+                    claimingTime: data.startBlock + block.number - s.block_,
+                    withdrawalIndex: s.transferredWithdrawals[i],
                     withdrawalRequestType: 1
                 });
             }
+        }
+
+        assembly {
+            mstore(withdrawals_, n)
         }
     }
 
@@ -390,6 +396,49 @@ contract Collector {
             Withdrawal[] memory withdrawals
         )
     {
-        // NOT IMPLEMENTED YET
+        MultiVault v = MultiVault(vault);
+        IWithdrawalStrategy strategy = v.withdrawalStrategy();
+        IWithdrawalStrategy.WithdrawalData memory data = strategy.calculateWithdrawalAmounts(
+            vault, v.previewRedeem(shares == 0 ? v.balanceOf(user) : shares)
+        );
+        withdrawals = new Withdrawal[](data.length * 50 + 1);
+        uint256 n = 0;
+        for (uint256 i = 0; i < data.length; i++) {
+            accountInstantAssets += data[i].claimable;
+            accountAssets += data[i].pending + data[i].staked;
+            if (data[i].pending != 0) {
+
+            }
+            
+            if (data[i].staked != 0) {
+                // regular unstaking
+                IMultiVaultStorage.Subvault memory subvault = v.subvaultAt(data[i].subvaultIndex); 
+                if (subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC) {
+                    ISymbioticVault symbioticVault = ISymbioticVault(subvault.vault);
+                    withdrawals[n++] = Withdrawal({
+                        subvaultIndex: data[i].subvaultIndex,
+                        assets: data[i].staked,
+                        isTimestamp: true,
+                        claimingTime: symbioticVault.currentEpochStart() + 2 * symbioticVault.epochDuration(),
+                        withdrawalIndex: 0,
+                        withdrawalRequestType: 0
+                    });
+                } else if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
+                    
+                    withdrawals[n++] = Withdrawal({
+                        subvaultIndex: data[i].subvaultIndex,
+                        assets: data[i].staked,
+                        isTimestamp: true,
+                        claimingTime: symbioticVault.currentEpochStart() + 2 * symbioticVault.epochDuration(),
+                        withdrawalIndex: 0,
+                        withdrawalRequestType: 0
+                    });
+                } else {
+                    revert("Unsupported protocol");
+                }
+            }
+        }
+
+        accountAssets += accountInstantAssets;
     }
 }

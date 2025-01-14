@@ -44,6 +44,7 @@ contract Deploy is Script {
         oracles[4] = Oracle.TokenOracle({constValue: Q96, oracle: address(0)});
         oracle.setOracles(tokens, oracles);
         collector.setOracle(address(oracle));
+        revert("ok");
 
         // address vault = 0xD1d9c7cd66721e43579Be95BC6D13b56817Dd54D;
         // address user = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
