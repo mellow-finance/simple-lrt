@@ -71,6 +71,8 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
             uint256 accountShares
         );
 
+    function withdrawalRequests() external view returns (uint256);
+
     function initialize(address isolatedVault_, address strategy_, address operator_) external;
 
     function request(address account, uint256 assets, bool isSelfRequested) external;
