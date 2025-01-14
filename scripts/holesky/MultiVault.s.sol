@@ -13,20 +13,14 @@ contract Deploy is Script {
     function run() external {
         uint256 pk = uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER")));
         vm.startBroadcast(pk);
-        // address deployer = vm.addr(pk);
 
-        // Collector collector = new Collector(
-        //     Constants.HOLESKY_WSTETH, Constants.HOLESKY_WETH, Constants.HOLESKY_STETH, deployer
-        // );
-        // Oracle oracle = new Oracle(deployer);
-
-        // collector.setOracle(address(oracle));
-
-        // MultiVault vault = MultiVault(0xc3dA07f12344BE2E9212B2B40D3eB9e9aC2dBe27);
-        // vault.withdraw(vault.balanceOf(deployer) / 4, deployer, deployer);
-        // collector.collect(deployer, IERC4626(0xc3dA07f12344BE2E9212B2B40D3eB9e9aC2dBe27));
-
-        Collector collector = Collector(0x75bBece1190C927e7f5FAa0D0AF1a39939A2Ae50);
+        Collector prevCollector = Collector(0x75bBece1190C927e7f5FAa0D0AF1a39939A2Ae50);
+        Collector collector = new Collector(
+            prevCollector.wsteth(),
+            prevCollector.weth(),
+            prevCollector.steth(),
+            prevCollector.owner()
+        );
         Oracle oracle = new Oracle(collector.owner());
         address[] memory tokens = new address[](5);
         tokens[0] = Constants.HOLESKY_WSTETH;
@@ -44,24 +38,24 @@ contract Deploy is Script {
         oracles[4] = Oracle.TokenOracle({constValue: Q96, oracle: address(0)});
         oracle.setOracles(tokens, oracles);
         collector.setOracle(address(oracle));
-        revert("ok");
 
-        // address vault = 0xD1d9c7cd66721e43579Be95BC6D13b56817Dd54D;
-        // address user = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        address vault = 0xD1d9c7cd66721e43579Be95BC6D13b56817Dd54D;
+        address user = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
 
-        // collector.collect(user, IERC4626(vault));
+        collector.getVaultAssets(MultiVault(vault), user, MultiVault(vault).balanceOf(user));
+        collector.collect(user, IERC4626(vault));
 
-        // uint256[] memory amounts = new uint256[](1);
-        // amounts[0] = 1 ether;
-        // collector.fetchDepositAmounts(amounts, vault, user);
-        // collector.fetchDepositWrapperParams(vault, user, collector.wsteth(), 1 ether);
-        // collector.fetchDepositWrapperParams(vault, user, collector.steth(), 1 ether);
-        // collector.fetchDepositWrapperParams(vault, user, collector.weth(), 1 ether);
-        // collector.fetchDepositWrapperParams(vault, user, collector.eth(), 1 ether);
-        // collector.fetchWithdrawalAmounts(IERC4626(vault).balanceOf(user), vault);
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 1 ether;
+        collector.fetchDepositAmounts(amounts, vault, user);
+        collector.fetchDepositWrapperParams(vault, user, collector.wsteth(), 1 ether);
+        collector.fetchDepositWrapperParams(vault, user, collector.steth(), 1 ether);
+        collector.fetchDepositWrapperParams(vault, user, collector.weth(), 1 ether);
+        collector.fetchDepositWrapperParams(vault, user, collector.eth(), 1 ether);
+        collector.fetchWithdrawalAmounts(IERC4626(vault).balanceOf(user), vault);
 
         vm.stopBroadcast();
-        // revert("ok");
+        revert("ok");
 
         // RatiosStrategy strategy = RatiosStrategy(0xba94DF565fA7760003ABD6C295ef514597b4650b);
         // MultiVault vault = MultiVault(0xc3dA07f12344BE2E9212B2B40D3eB9e9aC2dBe27);

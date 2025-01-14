@@ -385,58 +385,192 @@ contract Collector {
         r.expectedAmountsUSDC[0] = r.expectedLpAmountUSDC;
     }
 
-    function getVaultAssets(address vault, address user, uint256 shares)
+    struct EigenStack {
+        uint256 block_;
+        uint256 counter;
+        uint256[] withdrawals;
+        IStrategy strategy;
+        uint256 length;
+        IDelegationManager.Withdrawal data;
+        bool isClaimed;
+        uint256 assets;
+        uint256 requestShares;
+        uint256 accountShares;
+    }
+
+    function getVaultAssets(MultiVault v, address user, uint256 shares)
         public
         view
         returns (
             uint256 accountAssets,
             uint256 accountInstantAssets,
-            uint256 totalAssets,
-            uint256 totalInstantAssets,
             Withdrawal[] memory withdrawals
         )
     {
-        MultiVault v = MultiVault(vault);
-        IWithdrawalStrategy strategy = v.withdrawalStrategy();
-        IWithdrawalStrategy.WithdrawalData memory data = strategy.calculateWithdrawalAmounts(
-            vault, v.previewRedeem(shares == 0 ? v.balanceOf(user) : shares)
+        IWithdrawalStrategy.WithdrawalData[] memory data = v.withdrawalStrategy()
+            .calculateWithdrawalAmounts(
+            address(v), v.previewRedeem(shares == 0 ? v.balanceOf(user) : shares)
         );
         withdrawals = new Withdrawal[](data.length * 50 + 1);
         uint256 n = 0;
         for (uint256 i = 0; i < data.length; i++) {
             accountInstantAssets += data[i].claimable;
             accountAssets += data[i].pending + data[i].staked;
-            if (data[i].pending != 0) {
-
+            IMultiVaultStorage.Subvault memory subvault = v.subvaultAt(data[i].subvaultIndex);
+            if (subvault.withdrawalQueue == address(0)) {
+                continue;
             }
-            
+
+            if (data[i].pending != 0) {
+                if (subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC) {
+                    ISymbioticWithdrawalQueue queue =
+                        ISymbioticWithdrawalQueue(subvault.withdrawalQueue);
+                    (, uint256 sharesToClaim,,) = queue.getAccountData(address(v));
+                    ISymbioticVault symbioticVault = queue.symbioticVault();
+                    if (sharesToClaim != 0) {
+                        uint256 currentEpoch = queue.getCurrentEpoch();
+                        ISymbioticWithdrawalQueue.EpochData memory epochData =
+                            queue.getEpochData(currentEpoch + 1);
+                        uint256 assets = Math.mulDiv(
+                            symbioticVault.withdrawalsOf(currentEpoch + 1, address(queue)),
+                            sharesToClaim,
+                            epochData.sharesToClaim
+                        );
+                        if (assets != 0) {
+                            assets = Math.min(assets, data[i].pending);
+                            data[i].pending -= assets;
+                            withdrawals[n++] = Withdrawal({
+                                subvaultIndex: data[i].subvaultIndex,
+                                assets: assets,
+                                isTimestamp: true,
+                                claimingTime: symbioticVault.currentEpochStart()
+                                    + 2 * symbioticVault.epochDuration(),
+                                withdrawalIndex: 0,
+                                withdrawalRequestType: 0
+                            });
+                        }
+                    }
+
+                    if (data[i].pending != 0) {
+                        withdrawals[n++] = Withdrawal({
+                            subvaultIndex: data[i].subvaultIndex,
+                            assets: data[i].pending,
+                            isTimestamp: true,
+                            claimingTime: symbioticVault.currentEpochStart()
+                                + symbioticVault.epochDuration(),
+                            withdrawalIndex: 0,
+                            withdrawalRequestType: 0
+                        });
+                    }
+                } else if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
+                    EigenStack memory s;
+                    IEigenLayerWithdrawalQueue queue =
+                        IEigenLayerWithdrawalQueue(subvault.withdrawalQueue);
+                    (, s.withdrawals,) =
+                        queue.getAccountData(address(v), type(uint256).max, 0, 0, 0);
+                    s.length = s.withdrawals.length;
+                    s.counter = 0;
+                    s.block_ = queue.latestWithdrawableBlock();
+                    s.strategy = IStrategy(queue.strategy());
+
+                    for (uint256 index = 0; index < s.length;) {
+                        (s.data, s.isClaimed,,,) =
+                            queue.getWithdrawalRequest(s.withdrawals[index], address(v));
+                        if (s.isClaimed) {
+                            s.withdrawals[index] = s.withdrawals[--s.length];
+                        } else if (
+                            s.data.startBlock <= s.block_
+                                && s.counter < queue.MAX_CLAIMING_WITHDRAWALS()
+                        ) {
+                            s.counter++;
+                            s.withdrawals[index] = s.withdrawals[--s.length];
+                        } else {
+                            index++;
+                        }
+                    }
+
+                    for (uint256 index = 0; index < s.length;) {
+                        (s.data, s.isClaimed, s.assets, s.requestShares, s.accountShares) =
+                            queue.getWithdrawalRequest(s.withdrawals[index], address(v));
+                        uint256 transferrableAssets = s.isClaimed
+                            ? Math.mulDiv(s.assets, s.accountShares, s.requestShares)
+                            : s.strategy.sharesToUnderlyingView(s.accountShares);
+                        if (transferrableAssets == 0) {
+                            index++;
+                            continue;
+                        }
+                        if (transferrableAssets >= data[i].pending) {
+                            withdrawals[n++] = Withdrawal({
+                                subvaultIndex: data[i].subvaultIndex,
+                                assets: data[i].pending,
+                                isTimestamp: false,
+                                claimingTime: s.data.startBlock + 2 * (block.number - s.block_),
+                                withdrawalIndex: s.withdrawals[index],
+                                withdrawalRequestType: 1
+                            });
+                            data[i].pending = 0;
+                            break;
+                        } else {
+                            withdrawals[n++] = Withdrawal({
+                                subvaultIndex: data[i].subvaultIndex,
+                                assets: transferrableAssets,
+                                isTimestamp: false,
+                                claimingTime: s.data.startBlock + 2 * (block.number - s.block_),
+                                withdrawalIndex: s.withdrawals[index],
+                                withdrawalRequestType: 1
+                            });
+                            data[i].pending -= transferrableAssets;
+                            s.withdrawals[index] = s.withdrawals[--s.length];
+                        }
+                    }
+                    if (data[i].pending != 0) {
+                        withdrawals[n++] = Withdrawal({
+                            subvaultIndex: data[i].subvaultIndex,
+                            assets: data[i].pending,
+                            isTimestamp: false,
+                            claimingTime: 0,
+                            withdrawalIndex: 0,
+                            withdrawalRequestType: 0
+                        });
+                    }
+                } else {
+                    revert("Unsupported protocol");
+                }
+            }
+
             if (data[i].staked != 0) {
                 // regular unstaking
-                IMultiVaultStorage.Subvault memory subvault = v.subvaultAt(data[i].subvaultIndex); 
                 if (subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC) {
                     ISymbioticVault symbioticVault = ISymbioticVault(subvault.vault);
                     withdrawals[n++] = Withdrawal({
                         subvaultIndex: data[i].subvaultIndex,
                         assets: data[i].staked,
                         isTimestamp: true,
-                        claimingTime: symbioticVault.currentEpochStart() + 2 * symbioticVault.epochDuration(),
+                        claimingTime: symbioticVault.currentEpochStart()
+                            + 2 * symbioticVault.epochDuration(),
                         withdrawalIndex: 0,
                         withdrawalRequestType: 0
                     });
                 } else if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
-                    
+                    IEigenLayerWithdrawalQueue queue =
+                        IEigenLayerWithdrawalQueue(subvault.withdrawalQueue);
                     withdrawals[n++] = Withdrawal({
                         subvaultIndex: data[i].subvaultIndex,
                         assets: data[i].staked,
-                        isTimestamp: true,
-                        claimingTime: symbioticVault.currentEpochStart() + 2 * symbioticVault.epochDuration(),
-                        withdrawalIndex: 0,
+                        isTimestamp: false,
+                        claimingTime: block.number
+                            + (block.number - queue.latestWithdrawableBlock()) * 2,
+                        withdrawalIndex: queue.withdrawalRequests(),
                         withdrawalRequestType: 0
                     });
                 } else {
                     revert("Unsupported protocol");
                 }
             }
+        }
+
+        assembly {
+            mstore(withdrawals, n)
         }
 
         accountAssets += accountInstantAssets;
