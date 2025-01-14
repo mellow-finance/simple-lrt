@@ -38,7 +38,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function maxDeposit(address isolatedVault) external view virtual returns (uint256) {
-        (,, address strategy,) = factory.instances(isolatedVault);
+        (, address strategy,,) = factory.instances(isolatedVault);
         if (
             IPausable(address(strategyManager)).paused(PAUSED_DEPOSITS)
                 || IPausable(address(strategy)).paused(PAUSED_DEPOSITS)
@@ -61,7 +61,13 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function stakedAt(address isolatedVault) external view virtual returns (uint256) {
-        (,, address strategy,) = factory.instances(isolatedVault);
+        (, address strategy,, address withdrawalQueue) = factory.instances(isolatedVault);
+        if (
+            !delegationManager.isDelegated(isolatedVault)
+                && !IEigenLayerWithdrawalQueue(withdrawalQueue).isShutdown()
+        ) {
+            revert("EigenLayerAdapter: isolated vault is neither delegated nor shut down");
+        }
         return IStrategy(strategy).userUnderlyingView(isolatedVault);
     }
 
@@ -120,28 +126,23 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function deposit(address isolatedVault, uint256 assets) external delegateCallOnly {
-        (,, address strategy,) = factory.instances(isolatedVault);
-        IERC20(IERC4626(vault).asset()).safeIncreaseAllowance(isolatedVault, assets);
+        (, address strategy,,) = factory.instances(isolatedVault);
+        IERC20 asset_ = IERC20(IERC4626(vault).asset());
+        asset_.safeIncreaseAllowance(isolatedVault, assets);
         IIsolatedEigenLayerVault(isolatedVault).deposit(address(strategyManager), strategy, assets);
-    }
-
-    /// @inheritdoc IEigenLayerAdapter
-    function claimWithdrawal(address isolatedVault, IDelegationManager.Withdrawal calldata data)
-        external
-        delegateCallOnly
-        returns (uint256 assets)
-    {
-        return IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(delegationManager, data);
+        if (asset_.allowance(address(this), isolatedVault) != 0) {
+            asset_.forceApprove(isolatedVault, 0);
+        }
     }
 
     /// @inheritdoc IProtocolAdapter
-    function areWithdrawalsPaused(address isolatedVault, address account)
+    function areWithdrawalsPaused(address isolatedVault, address /* account */ )
         external
         view
         returns (bool)
     {
-        IPausable manager = IPausable(address(strategyManager));
-        (,, address strategy,) = factory.instances(isolatedVault);
+        IPausable manager = IPausable(address(delegationManager));
+        (, address strategy,,) = factory.instances(isolatedVault);
         return manager.paused(PAUSED_ENTER_WITHDRAWAL_QUEUE)
             || manager.paused(PAUSED_EXIT_WITHDRAWAL_QUEUE)
             || IPausable(strategy).paused(PAUSED_WITHDRAWALS);

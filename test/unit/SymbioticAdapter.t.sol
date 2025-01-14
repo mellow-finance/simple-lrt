@@ -11,7 +11,10 @@ contract Unit is BaseTest {
         MultiVault vault = new MultiVault("test", 1);
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
 
         vm.expectRevert("SymbioticAdapter: delegate call only");

@@ -5,6 +5,8 @@ import "./EthWrapper.sol";
 import "@openzeppelin/contracts/access/IAccessControl.sol";
 
 contract WhitelistedEthWrapper is EthWrapper {
+    using SafeERC20 for IERC20;
+
     constructor(address WETH_, address wstETH_, address stETH_)
         EthWrapper(WETH_, wstETH_, stETH_)
     {}
@@ -45,6 +47,7 @@ contract WhitelistedEthWrapper is EthWrapper {
             !depositWhitelist[vault] || isDepositWhitelist[vault][msg.sender],
             "WhitelistedEthWrapper: deposit not whitelisted"
         );
-        return super.deposit(depositToken, amount, vault, receiver, referral);
+        shares = super.deposit(depositToken, amount, vault, address(this), referral);
+        IERC20(vault).safeTransfer(receiver, shares);
     }
 }
