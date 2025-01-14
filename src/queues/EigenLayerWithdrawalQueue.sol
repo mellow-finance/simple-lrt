@@ -8,7 +8,9 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     using Math for uint256;
     using EnumerableSet for EnumerableSet.UintSet;
 
+    /// @inheritdoc IEigenLayerWithdrawalQueue
     uint256 public constant MAX_PENDING_WITHDRAWALS = 50;
+    /// @inheritdoc IEigenLayerWithdrawalQueue
     uint256 public constant MAX_CLAIMING_WITHDRAWALS = 5;
 
     /// @inheritdoc IEigenLayerWithdrawalQueue
