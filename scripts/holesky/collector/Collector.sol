@@ -74,10 +74,10 @@ contract Collector {
         _;
     }
 
-    constructor(address wsteth_, address weth_, address steth_, address owner_) {
+    constructor(address wsteth_, address weth_, address owner_) {
         wsteth = wsteth_;
+        steth = address(IWSTETH(wsteth_).stETH());
         weth = weth_;
-        steth = steth_;
         owner = owner_;
     }
 
@@ -134,7 +134,7 @@ contract Collector {
                     withdrawals[iterator++] = Withdrawal({
                         subvaultIndex: subvaultIndex,
                         assets: claimable,
-                        isTimestamp: false,
+                        isTimestamp: true,
                         claimingTime: 0,
                         withdrawalIndex: 0,
                         withdrawalRequestType: 0
@@ -504,7 +504,7 @@ contract Collector {
                                 subvaultIndex: data[i].subvaultIndex,
                                 assets: data[i].pending,
                                 isTimestamp: false,
-                                claimingTime: s.data.startBlock + 2 * (block.number - s.block_),
+                                claimingTime: s.data.startBlock + block.number - s.block_,
                                 withdrawalIndex: s.withdrawals[index],
                                 withdrawalRequestType: 1
                             });
@@ -515,7 +515,7 @@ contract Collector {
                                 subvaultIndex: data[i].subvaultIndex,
                                 assets: transferrableAssets,
                                 isTimestamp: false,
-                                claimingTime: s.data.startBlock + 2 * (block.number - s.block_),
+                                claimingTime: s.data.startBlock + block.number - s.block_,
                                 withdrawalIndex: s.withdrawals[index],
                                 withdrawalRequestType: 1
                             });
@@ -558,8 +558,7 @@ contract Collector {
                         subvaultIndex: data[i].subvaultIndex,
                         assets: data[i].staked,
                         isTimestamp: false,
-                        claimingTime: block.number
-                            + (block.number - queue.latestWithdrawableBlock()) * 2,
+                        claimingTime: block.number + block.number - queue.latestWithdrawableBlock(),
                         withdrawalIndex: queue.withdrawalRequests(),
                         withdrawalRequestType: 0
                     });

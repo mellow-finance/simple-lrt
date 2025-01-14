@@ -4,23 +4,177 @@ pragma solidity 0.8.25;
 import "../../test/Imports.sol";
 
 import "./collector/Collector.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./collector/ConstantOracle.sol";
 import "./collector/Oracle.sol";
 import "forge-std/Script.sol";
 
 contract Deploy is Script {
+    function logVaultData(Collector collector, address vault) public view {
+        address user = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+        {
+            (
+                uint256 accountAssets,
+                uint256 accountInstantAssets,
+                Collector.Withdrawal[] memory withdrawals
+            ) = collector.getVaultAssets(MultiVault(vault), user, MultiVault(vault).balanceOf(user));
+            console2.log(
+                string(
+                    abi.encodePacked(
+                        "logVaultData for vault=",
+                        Strings.toHexString(vault),
+                        ": accountAssets=",
+                        Strings.toString(accountAssets),
+                        ", accountInstantAssets=",
+                        Strings.toString(accountInstantAssets),
+                        ", withdrawals.length=",
+                        Strings.toString(withdrawals.length),
+                        ", user=",
+                        Strings.toHexString(user)
+                    )
+                )
+            );
+            for (uint256 i = 0; i < withdrawals.length; i++) {
+                string memory log__ = "withdrawal [";
+                log__ = string(
+                    abi.encodePacked(
+                        log__,
+                        Strings.toString(i),
+                        "]: subvaultIndex=",
+                        Strings.toString(withdrawals[i].subvaultIndex),
+                        ", assets=",
+                        Strings.toString(withdrawals[i].assets),
+                        ", isTimestamp=",
+                        withdrawals[i].isTimestamp ? "true" : "false",
+                        ", claimingTime=",
+                        Strings.toString(withdrawals[i].claimingTime),
+                        ", withdrawalIndex=",
+                        Strings.toString(withdrawals[i].withdrawalIndex),
+                        ", withdrawalRequestType=",
+                        Strings.toString(withdrawals[i].withdrawalRequestType)
+                    )
+                );
+
+                console2.log(log__);
+            }
+        }
+        console2.log();
+
+        {
+            Collector.Response memory response = collector.collect(user, IERC4626(vault));
+            string memory log__ = string(
+                abi.encodePacked(
+                    "collect for vault=",
+                    Strings.toHexString(vault),
+                    ", user=",
+                    Strings.toHexString(user),
+                    ", asset=",
+                    Strings.toHexString(response.asset),
+                    ", assetDecimals=",
+                    Strings.toString(response.assetDecimals),
+                    ", assetPriceX96=",
+                    Strings.toString(response.assetPriceX96),
+                    ", totalLP=",
+                    Strings.toString(response.totalLP)
+                )
+            );
+
+            log__ = string(
+                abi.encodePacked(
+                    log__,
+                    ", totalUSD=",
+                    Strings.toString(response.totalUSD),
+                    ", totalETH=",
+                    Strings.toString(response.totalETH),
+                    ", totalUnderlying=",
+                    Strings.toString(response.totalUnderlying),
+                    ", limitLP=",
+                    Strings.toString(response.limitLP),
+                    ", limitUSD=",
+                    Strings.toString(response.limitUSD)
+                )
+            );
+
+            log__ = string(
+                abi.encodePacked(
+                    log__,
+                    ", limitETH=",
+                    Strings.toString(response.limitETH),
+                    ", limitUnderlying=",
+                    Strings.toString(response.limitUnderlying),
+                    ", userLP=",
+                    Strings.toString(response.userLP),
+                    ", userETH=",
+                    Strings.toString(response.userETH),
+                    ", userUSD=",
+                    Strings.toString(response.userUSD),
+                    ", userUnderlying=",
+                    Strings.toString(response.userUnderlying)
+                )
+            );
+
+            log__ = string(
+                abi.encodePacked(
+                    log__,
+                    ", lpPriceUSD=",
+                    Strings.toString(response.lpPriceUSD),
+                    ", lpPriceETH=",
+                    Strings.toString(response.lpPriceETH),
+                    ", lpPriceUnderlying=",
+                    Strings.toString(response.lpPriceUnderlying),
+                    ", blockNumber=",
+                    Strings.toString(response.blockNumber),
+                    ", timestamp=",
+                    Strings.toString(response.timestamp)
+                )
+            );
+
+            console2.log(log__);
+
+            for (uint256 i = 0; i < response.withdrawals.length; i++) {
+                console2.log(
+                    string(
+                        abi.encodePacked(
+                            "withdrawal [",
+                            Strings.toString(i),
+                            "]: subvaultIndex=",
+                            Strings.toString(response.withdrawals[i].subvaultIndex),
+                            ", assets=",
+                            Strings.toString(response.withdrawals[i].assets),
+                            ", isTimestamp=",
+                            response.withdrawals[i].isTimestamp ? "true" : "false",
+                            ", claimingTime=",
+                            Strings.toString(response.withdrawals[i].claimingTime),
+                            ", withdrawalIndex=",
+                            Strings.toString(response.withdrawals[i].withdrawalIndex),
+                            ", withdrawalRequestType=",
+                            Strings.toString(response.withdrawals[i].withdrawalRequestType)
+                        )
+                    )
+                );
+            }
+        }
+
+        // uint256[] memory amounts = new uint256[](1);
+        // amounts[0] = 1 ether;
+        // collector.fetchDepositAmounts(amounts, vault, user);
+        // collector.fetchDepositWrapperParams(vault, user, collector.wsteth(), 1 ether);
+        // collector.fetchDepositWrapperParams(vault, user, collector.steth(), 1 ether);
+        // collector.fetchDepositWrapperParams(vault, user, collector.weth(), 1 ether);
+        // collector.fetchDepositWrapperParams(vault, user, collector.eth(), 1 ether);
+        // collector.fetchWithdrawalAmounts(IERC4626(vault).balanceOf(user), vault);
+
+        console2.log("--------------------");
+    }
+
     function run() external {
         uint256 pk = uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER")));
         vm.startBroadcast(pk);
 
         Collector prevCollector = Collector(0x75bBece1190C927e7f5FAa0D0AF1a39939A2Ae50);
-        Collector collector = new Collector(
-            prevCollector.wsteth(),
-            prevCollector.weth(),
-            prevCollector.steth(),
-            prevCollector.owner()
-        );
+        Collector collector =
+            new Collector(prevCollector.wsteth(), prevCollector.weth(), prevCollector.owner());
         Oracle oracle = new Oracle(collector.owner());
         address[] memory tokens = new address[](5);
         tokens[0] = Constants.HOLESKY_WSTETH;
@@ -39,23 +193,13 @@ contract Deploy is Script {
         oracle.setOracles(tokens, oracles);
         collector.setOracle(address(oracle));
 
-        address vault = 0xD1d9c7cd66721e43579Be95BC6D13b56817Dd54D;
-        address user = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
-
-        collector.getVaultAssets(MultiVault(vault), user, MultiVault(vault).balanceOf(user));
-        collector.collect(user, IERC4626(vault));
-
-        uint256[] memory amounts = new uint256[](1);
-        amounts[0] = 1 ether;
-        collector.fetchDepositAmounts(amounts, vault, user);
-        collector.fetchDepositWrapperParams(vault, user, collector.wsteth(), 1 ether);
-        collector.fetchDepositWrapperParams(vault, user, collector.steth(), 1 ether);
-        collector.fetchDepositWrapperParams(vault, user, collector.weth(), 1 ether);
-        collector.fetchDepositWrapperParams(vault, user, collector.eth(), 1 ether);
-        collector.fetchWithdrawalAmounts(IERC4626(vault).balanceOf(user), vault);
+        // logVaultData(collector, 0xD1d9c7cd66721e43579Be95BC6D13b56817Dd54D);
+        // logVaultData(collector, 0xc119d25470f6C4AA842772521704e7049f540477);
+        // logVaultData(collector, 0xc3dA07f12344BE2E9212B2B40D3eB9e9aC2dBe27);
+        // logVaultData(collector, 0x7F31eb85aBE328EBe6DD07f9cA651a6FE623E69B);
 
         vm.stopBroadcast();
-        revert("ok");
+        // revert("ok");
 
         // RatiosStrategy strategy = RatiosStrategy(0xba94DF565fA7760003ABD6C295ef514597b4650b);
         // MultiVault vault = MultiVault(0xc3dA07f12344BE2E9212B2B40D3eB9e9aC2dBe27);
