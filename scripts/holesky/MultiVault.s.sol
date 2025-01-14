@@ -207,7 +207,7 @@ contract Deploy is Script {
         // logVaultData(collector, 0x7F31eb85aBE328EBe6DD07f9cA651a6FE623E69B, user);
 
         vm.stopBroadcast();
-        revert("ok");
+        // revert("ok");
 
         // RatiosStrategy strategy = RatiosStrategy(0xba94DF565fA7760003ABD6C295ef514597b4650b);
         // MultiVault vault = MultiVault(0xc3dA07f12344BE2E9212B2B40D3eB9e9aC2dBe27);
