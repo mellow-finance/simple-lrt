@@ -101,15 +101,15 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         address account,
         uint256 withdrawalsLimit,
         uint256 withdrawalsOffset,
-        uint256 transferedWithdrawalsLimit,
-        uint256 transferedWithdrawalsOffset
+        uint256 transferredWithdrawalsLimit,
+        uint256 transferredWithdrawalsOffset
     )
         external
         view
         returns (
             uint256 claimableAssets,
             uint256[] memory withdrawals,
-            uint256[] memory transferedWithdrawals
+            uint256[] memory transferredWithdrawals
         )
     {
         AccountData storage accountData_ = _accountData[account];
@@ -126,14 +126,14 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             }
         }
         {
-            EnumerableSet.UintSet storage withdrawals_ = accountData_.transferedWithdrawals;
+            EnumerableSet.UintSet storage withdrawals_ = accountData_.transferredWithdrawals;
             uint256 length = withdrawals_.length();
-            if (transferedWithdrawalsOffset < length) {
+            if (transferredWithdrawalsOffset < length) {
                 uint256 count =
-                    (length - transferedWithdrawalsOffset).min(transferedWithdrawalsLimit);
-                transferedWithdrawals = new uint256[](count);
+                    (length - transferredWithdrawalsOffset).min(transferredWithdrawalsLimit);
+                transferredWithdrawals = new uint256[](count);
                 for (uint256 i = 0; i < count; i++) {
-                    transferedWithdrawals[i] = withdrawals_.at(i + transferedWithdrawalsOffset);
+                    transferredWithdrawals[i] = withdrawals_.at(i + transferredWithdrawalsOffset);
                 }
             }
         }
@@ -221,7 +221,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
                 amount -= accountAssets;
                 pendingWithdrawals--;
                 if (!accountDataTo.withdrawals.contains(withdrawalIndex)) {
-                    accountDataTo.transferedWithdrawals.add(withdrawalIndex);
+                    accountDataTo.transferredWithdrawals.add(withdrawalIndex);
                 }
                 if (amount == 0) {
                     return;
@@ -234,7 +234,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
                 balances[from] -= shares_;
                 balances[to] += shares_;
                 if (!accountDataTo.withdrawals.contains(withdrawalIndex)) {
-                    accountDataTo.transferedWithdrawals.add(withdrawalIndex);
+                    accountDataTo.transferredWithdrawals.add(withdrawalIndex);
                 }
                 return;
             }
@@ -309,10 +309,10 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         address sender = msg.sender;
         require(sender == account || sender == claimer, "EigenLayerWithdrawalQueue: forbidden");
         AccountData storage accountData_ = _accountData[account];
-        EnumerableSet.UintSet storage transferedWithdrawals = accountData_.transferedWithdrawals;
+        EnumerableSet.UintSet storage transferredWithdrawals = accountData_.transferredWithdrawals;
         EnumerableSet.UintSet storage withdrawals = accountData_.withdrawals;
         for (uint256 i = 0; i < withdrawals_.length; i++) {
-            if (transferedWithdrawals.remove(withdrawals_[i])) {
+            if (transferredWithdrawals.remove(withdrawals_[i])) {
                 withdrawals.add(withdrawals_[i]);
             }
         }
@@ -383,7 +383,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             }
             accountData.withdrawals.add(withdrawalIndex);
         } else {
-            accountData.transferedWithdrawals.add(withdrawalIndex);
+            accountData.transferredWithdrawals.add(withdrawalIndex);
         }
     }
 

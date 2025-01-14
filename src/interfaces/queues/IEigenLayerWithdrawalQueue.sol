@@ -24,7 +24,7 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
     struct AccountData {
         uint256 claimableAssets;
         EnumerableSet.UintSet withdrawals;
-        EnumerableSet.UintSet transferedWithdrawals;
+        EnumerableSet.UintSet transferredWithdrawals;
     }
 
     function isolatedVault() external view returns (address);
@@ -45,15 +45,15 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
         address account,
         uint256 withdrawalsLimit,
         uint256 withdrawalsOffset,
-        uint256 transferedWithdrawalsLimit,
-        uint256 transferedWithdrawalsOffset
+        uint256 transferredWithdrawalsLimit,
+        uint256 transferredWithdrawalsOffset
     )
         external
         view
         returns (
             uint256 claimableAssets,
             uint256[] memory withdrawals,
-            uint256[] memory transferedWithdrawals
+            uint256[] memory transferredWithdrawals
         );
 
     function getWithdrawalRequest(uint256 index, address account)

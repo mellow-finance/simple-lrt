@@ -369,7 +369,7 @@ contract MultiVault is IMultiVault, ERC4626Vault, MultiVaultStorage {
             }
         }
 
-        // emitting event with transfered + new pending assets
+        // emitting event with transferred + new pending assets
         emit Withdraw(caller, receiver, owner, assets, shares);
     }
 }
