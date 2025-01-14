@@ -17,6 +17,8 @@ contract Collector {
         uint256 assets;
         bool isTimestamp;
         uint256 claimingTime; // if 0 - assets == claimable assets, otherwise = pending assets
+        uint256 withdrawalIndex;
+        uint256 withdrawalRequestType; // 0 - withdrawals, 1 - transferedWithdrawals
     }
 
     struct Response {
@@ -40,6 +42,8 @@ contract Collector {
         uint256 lpPriceETH;
         uint256 lpPriceUnderlying;
         Withdrawal[] withdrawals;
+        uint256 blockNumber;
+        uint256 timestamp;
     }
 
     struct FetchDepositAmountsResponse {
@@ -131,7 +135,9 @@ contract Collector {
                         subvaultIndex: subvaultIndex,
                         assets: claimable,
                         isTimestamp: false,
-                        claimingTime: 0
+                        claimingTime: 0,
+                        withdrawalIndex: 0,
+                        withdrawalRequestType: 0
                     });
                 }
             }
@@ -162,7 +168,9 @@ contract Collector {
                                 assets: assets,
                                 isTimestamp: true,
                                 claimingTime: symbioticVault.currentEpochStart()
-                                    + symbioticVault.epochDuration()
+                                    + symbioticVault.epochDuration(),
+                                withdrawalIndex: 0,
+                                withdrawalRequestType: 0
                             });
                         }
                     }
@@ -182,14 +190,16 @@ contract Collector {
                                 assets: assets,
                                 isTimestamp: true,
                                 claimingTime: symbioticVault.currentEpochStart()
-                                    + 2 * symbioticVault.epochDuration()
+                                    + 2 * symbioticVault.epochDuration(),
+                                withdrawalIndex: 0,
+                                withdrawalRequestType: 0
                             });
                         }
                     }
                 }
             } else if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
                 Withdrawal[] memory w = collectEigenLayerWithdrawals(
-                    user, IEigenLayerWithdrawalQueue(subvault.withdrawalQueue)
+                    user, subvaultIndex, IEigenLayerWithdrawalQueue(subvault.withdrawalQueue)
                 );
                 for (uint256 i = 0; i < w.length; i++) {
                     withdrawals[iterator++] = w[i];
@@ -203,16 +213,75 @@ contract Collector {
             mstore(withdrawals, iterator)
         }
         r.withdrawals = withdrawals;
+        r.blockNumber = block.number;
+        r.timestamp = block.timestamp;
     }
 
-    function collectEigenLayerWithdrawals(address user, IEigenLayerWithdrawalQueue queue)
-        public
-        view
-        returns (Withdrawal[] memory withdrawals)
-    {
-        (uint256 claimable, uint256[] memory withdrawals, uint256[] memory transferedWithdrawals) =
+    function collectEigenLayerWithdrawals(
+        address user,
+        uint256 subvaultIndex,
+        IEigenLayerWithdrawalQueue queue
+    ) public view returns (Withdrawal[] memory withdrawals_) {
+        IStrategy strategy = IStrategy(queue.strategy());
+        (, uint256[] memory withdrawals, uint256[] memory transferredWithdrawals) =
             queue.getAccountData(user, type(uint256).max, 0, type(uint256).max, 0);
-        
+        uint256 block_ = queue.latestWithdrawableBlock();
+        uint256 counter = 0;
+        uint256 maxClaimingWithdrawals = queue.MAX_CLAIMING_WITHDRAWALS();
+        withdrawals_ = new Withdrawal[](withdrawals.length + transferredWithdrawals.length);
+        uint256 n = 0;
+        for (uint256 i = 0; i < withdrawals.length; i++) {
+            (
+                IDelegationManager.Withdrawal memory data,
+                bool isClaimed,
+                uint256 assets,
+                uint256 shares,
+                uint256 accountShares
+            ) = queue.getWithdrawalRequest(withdrawals[i], user);
+            if (isClaimed) {
+                continue;
+            } else if (block_ >= data.startBlock && counter < maxClaimingWithdrawals) {
+                counter++;
+            } else {
+                withdrawals_[n++] = Withdrawal({
+                    subvaultIndex: subvaultIndex,
+                    assets: strategy.sharesToUnderlyingView(accountShares),
+                    isTimestamp: false,
+                    claimingTime: data.startBlock + block.number - block_,
+                    withdrawalIndex: withdrawals[i],
+                    withdrawalRequestType: 0
+                });
+            }
+        }
+
+        for (uint256 i = 0; i < transferredWithdrawals.length; i++) {
+            (
+                IDelegationManager.Withdrawal memory data,
+                bool isClaimed,
+                uint256 assets,
+                uint256 shares,
+                uint256 accountShares
+            ) = queue.getWithdrawalRequest(transferredWithdrawals[i], user);
+            if (isClaimed) {
+                withdrawals_[n++] = Withdrawal({
+                    subvaultIndex: subvaultIndex,
+                    assets: Math.mulDiv(assets, accountShares, shares),
+                    isTimestamp: false,
+                    claimingTime: 0,
+                    withdrawalIndex: transferredWithdrawals[i],
+                    withdrawalRequestType: 1
+                });
+            } else {
+                withdrawals_[n++] = Withdrawal({
+                    subvaultIndex: subvaultIndex,
+                    assets: strategy.sharesToUnderlyingView(accountShares),
+                    isTimestamp: false,
+                    claimingTime: data.startBlock + block.number - block_,
+                    withdrawalIndex: transferredWithdrawals[i],
+                    withdrawalRequestType: 1
+                });
+            }
+        }
     }
 
     function collect(address user, address[] memory vaults)
