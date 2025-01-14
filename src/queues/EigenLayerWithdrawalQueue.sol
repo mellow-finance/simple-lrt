@@ -157,6 +157,11 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         );
     }
 
+    /// @inheritdoc IEigenLayerWithdrawalQueue
+    function withdrawalRequests() external view returns (uint256) {
+        return _withdrawals.length;
+    }
+
     /// --------------- EXTERNAL MUTABLE FUNCTIONS ---------------
 
     function request(address account, uint256 assets, bool isSelfRequested) public virtual {
