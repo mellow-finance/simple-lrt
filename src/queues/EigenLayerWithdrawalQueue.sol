@@ -258,7 +258,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
 
     /// @inheritdoc IWithdrawalQueue
     function pull(uint256 withdrawalIndex) public {
-        if (withdrawalIndex > _withdrawals.length) {
+        if (withdrawalIndex >= _withdrawals.length) {
             revert("EigenLayerWithdrawalQueue: invalid withdrawal index");
         }
         WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
@@ -347,7 +347,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         IDelegationManager delegationManager = IDelegationManager(delegation);
         require(
             !isShutdown && !delegationManager.isDelegated(isolatedVault_),
-            "EigenLayerWithdrawalQueue: not force unstaked yet"
+            "EigenLayerWithdrawalQueue: not yet forcibly unstaked"
         );
 
         IDelegationManager.Withdrawal memory withdrawal = IDelegationManager.Withdrawal({
