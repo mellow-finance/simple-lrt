@@ -3,15 +3,16 @@ pragma solidity 0.8.25;
 
 import "../../../src/interfaces/queues/IEigenLayerWithdrawalQueue.sol";
 import "../../../src/interfaces/queues/ISymbioticWithdrawalQueue.sol";
-
 import "../../../src/interfaces/tokens/IWSTETH.sol";
+
+import "../../../src/strategies/RatiosStrategy.sol";
 import "../../../src/vaults/MultiVault.sol";
 import "./Oracle.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract Collector {
     struct Withdrawal {
@@ -105,7 +106,8 @@ contract Collector {
         r.totalUSD = oracle.getValue(r.asset, usd, r.totalUnderlying);
 
         r.limitLP = vault.limit();
-        r.limitUnderlying = vault.convertToAssets(r.limitLP);
+        r.limitUnderlying =
+            r.limitLP < type(uint224).max ? vault.convertToAssets(r.limitLP) : type(uint256).max;
         r.limitETH = oracle.getValue(r.asset, r.limitUnderlying);
         r.limitUSD = oracle.getValue(r.asset, usd, r.limitUnderlying);
 
@@ -442,15 +444,18 @@ contract Collector {
             Withdrawal[] memory withdrawals
         )
     {
-        IWithdrawalStrategy.WithdrawalData[] memory data = v.withdrawalStrategy()
-            .calculateWithdrawalAmounts(
-            address(v), v.previewRedeem(shares == 0 ? v.balanceOf(user) : shares)
-        );
-        withdrawals = new Withdrawal[](data.length * 50 + 1);
+        IWithdrawalStrategy.WithdrawalData[] memory data;
+        {
+            IRatiosStrategy s = IRatiosStrategy(address(v.depositStrategy()));
+            (, uint256 liquid) = s.calculateState(address(v), false, 0);
+            accountAssets = v.previewRedeem(shares == 0 ? v.balanceOf(user) : shares);
+            accountInstantAssets = Math.min(liquid, accountAssets);
+            data = s.calculateWithdrawalAmounts(address(v), accountAssets);
+        }
+        withdrawals = new Withdrawal[](data.length * 128);
         uint256 n = 0;
         for (uint256 i = 0; i < data.length; i++) {
             accountInstantAssets += data[i].claimable;
-            accountAssets += data[i].pending + data[i].staked;
             IMultiVaultStorage.Subvault memory subvault = v.subvaultAt(data[i].subvaultIndex);
             if (subvault.withdrawalQueue == address(0)) {
                 continue;
@@ -620,7 +625,5 @@ contract Collector {
         assembly {
             mstore(withdrawals, n)
         }
-
-        accountAssets += accountInstantAssets;
     }
 }
