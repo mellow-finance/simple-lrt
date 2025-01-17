@@ -23,7 +23,7 @@ contract EigenLayerWstETHAdapter is EigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function maxDeposit(address isolatedVault) external view override returns (uint256) {
-        (,, address strategy,) = factory.instances(isolatedVault);
+        (, address strategy,,) = factory.instances(isolatedVault);
         if (
             IPausable(address(strategyManager)).paused(PAUSED_DEPOSITS)
                 || IPausable(address(strategy)).paused(PAUSED_DEPOSITS)
@@ -50,7 +50,13 @@ contract EigenLayerWstETHAdapter is EigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function stakedAt(address isolatedVault) external view override returns (uint256) {
-        (,, address strategy,) = factory.instances(isolatedVault);
+        (, address strategy,, address withdrawalQueue) = factory.instances(isolatedVault);
+        if (
+            !delegationManager.isDelegated(isolatedVault)
+                && !IEigenLayerWithdrawalQueue(withdrawalQueue).isShutdown()
+        ) {
+            revert("EigenLayerWstETHAdapter: isolated vault is neither delegated nor shut down");
+        }
         uint256 stethValue = IStrategy(strategy).userUnderlyingView(isolatedVault);
         return stethValue == 0 ? 0 : wsteth.getWstETHByStETH(stethValue);
     }

@@ -27,7 +27,15 @@ contract Unit is BaseTest {
     }
 
     function testDeposit() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault(bytes32("MultiVaultTest"), 1)),
+                vm.createWallet("proxyAdmin").addr,
+                new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         vault.initialize(

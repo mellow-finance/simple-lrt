@@ -3,22 +3,32 @@ pragma solidity 0.8.25;
 
 import "../interfaces/adapters/IIsolatedEigenLayerVault.sol";
 
-contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
+contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
     using SafeERC20 for IERC20;
 
-    address public immutable factory;
-    address public immutable vault;
-    address public immutable asset;
+    /// @inheritdoc IIsolatedEigenLayerVault
+    address public factory;
+    /// @inheritdoc IIsolatedEigenLayerVault
+    address public vault;
+    /// @inheritdoc IIsolatedEigenLayerVault
+    address public asset;
+
+    bool public isDelegated;
 
     modifier onlyVault() {
         require(msg.sender == vault, "Only vault");
         _;
     }
 
-    constructor(address vault_) {
-        factory = msg.sender;
-        vault = vault_;
-        asset = IERC4626(vault_).asset();
+    constructor() {
+        _disableInitializers();
+    }
+
+    /// --------------- EXTERNAL MUTABLE FUNCTIONS ---------------
+
+    /// @inheritdoc IIsolatedEigenLayerVault
+    function initialize(address vault_) external virtual initializer {
+        __init_IsolatedEigenLayerVault(vault_);
     }
 
     /// @inheritdoc IIsolatedEigenLayerVault
@@ -28,6 +38,8 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         ISignatureUtils.SignatureWithExpiry memory signature,
         bytes32 salt
     ) external {
+        require(!isDelegated, "IsolatedEigenLayerVault: already delegated");
+        isDelegated = true;
         IDelegationManager(manager).delegateTo(operator, signature, salt);
     }
 
@@ -37,7 +49,14 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         virtual
         onlyVault
     {
-        IStrategyManager(manager).depositIntoStrategy(IStrategy(strategy), IERC20(asset), assets);
+        if (IStrategy(strategy).underlyingToSharesView(assets) == 0) {
+            // insignificant amount
+            return;
+        }
+        IERC20 asset_ = IERC20(asset);
+        asset_.safeTransferFrom(vault, address(this), assets);
+        asset_.safeIncreaseAllowance(manager, assets);
+        IStrategyManager(manager).depositIntoStrategy(IStrategy(strategy), asset_, assets);
     }
 
     /// @inheritdoc IIsolatedEigenLayerVault
@@ -88,5 +107,13 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault {
         (,,, address queue) = IIsolatedEigenLayerVaultFactory(factory).instances(address(this));
         require(msg.sender == queue, "IsolatedEigenLayerVault: forbidden");
         manager.queueWithdrawals(requests);
+    }
+
+    /// --------------- INTERNAL MUTABLE FUNCTIONS ---------------
+
+    function __init_IsolatedEigenLayerVault(address vault_) internal onlyInitializing {
+        factory = msg.sender;
+        vault = vault_;
+        asset = IERC4626(vault_).asset();
     }
 }

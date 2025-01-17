@@ -13,6 +13,8 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
+import {IEigenLayerWithdrawalQueue} from "../queues/IEigenLayerWithdrawalQueue.sol";
+
 interface IEigenLayerAdapter is IProtocolAdapter {
     function factory() external view returns (IIsolatedEigenLayerVaultFactory);
 
@@ -21,8 +23,4 @@ interface IEigenLayerAdapter is IProtocolAdapter {
     function strategyManager() external view returns (IStrategyManager);
 
     function delegationManager() external view returns (IDelegationManager);
-
-    function claimWithdrawal(address isolatedVault, IDelegationManager.Withdrawal calldata data)
-        external
-        returns (uint256 assets);
 }
