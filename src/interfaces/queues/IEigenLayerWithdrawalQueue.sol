@@ -27,9 +27,7 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
         EnumerableSet.UintSet transferredWithdrawals;
     }
 
-    function MAX_PENDING_WITHDRAWALS() external view returns (uint256);
-
-    function MAX_CLAIMING_WITHDRAWALS() external view returns (uint256);
+    function MAX_WITHDRAWALS() external view returns (uint256);
 
     function isolatedVault() external view returns (address);
 

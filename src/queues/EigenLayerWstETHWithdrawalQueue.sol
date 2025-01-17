@@ -33,14 +33,9 @@ contract EigenLayerWstETHWithdrawalQueue is EigenLayerWithdrawalQueue {
     }
 
     function _pull(WithdrawalData storage withdrawal, uint256 index) internal override {
-        IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(
+        uint256 assets = IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(
             IDelegationManager(delegation), withdrawal.data
         );
-        /**
-         * NOTE: Known issue with stETH transfers
-         * link: https://github.com/lidofinance/core/issues/442
-         */
-        uint256 assets = IERC20(steth).balanceOf(address(this));
         IERC20(steth).safeIncreaseAllowance(address(wsteth), assets);
         assets = wsteth.wrap(assets);
         withdrawal.assets = assets;

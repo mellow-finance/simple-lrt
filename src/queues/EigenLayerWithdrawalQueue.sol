@@ -9,9 +9,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     using EnumerableSet for EnumerableSet.UintSet;
 
     /// @inheritdoc IEigenLayerWithdrawalQueue
-    uint256 public constant MAX_PENDING_WITHDRAWALS = 50;
-    /// @inheritdoc IEigenLayerWithdrawalQueue
-    uint256 public constant MAX_CLAIMING_WITHDRAWALS = 5;
+    uint256 public constant MAX_WITHDRAWALS = 5;
 
     /// @inheritdoc IEigenLayerWithdrawalQueue
     address public immutable claimer;
@@ -59,15 +57,10 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         AccountData storage accountData_ = _accountData[account];
         uint256[] memory indices = accountData_.withdrawals.values();
         uint256 block_ = latestWithdrawableBlock();
-        uint256 counter = 0;
         uint256 shares = 0;
         for (uint256 i = 0; i < indices.length; i++) {
             WithdrawalData storage withdrawal = _withdrawals[indices[i]];
-            if (withdrawal.isClaimed) {
-                continue;
-            } else if (block_ >= withdrawal.data.startBlock && counter < MAX_CLAIMING_WITHDRAWALS) {
-                counter++;
-            } else {
+            if (block_ < withdrawal.data.startBlock) {
                 shares += withdrawal.sharesOf[account];
             }
         }
@@ -81,7 +74,6 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         AccountData storage accountData_ = _accountData[account];
         uint256[] memory indices = accountData_.withdrawals.values();
         uint256 block_ = latestWithdrawableBlock();
-        uint256 counter = 0;
         uint256 shares = 0;
         for (uint256 i = 0; i < indices.length; i++) {
             WithdrawalData storage withdrawal = _withdrawals[indices[i]];
@@ -91,8 +83,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
                 assets += totalShares == accountShares
                     ? withdrawal.assets
                     : withdrawal.assets.mulDiv(accountShares, totalShares);
-            } else if (block_ >= withdrawal.data.startBlock && counter < MAX_CLAIMING_WITHDRAWALS) {
-                counter++;
+            } else if (block_ >= withdrawal.data.startBlock) {
                 shares += withdrawal.sharesOf[account];
             }
         }
@@ -284,18 +275,13 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     function handleWithdrawals(address account) public {
         AccountData storage accountData_ = _accountData[account];
         EnumerableSet.UintSet storage withdrawals_ = accountData_.withdrawals;
-        uint256 counter = 0;
         uint256 block_ = latestWithdrawableBlock();
         uint256 length = withdrawals_.length();
         for (uint256 i = 0; i < length;) {
             uint256 index = withdrawals_.at(i);
             WithdrawalData storage withdrawal = _withdrawals[index];
             bool isHandleable = withdrawal.isClaimed;
-            if (
-                !isHandleable && block_ >= withdrawal.data.startBlock
-                    && counter < MAX_CLAIMING_WITHDRAWALS
-            ) {
-                counter++;
+            if (!isHandleable && block_ >= withdrawal.data.startBlock) {
                 _pull(withdrawal, index);
                 isHandleable = true;
             }
@@ -342,7 +328,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         }
         handleWithdrawals(account);
         require(
-            withdrawals.length() <= MAX_PENDING_WITHDRAWALS,
+            withdrawals.length() <= MAX_WITHDRAWALS,
             "EigenLayerWithdrawalQueue: max withdrawal requests reached"
         );
     }
@@ -404,7 +390,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         withdrawal.sharesOf[account] = data.shares[0];
         AccountData storage accountData = _accountData[account];
         if (isSelfRequested) {
-            if (!isShutdown_ && accountData.withdrawals.length() + 1 > MAX_PENDING_WITHDRAWALS) {
+            if (!isShutdown_ && accountData.withdrawals.length() + 1 > MAX_WITHDRAWALS) {
                 revert("EigenLayerWithdrawalQueue: max withdrawal requests reached");
             }
             accountData.withdrawals.add(withdrawalIndex);
