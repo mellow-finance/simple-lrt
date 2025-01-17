@@ -9,13 +9,11 @@ contract EigenLayerWstETHWithdrawalQueue is EigenLayerWithdrawalQueue {
     using SafeERC20 for IERC20;
 
     IWSTETH public immutable wsteth;
-    ISTETH public immutable steth;
 
     constructor(address claimer_, address delegation_, address wsteth_)
         EigenLayerWithdrawalQueue(claimer_, delegation_)
     {
         wsteth = IWSTETH(wsteth_);
-        steth = wsteth.stETH();
         _disableInitializers();
     }
 
@@ -30,16 +28,5 @@ contract EigenLayerWstETHWithdrawalQueue is EigenLayerWithdrawalQueue {
             "EigenLayerWstETHWithdrawalQueue: invalid asset"
         );
         __init_EigenLayerWithdrawalQueue(isolatedVault_, strategy_, operator_);
-    }
-
-    function _pull(WithdrawalData storage withdrawal, uint256 index) internal override {
-        uint256 assets = IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(
-            IDelegationManager(delegation), withdrawal.data
-        );
-        IERC20(steth).safeIncreaseAllowance(address(wsteth), assets);
-        assets = wsteth.wrap(assets);
-        withdrawal.assets = assets;
-        withdrawal.isClaimed = true;
-        emit Pull(index, assets);
     }
 }
