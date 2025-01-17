@@ -77,7 +77,7 @@ contract EigenLayerWstETHWithdrawalQueue is EigenLayerWithdrawalQueue {
     }
 
     /// @inheritdoc IWithdrawalQueue
-    function transferPendingAssets(address to, uint256 amount) public virtual override {
+    function transferPendingAssets(address to, uint256 amount) public override {
         super.transferPendingAssets(to, wsteth.getStETHByWstETH(amount));
     }
 
@@ -97,14 +97,14 @@ contract EigenLayerWstETHWithdrawalQueue is EigenLayerWithdrawalQueue {
         }
     }
 
-    function _pull(WithdrawalData storage withdrawal) internal override {
+    function _pull(WithdrawalData storage withdrawal, uint256 index) internal override {
         uint256 assets = IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(
             IDelegationManager(delegation), withdrawal.data
         );
         IERC20(steth).safeIncreaseAllowance(address(wsteth), assets);
-        uint256 balance = wsteth.balanceOf(address(this));
-        wsteth.wrap(assets);
-        withdrawal.assets = wsteth.balanceOf(address(this)) - balance;
+        assets = wsteth.wrap(assets);
+        withdrawal.assets = assets;
         withdrawal.isClaimed = true;
+        emit Pull(index, assets);
     }
 }

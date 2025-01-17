@@ -83,4 +83,25 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
 
     // permissionless function
     function shutdown(uint32 blockNumber, uint256 shares) external;
+
+    event Transfer(
+        address indexed from, address indexed to, uint256 indexed withdrawalIndex, uint256 assets
+    );
+
+    event Pull(uint256 indexed withdrawalIndex, uint256 assets);
+
+    event Handled(address indexed account, uint256 indexed withdrawalIndex, uint256 assets);
+
+    event Request(
+        address indexed account,
+        uint256 indexed withdrawalIndex,
+        uint256 assets,
+        bool isSelfRequested
+    );
+
+    event Claimed(address indexed account, address indexed to, uint256 assets);
+
+    event Accepted(address indexed account, uint256 indexed withdrawalIndex);
+
+    event Shutdown(address indexed sender, uint32 indexed blockNumber, uint256 indexed shares);
 }

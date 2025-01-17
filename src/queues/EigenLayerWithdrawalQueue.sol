@@ -193,7 +193,8 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         requests[0] = IDelegationManager.QueuedWithdrawalParams(strategies, shares, isolatedVault_);
         IIsolatedEigenLayerVault(isolatedVault_).queueWithdrawals(delegationManager, requests);
 
-        _pushRequest(data, account, isSelfRequested);
+        uint256 withdrawalIndex = _pushRequest(data, account, isSelfRequested);
+        emit Request(account, withdrawalIndex, assets, isSelfRequested);
     }
 
     /// @inheritdoc IWithdrawalQueue
@@ -224,6 +225,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             } else if (accountAssets <= amount) {
                 delete balances[from];
                 balances[to] += accountShares;
+                emit Transfer(from, to, withdrawalIndex, accountShares);
                 accountDataFrom.withdrawals.remove(withdrawalIndex);
                 amount -= accountAssets;
                 pendingWithdrawals--;
@@ -240,6 +242,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
                 }
                 balances[from] -= shares_;
                 balances[to] += shares_;
+                emit Transfer(from, to, withdrawalIndex, shares_);
                 if (!accountDataTo.withdrawals.contains(withdrawalIndex)) {
                     accountDataTo.transferredWithdrawals.add(withdrawalIndex);
                 }
@@ -247,12 +250,17 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             }
         }
         if (amount != 0) {
+            /// @dev Transfer the remaining amount to the account as claimable assets
             _transferClaimableAsPending(accountDataFrom, accountDataTo, amount);
+            emit Transfer(from, to, type(uint256).max, amount);
         }
     }
 
     /// @inheritdoc IWithdrawalQueue
     function pull(uint256 withdrawalIndex) public {
+        if (withdrawalIndex >= _withdrawals.length) {
+            revert("EigenLayerWithdrawalQueue: invalid withdrawal index");
+        }
         WithdrawalData storage withdrawal = _withdrawals[withdrawalIndex];
         if (withdrawal.isClaimed) {
             return;
@@ -262,7 +270,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             data.startBlock + IDelegationManager(delegation).getWithdrawalDelay(data.strategies)
                 <= block.number
         ) {
-            _pull(withdrawal);
+            _pull(withdrawal, withdrawalIndex);
         }
     }
 
@@ -282,7 +290,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
                     && counter < MAX_CLAIMING_WITHDRAWALS
             ) {
                 counter++;
-                _pull(withdrawal);
+                _pull(withdrawal, index);
                 isHandleable = true;
             }
             if (isHandleable) {
@@ -308,6 +316,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         if (assets != 0) {
             accountData_.claimableAssets -= assets;
             IERC20(IIsolatedEigenLayerVault(isolatedVault).asset()).safeTransfer(to, assets);
+            emit Claimed(account, to, assets);
         }
     }
 
@@ -320,7 +329,9 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         EnumerableSet.UintSet storage withdrawals = accountData_.withdrawals;
         for (uint256 i = 0; i < withdrawals_.length; i++) {
             if (transferredWithdrawals.remove(withdrawals_[i])) {
-                withdrawals.add(withdrawals_[i]);
+                if (withdrawals.add(withdrawals_[i])) {
+                    emit Accepted(account, withdrawals_[i]);
+                }
             }
         }
         handleWithdrawals(account);
@@ -336,7 +347,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         IDelegationManager delegationManager = IDelegationManager(delegation);
         require(
             !isShutdown && !delegationManager.isDelegated(isolatedVault_),
-            "EigenLayerWithdrawalQueue: not force unstaked yet"
+            "EigenLayerWithdrawalQueue: not yet forcibly unstaked"
         );
 
         IDelegationManager.Withdrawal memory withdrawal = IDelegationManager.Withdrawal({
@@ -359,6 +370,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
 
         _pushRequest(withdrawal, IIsolatedEigenLayerVault(isolatedVault_).vault(), true);
         isShutdown = true;
+        emit Shutdown(msg.sender, blockNumber, shares);
     }
 
     /// --------------- INTERNAL MUTABLE FUNCTIONS ---------------
@@ -377,8 +389,8 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         IDelegationManager.Withdrawal memory data,
         address account,
         bool isSelfRequested
-    ) internal {
-        uint256 withdrawalIndex = _withdrawals.length;
+    ) internal returns (uint256 withdrawalIndex) {
+        withdrawalIndex = _withdrawals.length;
         WithdrawalData storage withdrawal = _withdrawals.push();
         withdrawal.data = data;
         withdrawal.shares = data.shares[0];
@@ -407,11 +419,13 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         }
     }
 
-    function _pull(WithdrawalData storage withdrawal) internal virtual {
-        withdrawal.assets = IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(
+    function _pull(WithdrawalData storage withdrawal, uint256 index) internal virtual {
+        uint256 assets = IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(
             IDelegationManager(delegation), withdrawal.data
         );
+        withdrawal.assets = assets;
         withdrawal.isClaimed = true;
+        emit Pull(index, assets);
     }
 
     function _handleWithdrawal(
@@ -430,11 +444,13 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         if (accountShares == shares) {
             delete _withdrawals[withdrawalIndex];
             accountData_.claimableAssets += assets;
+            emit Handled(account, withdrawalIndex, assets);
         } else {
             uint256 assets_ = assets.mulDiv(accountShares, shares);
             accountData_.claimableAssets += assets_;
             withdrawal.assets = assets - assets_;
             withdrawal.shares = shares - accountShares;
+            emit Handled(account, withdrawalIndex, assets_);
         }
     }
 }

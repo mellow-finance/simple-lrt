@@ -72,5 +72,6 @@ contract IsolatedEigenLayerVaultFactory is IIsolatedEigenLayerVaultFactory {
 
         instances[isolatedVault] = Data(owner, strategy, operator, withdrawalQueue);
         isolatedVaults[key_] = isolatedVault;
+        emit Created(owner, strategy, operator, data, isolatedVault, withdrawalQueue);
     }
 }

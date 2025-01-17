@@ -32,4 +32,13 @@ interface IIsolatedEigenLayerVaultFactory {
     function getOrCreate(address owner, address operator, address strategy, bytes calldata data)
         external
         returns (address isolatedVault, address withdrawalQueue);
+
+    event Created(
+        address indexed owner,
+        address indexed strategy,
+        address indexed operator,
+        bytes data,
+        address isolatedVault,
+        address withdrawalQueue
+    );
 }
