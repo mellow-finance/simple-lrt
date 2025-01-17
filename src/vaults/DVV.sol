@@ -28,7 +28,7 @@ contract DVV is MellowVaultCompat, DVVStorage {
             false,
             false,
             false,
-            address(WSTETH),
+            address(WETH),
             "Decentralized Validator Token",
             "DVstETH"
         );
@@ -44,46 +44,41 @@ contract DVV is MellowVaultCompat, DVVStorage {
     {
         address this_ = address(this);
         IERC4626 yieldVault_ = yieldVault();
-        return WSTETH.balanceOf(this_) + yieldVault_.previewRedeem(yieldVault_.balanceOf(this_))
-            + WSTETH.getWstETHByStETH(WETH.balanceOf(this_));
+        uint256 wstethBalance =
+            WSTETH.balanceOf(this_) + yieldVault_.previewRedeem(yieldVault_.balanceOf(this_));
+        return WSTETH.getStETHByWstETH(wstethBalance) + WETH.balanceOf(this_);
     }
 
-    function previewEthDeposit(uint256 ethAssets) public view returns (uint256 shares) {
-        return previewDeposit(WSTETH.getWstETHByStETH(ethAssets));
-    }
-
-    receive() external payable {
-        require(msg.sender == address(WETH), "DVV: forbidden");
-    }
-
-    function setStakingModule(address newStakingModule) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setStakingModule(newStakingModule);
-    }
-
-    function ethDeposit(uint256 ethAssets, address receiver, address referral)
-        external
+    function ethDeposit(uint256 assets, address receiver, address referral)
+        public
         payable
+        virtual
         returns (uint256 shares)
     {
-        uint256 assets = WSTETH.getWstETHByStETH(ethAssets);
+        require(msg.value == assets, "DVV: value mismatch");
         uint256 maxAssets = maxDeposit(receiver);
         if (assets > maxAssets) {
             revert ERC4626ExceededMaxDeposit(receiver, assets, maxAssets);
         }
-        shares = previewDeposit(assets);
-        address caller = _msgSender();
 
-        if (msg.value == ethAssets) {
-            WETH.deposit{value: ethAssets}();
-        } else {
-            require(msg.value == 0, "DVV: msg.value must be zero for WETH deposit");
-            IERC20(WETH).safeTransferFrom(caller, address(this), ethAssets);
-        }
+        shares = previewDeposit(assets);
+
+        WETH.deposit{value: assets}();
 
         _mint(receiver, shares);
 
-        emit Deposit(caller, receiver, assets, shares);
-        emit ReferralDeposit(ethAssets, receiver, referral);
+        emit Deposit(_msgSender(), receiver, assets, shares);
+        emit ReferralDeposit(assets, receiver, referral);
+
+        return shares;
+    }
+
+    receive() external payable {
+        require(_msgSender() == address(WETH), "DVV: forbidden");
+    }
+
+    function setStakingModule(address newStakingModule) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setStakingModule(newStakingModule);
     }
 
     function stake(bytes calldata data) external {
@@ -91,10 +86,6 @@ contract DVV is MellowVaultCompat, DVVStorage {
             address(stakingModule()), abi.encodeCall(IStakingModule.stake, (data, _msgSender()))
         );
         _pushIntoYieldVault();
-    }
-
-    function _deposit(address, address, uint256, uint256) internal pure override {
-        revert("DVV: forbidden");
     }
 
     function _withdraw(

@@ -325,12 +325,11 @@ contract Collector {
         returns (Withdrawa[] memory withdrawals)
     {
         IWithdrawalStrategy strategy = vault.withdrawalStrategy();
-        IWithdrawalStrategy.WithdrawalData[] memory subvaultsData = strategy.calculateWithdrawalAmounts(address(vault), assets);
+        IWithdrawalStrategy.WithdrawalData[] memory subvaultsData =
+            strategy.calculateWithdrawalAmounts(address(vault), assets);
         // take into account only pending and staked!
         // withdrawals = new Wi
-        for (uint256 i = 0; i < subvaultsData.length; i++) {
-
-        } 
+        for (uint256 i = 0; i < subvaultsData.length; i++) {}
     }
 
     function getVaultAssets(
