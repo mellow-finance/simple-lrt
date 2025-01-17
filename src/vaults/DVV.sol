@@ -37,6 +37,7 @@ contract DVV is MellowVaultCompat, DVVStorage {
         __init_DVVStorage(_stakingModule, _yieldVault);
     }
 
+    /// @inheritdoc IERC4626
     function totalAssets()
         public
         view
@@ -54,7 +55,7 @@ contract DVV is MellowVaultCompat, DVVStorage {
     function ethDeposit(uint256 assets, address receiver, address referral)
         public
         payable
-        virtual
+        nonReentrant
         returns (uint256 shares)
     {
         require(msg.value == assets, "DVV: value mismatch");
@@ -81,12 +82,13 @@ contract DVV is MellowVaultCompat, DVVStorage {
 
     function setStakingModule(address newStakingModule)
         external
+        nonReentrant
         onlyRole(SET_STAKING_MODULE_ROLE)
     {
         _setStakingModule(newStakingModule);
     }
 
-    function stake(bytes calldata data) external {
+    function stake(bytes calldata data) external nonReentrant {
         Address.functionDelegateCall(
             address(stakingModule()), abi.encodeCall(IStakingModule.stake, (data, _msgSender()))
         );
