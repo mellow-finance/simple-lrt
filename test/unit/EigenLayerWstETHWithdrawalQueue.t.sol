@@ -145,4 +145,58 @@ contract Unit is BaseTest {
 
         return;
     }
+
+    function testTransferPendingAssets() external {
+        address vaultAdmin = rnd.randAddress();
+        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin);
+        IEigenLayerWithdrawalQueue withdrawalQueue =
+            EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
+
+        address user1 = 0x0101010101010101010101010101010101010101; // rnd.randAddress();
+        address user2 = 0x0202020202020202020202020202020202020202; //rnd.randAddress();
+
+        uint256 amount1 = 100 ether;
+
+        deal(Constants.WSTETH(), user1, amount1);
+
+        vm.startPrank(user1);
+        IERC20(Constants.WSTETH()).approve(address(vault), amount1);
+        vault.deposit(amount1, user1);
+        vault.withdraw(amount1 / 2, user1, user1);
+        uint256 totalPending = withdrawalQueue.pendingAssetsOf(user1);
+        
+        uint256[] memory withdrawals = new uint256[](1);
+
+        // zero amount == early exit
+        withdrawalQueue.transferPendingAssets(user2, 0);
+        assertEq(
+            totalPending, withdrawalQueue.pendingAssetsOf(user1), "stage 1: pendingAssetsOf(user1)"
+        );
+        assertEq(0, withdrawalQueue.pendingAssetsOf(user2), "stage 1: pendingAssetsOf(user2)");
+
+        withdrawalQueue.transferPendingAssets(user2, totalPending / 2);
+        vm.stopPrank();
+
+        vm.startPrank(user2);
+        withdrawals[0] = 0;
+        withdrawalQueue.acceptPendingAssets(user2, withdrawals);
+        assertApproxEqAbs(totalPending/2, withdrawalQueue.pendingAssetsOf(user2), 3, "user2: pending");
+        vm.stopPrank();
+
+        vm.roll(block.number + 10); // skip delay
+        vm.startPrank(user1);
+        withdrawalQueue.claim(user1, user1, withdrawalQueue.claimableAssetsOf(user1)/2);
+
+        vm.expectRevert();
+        withdrawalQueue.transferPendingAssets(user2, 1000 ether);
+        
+        withdrawalQueue.transferPendingAssets(user2, withdrawalQueue.claimableAssetsOf(user1));
+        vm.stopPrank();
+
+        vm.startPrank(user2);
+        withdrawals[0] = 1;
+        withdrawalQueue.acceptPendingAssets(user2, withdrawals);
+        assertApproxEqAbs(3*totalPending/4, withdrawalQueue.claimableAssetsOf(user2), 3, "user2: claimable");
+        vm.stopPrank();
+    }
 }
