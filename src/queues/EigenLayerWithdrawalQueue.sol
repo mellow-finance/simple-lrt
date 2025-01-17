@@ -55,7 +55,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     }
 
     /// @inheritdoc IWithdrawalQueue
-    function pendingAssetsOf(address account) public view virtual returns (uint256 assets) {
+    function pendingAssetsOf(address account) public view returns (uint256 assets) {
         AccountData storage accountData_ = _accountData[account];
         uint256[] memory indices = accountData_.withdrawals.values();
         uint256 block_ = latestWithdrawableBlock();
@@ -71,11 +71,13 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
                 shares += withdrawal.sharesOf[account];
             }
         }
-        assets = shares == 0 ? 0 : IStrategy(strategy).sharesToUnderlyingView(shares);
+        assets = shares == 0
+            ? 0
+            : IIsolatedEigenLayerVault(isolatedVault).sharesToUnderlyingView(strategy, shares);
     }
 
     /// @inheritdoc IWithdrawalQueue
-    function claimableAssetsOf(address account) public view virtual returns (uint256 assets) {
+    function claimableAssetsOf(address account) public view returns (uint256 assets) {
         AccountData storage accountData_ = _accountData[account];
         uint256[] memory indices = accountData_.withdrawals.values();
         uint256 block_ = latestWithdrawableBlock();
@@ -95,7 +97,9 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             }
         }
         assets += accountData_.claimableAssets;
-        assets += shares == 0 ? 0 : IStrategy(strategy).sharesToUnderlyingView(shares);
+        assets += shares == 0
+            ? 0
+            : IIsolatedEigenLayerVault(isolatedVault).sharesToUnderlyingView(strategy, shares);
     }
 
     /// @inheritdoc IEigenLayerWithdrawalQueue
@@ -164,14 +168,16 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
 
     /// --------------- EXTERNAL MUTABLE FUNCTIONS ---------------
 
-    function request(address account, uint256 assets, bool isSelfRequested) public virtual {
+    function request(address account, uint256 assets, bool isSelfRequested) public {
         address isolatedVault_ = isolatedVault;
         require(msg.sender == isolatedVault_, "EigenLayerWithdrawalQueue: forbidden");
         handleWithdrawals(account);
         IStrategy[] memory strategies = new IStrategy[](1);
         uint256[] memory shares = new uint256[](1);
         strategies[0] = IStrategy(strategy);
-        shares[0] = IStrategy(strategies[0]).underlyingToSharesView(assets);
+        shares[0] = IIsolatedEigenLayerVault(isolatedVault_).underlyingToSharesView(
+            address(strategies[0]), assets
+        );
         if (shares[0] == 0) {
             // nothing to withdraw
             return;
@@ -198,7 +204,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     }
 
     /// @inheritdoc IWithdrawalQueue
-    function transferPendingAssets(address to, uint256 amount) public virtual {
+    function transferPendingAssets(address to, uint256 amount) public {
         address from = msg.sender;
         if (amount == 0 || from == to) {
             return;
@@ -207,7 +213,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         AccountData storage accountDataFrom = _accountData[from];
         AccountData storage accountDataTo = _accountData[to];
         uint256 pendingWithdrawals = accountDataFrom.withdrawals.length();
-        IStrategy strategy_ = IStrategy(strategy);
+        IIsolatedEigenLayerVault isolatedVault_ = IIsolatedEigenLayerVault(isolatedVault);
         for (uint256 i = 0; i < pendingWithdrawals;) {
             uint256 withdrawalIndex = accountDataFrom.withdrawals.at(i);
             mapping(address => uint256) storage balances = _withdrawals[withdrawalIndex].sharesOf;
@@ -218,7 +224,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
                 accountShares = balances[from];
                 accountAssets = withdrawal.isClaimed
                     ? withdrawal.assets.mulDiv(accountShares, withdrawal.shares)
-                    : strategy_.sharesToUnderlyingView(accountShares);
+                    : isolatedVault_.sharesToUnderlyingView(strategy, accountShares);
             }
             if (accountAssets == 0) {
                 i++;
@@ -389,7 +395,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         IDelegationManager.Withdrawal memory data,
         address account,
         bool isSelfRequested,
-        bool isShutdown
+        bool isShutdown_
     ) internal returns (uint256 withdrawalIndex) {
         withdrawalIndex = _withdrawals.length;
         WithdrawalData storage withdrawal = _withdrawals.push();
@@ -398,7 +404,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         withdrawal.sharesOf[account] = data.shares[0];
         AccountData storage accountData = _accountData[account];
         if (isSelfRequested) {
-            if (!isShutdown && accountData.withdrawals.length() + 1 > MAX_PENDING_WITHDRAWALS) {
+            if (!isShutdown_ && accountData.withdrawals.length() + 1 > MAX_PENDING_WITHDRAWALS) {
                 revert("EigenLayerWithdrawalQueue: max withdrawal requests reached");
             }
             accountData.withdrawals.add(withdrawalIndex);
@@ -411,7 +417,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         AccountData storage accountDataFrom,
         AccountData storage accountDataTo,
         uint256 assets
-    ) internal virtual {
+    ) internal {
         if (assets > accountDataFrom.claimableAssets) {
             revert("EigenLayerWithdrawalQueue: insufficient pending assets");
         } else {

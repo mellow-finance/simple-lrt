@@ -19,6 +19,8 @@ interface IIsolatedEigenLayerVault {
 
     function asset() external view returns (address);
 
+    function isDelegated() external view returns (bool);
+
     function initialize(address vault) external;
 
     function delegateTo(
@@ -47,4 +49,14 @@ interface IIsolatedEigenLayerVault {
         IDelegationManager manager,
         IDelegationManager.QueuedWithdrawalParams[] calldata requests
     ) external;
+
+    function sharesToUnderlyingView(address strategy, uint256 shares)
+        external
+        view
+        returns (uint256 assets);
+
+    function underlyingToSharesView(address strategy, uint256 assets)
+        external
+        view
+        returns (uint256 shares);
 }

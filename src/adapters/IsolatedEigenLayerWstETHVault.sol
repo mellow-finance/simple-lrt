@@ -55,4 +55,24 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         assets = steth.balanceOf(this_);
         IERC20(steth).safeTransfer(queue, assets);
     }
+
+    /// --------------- EXTERNAL VIEW FUNCTIONS ---------------
+
+    function sharesToUnderlyingView(address strategy, uint256 shares)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        return wsteth.getWstETHByStETH(IStrategy(strategy).sharesToUnderlyingView(shares));
+    }
+
+    function underlyingToSharesView(address strategy, uint256 assets)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        return IStrategy(strategy).underlyingToSharesView(wsteth.getStETHByWstETH(assets));
+    }
 }

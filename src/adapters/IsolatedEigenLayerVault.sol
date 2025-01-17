@@ -12,7 +12,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
     address public vault;
     /// @inheritdoc IIsolatedEigenLayerVault
     address public asset;
-
+    /// @inheritdoc IIsolatedEigenLayerVault
     bool public isDelegated;
 
     modifier onlyVault() {
@@ -107,6 +107,26 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
         (,,, address queue) = IIsolatedEigenLayerVaultFactory(factory).instances(address(this));
         require(msg.sender == queue, "IsolatedEigenLayerVault: forbidden");
         manager.queueWithdrawals(requests);
+    }
+
+    /// --------------- EXTERNAL VIEW FUNCTIONS ---------------
+
+    function sharesToUnderlyingView(address strategy, uint256 shares)
+        public
+        view
+        virtual
+        returns (uint256)
+    {
+        return IStrategy(strategy).sharesToUnderlyingView(shares);
+    }
+
+    function underlyingToSharesView(address strategy, uint256 assets)
+        public
+        view
+        virtual
+        returns (uint256)
+    {
+        return IStrategy(strategy).underlyingToSharesView(assets);
     }
 
     /// --------------- INTERNAL MUTABLE FUNCTIONS ---------------
