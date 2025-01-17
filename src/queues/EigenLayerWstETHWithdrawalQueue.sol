@@ -89,7 +89,7 @@ contract EigenLayerWstETHWithdrawalQueue is EigenLayerWithdrawalQueue {
         uint256 assets
     ) internal override {
         assets = wsteth.getWstETHByStETH(assets);
-        if (assets < accountDataFrom.claimableAssets) {
+        if (assets > accountDataFrom.claimableAssets) {
             revert("EigenLayerWstETHWithdrawalQueue: insufficient pending assets");
         } else {
             accountDataFrom.claimableAssets -= assets;

@@ -411,7 +411,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         AccountData storage accountDataTo,
         uint256 assets
     ) internal virtual {
-        if (assets < accountDataFrom.claimableAssets) {
+        if (assets > accountDataFrom.claimableAssets) {
             revert("EigenLayerWithdrawalQueue: insufficient pending assets");
         } else {
             accountDataFrom.claimableAssets -= assets;
