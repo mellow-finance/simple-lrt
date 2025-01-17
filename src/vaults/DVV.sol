@@ -12,6 +12,8 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 contract DVV is MellowVaultCompat, DVVStorage {
     using SafeERC20 for IERC20;
 
+    bytes32 public constant SET_STAKING_MODULE_ROLE = keccak256("SET_STAKING_MODULE_ROLE");
+
     constructor(bytes32 name_, uint256 version_, address wsteth_, address weth_)
         DVVStorage(name_, version_, wsteth_, weth_)
     {}
@@ -21,7 +23,7 @@ contract DVV is MellowVaultCompat, DVVStorage {
         initializer
     {
         uint256 balance =
-            WSTETH.balanceOf(address(this)) + WSTETH.getWstETHByStETH(WETH.balanceOf(address(this)));
+            WETH.balanceOf(address(this)) + WSTETH.getStETHByWstETH(WSTETH.balanceOf(address(this)));
         __initializeERC4626(
             _admin,
             balance,
@@ -77,7 +79,10 @@ contract DVV is MellowVaultCompat, DVVStorage {
         require(_msgSender() == address(WETH), "DVV: forbidden");
     }
 
-    function setStakingModule(address newStakingModule) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setStakingModule(address newStakingModule)
+        external
+        onlyRole(SET_STAKING_MODULE_ROLE)
+    {
         _setStakingModule(newStakingModule);
     }
 
@@ -102,6 +107,7 @@ contract DVV is MellowVaultCompat, DVVStorage {
         _burn(owner, shares);
 
         IERC4626 yieldVault_ = yieldVault();
+        assets = WSTETH.getWstETHByStETH(assets);
         uint256 yieldAssets = yieldVault_.totalAssets();
         address this_ = address(this);
         if (yieldAssets >= assets) {
