@@ -38,7 +38,10 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function maxDeposit(address isolatedVault) external view virtual returns (uint256) {
-        (, address strategy,,) = factory.instances(isolatedVault);
+        (, address strategy,, address withdrawalQueue) = factory.instances(isolatedVault);
+        if (IEigenLayerWithdrawalQueue(withdrawalQueue).isShutdown()) {
+            return 0;
+        }
         if (
             IPausable(address(strategyManager)).paused(PAUSED_DEPOSITS)
                 || IPausable(address(strategy)).paused(PAUSED_DEPOSITS)

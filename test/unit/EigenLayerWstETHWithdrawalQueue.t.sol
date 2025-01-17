@@ -164,7 +164,7 @@ contract Unit is BaseTest {
         vault.deposit(amount1, user1);
         vault.withdraw(amount1 / 2, user1, user1);
         uint256 totalPending = withdrawalQueue.pendingAssetsOf(user1);
-        
+
         uint256[] memory withdrawals = new uint256[](1);
 
         // zero amount == early exit
@@ -180,23 +180,27 @@ contract Unit is BaseTest {
         vm.startPrank(user2);
         withdrawals[0] = 0;
         withdrawalQueue.acceptPendingAssets(user2, withdrawals);
-        assertApproxEqAbs(totalPending/2, withdrawalQueue.pendingAssetsOf(user2), 3, "user2: pending");
+        assertApproxEqAbs(
+            totalPending / 2, withdrawalQueue.pendingAssetsOf(user2), 3, "user2: pending"
+        );
         vm.stopPrank();
 
         vm.roll(block.number + 10); // skip delay
         vm.startPrank(user1);
-        withdrawalQueue.claim(user1, user1, withdrawalQueue.claimableAssetsOf(user1)/2);
+        withdrawalQueue.claim(user1, user1, withdrawalQueue.claimableAssetsOf(user1) / 2);
 
         vm.expectRevert();
         withdrawalQueue.transferPendingAssets(user2, 1000 ether);
-        
+
         withdrawalQueue.transferPendingAssets(user2, withdrawalQueue.claimableAssetsOf(user1));
         vm.stopPrank();
 
         vm.startPrank(user2);
         withdrawals[0] = 1;
         withdrawalQueue.acceptPendingAssets(user2, withdrawals);
-        assertApproxEqAbs(3*totalPending/4, withdrawalQueue.claimableAssetsOf(user2), 3, "user2: claimable");
+        assertApproxEqAbs(
+            3 * totalPending / 4, withdrawalQueue.claimableAssetsOf(user2), 3, "user2: claimable"
+        );
         vm.stopPrank();
     }
 }
