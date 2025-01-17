@@ -7,7 +7,6 @@ import "./EigenLayerWithdrawalQueue.sol";
 
 contract EigenLayerWstETHWithdrawalQueue is EigenLayerWithdrawalQueue {
     using SafeERC20 for IERC20;
-    using Math for uint256;
 
     IWSTETH public immutable wsteth;
     ISTETH public immutable steth;
