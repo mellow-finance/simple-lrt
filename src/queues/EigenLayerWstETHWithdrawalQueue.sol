@@ -7,7 +7,6 @@ import "./EigenLayerWithdrawalQueue.sol";
 
 contract EigenLayerWstETHWithdrawalQueue is EigenLayerWithdrawalQueue {
     using SafeERC20 for IERC20;
-    using EnumerableSet for EnumerableSet.UintSet;
     using Math for uint256;
 
     IWSTETH public immutable wsteth;
@@ -42,7 +41,7 @@ contract EigenLayerWstETHWithdrawalQueue is EigenLayerWithdrawalQueue {
          * NOTE: Known issue with stETH transfers
          * link: https://github.com/lidofinance/core/issues/442
          */
-        assets = IERC20(steth).balanceOf(address(this));
+        uint256 assets = IERC20(steth).balanceOf(address(this));
         IERC20(steth).safeIncreaseAllowance(address(wsteth), assets);
         assets = wsteth.wrap(assets);
         withdrawal.assets = assets;
