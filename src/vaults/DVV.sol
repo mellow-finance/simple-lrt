@@ -108,25 +108,24 @@ contract DVV is MellowVaultCompat, DVVStorage {
 
         IERC4626 yieldVault_ = yieldVault();
         assets = WSTETH.getWstETHByStETH(assets);
-        uint256 yieldAssets = yieldVault_.totalAssets();
         address this_ = address(this);
-        if (yieldAssets >= assets) {
+        uint256 yieldAssets = Math.min(yieldVault_.maxWithdraw(this_), assets);
+        if (yieldAssets != 0) {
             yieldVault_.withdraw(assets, receiver, this_);
-        } else {
-            if (yieldAssets > 0) {
-                yieldVault_.withdraw(yieldAssets, receiver, this_);
-            }
-
+            assets -= yieldAssets;
+        }
+        if (assets != 0) {
             uint256 balance = WSTETH.balanceOf(this_);
-            if (balance + yieldAssets < assets) {
-                uint256 required = assets - balance - yieldAssets;
+            if (balance < assets) {
                 Address.functionDelegateCall(
                     address(stakingModule()),
-                    abi.encodeCall(IStakingModule.forceStake, (WSTETH.getStETHByWstETH(required)))
+                    abi.encodeCall(
+                        IStakingModule.forceStake, (WSTETH.getStETHByWstETH(assets - balance))
+                    )
                 );
                 IERC20(WSTETH).safeTransfer(receiver, WSTETH.balanceOf(this_));
             } else {
-                IERC20(WSTETH).safeTransfer(receiver, assets - yieldAssets);
+                IERC20(WSTETH).safeTransfer(receiver, assets);
             }
         }
 
