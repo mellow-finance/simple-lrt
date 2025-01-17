@@ -193,7 +193,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         requests[0] = IDelegationManager.QueuedWithdrawalParams(strategies, shares, isolatedVault_);
         IIsolatedEigenLayerVault(isolatedVault_).queueWithdrawals(delegationManager, requests);
 
-        uint256 withdrawalIndex = _pushRequest(data, account, isSelfRequested);
+        uint256 withdrawalIndex = _pushRequest(data, account, isSelfRequested, false);
         emit Request(account, withdrawalIndex, assets, isSelfRequested);
     }
 
@@ -368,7 +368,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             "EigenLayerWithdrawalQueue: invalid withdrawal root"
         );
 
-        _pushRequest(withdrawal, IIsolatedEigenLayerVault(isolatedVault_).vault(), true);
+        _pushRequest(withdrawal, IIsolatedEigenLayerVault(isolatedVault_).vault(), true, true);
         isShutdown = true;
         emit Shutdown(msg.sender, blockNumber, shares);
     }
@@ -388,7 +388,8 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     function _pushRequest(
         IDelegationManager.Withdrawal memory data,
         address account,
-        bool isSelfRequested
+        bool isSelfRequested,
+        bool isShutdown
     ) internal returns (uint256 withdrawalIndex) {
         withdrawalIndex = _withdrawals.length;
         WithdrawalData storage withdrawal = _withdrawals.push();
@@ -397,7 +398,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         withdrawal.sharesOf[account] = data.shares[0];
         AccountData storage accountData = _accountData[account];
         if (isSelfRequested) {
-            if (accountData.withdrawals.length() + 1 > MAX_PENDING_WITHDRAWALS) {
+            if (!isShutdown && accountData.withdrawals.length() + 1 > MAX_PENDING_WITHDRAWALS) {
                 revert("EigenLayerWithdrawalQueue: max withdrawal requests reached");
             }
             accountData.withdrawals.add(withdrawalIndex);
