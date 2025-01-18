@@ -276,21 +276,19 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         AccountData storage accountData_ = _accountData[account];
         EnumerableSet.UintSet storage withdrawals_ = accountData_.withdrawals;
         uint256 block_ = latestWithdrawableBlock();
-        uint256 length = withdrawals_.length();
-        for (uint256 i = 0; i < length;) {
-            uint256 index = withdrawals_.at(i);
+        uint256[] memory indices = withdrawals_.values();
+        uint256 index;
+        for (uint256 i = 0; i < indices.length; i++) {
+            index = indices[i];
             WithdrawalData storage withdrawal = _withdrawals[index];
-            bool isHandleable = withdrawal.isClaimed;
-            if (!isHandleable && block_ >= withdrawal.data.startBlock) {
+            bool isClaimed = withdrawal.isClaimed;
+            if (!isClaimed && block_ >= withdrawal.data.startBlock) {
                 _pull(withdrawal, index);
-                isHandleable = true;
+                isClaimed = true;
             }
-            if (isHandleable) {
-                accountData_.withdrawals.remove(index);
+            if (isClaimed) {
+                withdrawals_.remove(index);
                 _handleWithdrawal(index, withdrawal, account, accountData_);
-                length--;
-            } else {
-                i++;
             }
         }
     }
