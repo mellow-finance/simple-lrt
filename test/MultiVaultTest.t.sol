@@ -319,6 +319,114 @@ contract MultiVaultTest is Test {
         vm.stopPrank();
     }
 
+    function testEigenLayerGasTest() public {
+        MultiVault mv;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault(bytes32("MultiVaultTest"), VERSION)),
+                vm.createWallet("proxyAdmin").addr,
+                new bytes(0)
+            );
+            mv = MultiVault(address(c_));
+        }
+
+        Claimer claimer = new Claimer();
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
+        );
+        EigenLayerWstETHAdapter eigenLayerAdapter = new EigenLayerWstETHAdapter(
+            address(factory),
+            address(mv),
+            IStrategyManager(strategyManager),
+            IRewardsCoordinator(rewardsCoordinator),
+            wsteth
+        );
+
+        RatiosStrategy strategy = new RatiosStrategy();
+
+        mv.initialize(
+            IMultiVault.InitParams({
+                admin: admin,
+                limit: limit,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                asset: wsteth,
+                name: NAME,
+                symbol: NAME,
+                depositStrategy: address(strategy),
+                withdrawalStrategy: address(strategy),
+                rebalanceStrategy: address(strategy),
+                defaultCollateral: address(0),
+                symbioticAdapter: address(0),
+                eigenLayerAdapter: address(eigenLayerAdapter),
+                erc4626Adapter: address(0)
+            })
+        );
+
+        vm.startPrank(admin);
+
+        mv.grantRole(keccak256("ADD_SUBVAULT_ROLE"), admin);
+        mv.grantRole(keccak256("REMOVE_SUBVAULT_ROLE"), admin);
+        mv.grantRole(keccak256("RATIOS_STRATEGY_SET_RATIOS_ROLE"), admin);
+        mv.grantRole(keccak256("REBALANCE_ROLE"), admin);
+
+        address isolatedVault;
+        address withdrawalQueue;
+        {
+            ISignatureUtils.SignatureWithExpiry memory signature;
+            bytes32 salt = 0;
+            address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
+            address eigenStrategy = 0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3;
+            (isolatedVault, withdrawalQueue) = factory.getOrCreate(
+                address(mv), eigenStrategy, operator, abi.encode(signature, salt)
+            );
+        }
+
+        address[] memory subvaults = new address[](1);
+        subvaults[0] = isolatedVault;
+        RatiosStrategy.Ratio[] memory ratios = new RatiosStrategy.Ratio[](1);
+        ratios[0].minRatioD18 = 1 ether;
+        ratios[0].maxRatioD18 = 1 ether;
+
+        mv.addSubvault(isolatedVault, IMultiVaultStorage.Protocol.EIGEN_LAYER);
+        strategy.setRatios(address(mv), subvaults, ratios);
+
+        mv.rebalance();
+
+        {
+            uint256 amount = 128 ether;
+            deal(wsteth, admin, amount);
+            IERC20(wsteth).approve(address(mv), amount);
+            mv.deposit(amount, admin, admin);
+        }
+
+        uint256 n = IEigenLayerWithdrawalQueue(withdrawalQueue).MAX_WITHDRAWALS();
+        for (uint256 i = 0; i < n; i++) {
+            mv.redeem(mv.balanceOf(admin) / (n + 1), admin, admin);
+        }
+
+        uint256 shares = mv.balanceOf(admin);
+        vm.expectRevert("EigenLayerWithdrawalQueue: max withdrawal requests reached");
+        mv.redeem(shares, admin, admin);
+
+        vm.roll(block.number + 10000);
+
+        uint256 gasCost = gasleft();
+        claimer.multiAcceptAndClaim(
+            address(mv), new uint256[](1), new uint256[][](1), admin, type(uint256).max
+        );
+        console2.log("claim price:", gasCost - gasleft());
+        vm.stopPrank();
+    }
+
     function testMultiVaultEigenLayerUndelegate() public {
         MultiVault mv;
         {
