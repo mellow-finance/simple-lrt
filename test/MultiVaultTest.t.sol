@@ -177,7 +177,7 @@ contract MultiVaultTest is Test {
 
         mv.rebalance();
 
-        for (uint256 i = 0; i < 10; i++) {
+        for (uint256 i = 0; i < 7; i++) {
             uint256 amount = 1 ether;
             deal(wsteth, admin, amount);
             IERC20(wsteth).approve(address(mv), amount);
@@ -290,14 +290,17 @@ contract MultiVaultTest is Test {
 
         mv.rebalance();
 
-        for (uint256 i = 0; i < 50; i++) {
+        for (uint256 i = 0; i < 7; i++) {
             uint256 amount = 1 ether;
             deal(wsteth, admin, amount);
             IERC20(wsteth).approve(address(mv), amount);
             mv.deposit(amount, admin, admin);
             mv.rebalance();
-            mv.redeem(mv.balanceOf(admin), admin, admin);
+            mv.redeem(mv.balanceOf(admin) / 2, admin, admin);
         }
+
+        vm.expectRevert("EigenLayerWithdrawalQueue: max withdrawal requests reached");
+        mv.redeem(0.1 ether, admin, admin);
 
         skip(3 days);
 
