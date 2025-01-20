@@ -192,14 +192,19 @@ contract Unit is BaseTest {
         vm.expectRevert();
         withdrawalQueue.transferPendingAssets(user2, 1000 ether);
 
-        withdrawalQueue.transferPendingAssets(user2, withdrawalQueue.claimableAssetsOf(user1));
+        uint256 assets = withdrawalQueue.claimableAssetsOf(user1);
+        vm.expectRevert();
+        withdrawalQueue.transferPendingAssets(user2, assets);
         vm.stopPrank();
 
         vm.startPrank(user2);
         withdrawals[0] = 1;
         withdrawalQueue.acceptPendingAssets(user2, withdrawals);
         assertApproxEqAbs(
-            3 * totalPending / 4, withdrawalQueue.claimableAssetsOf(user2), 3, "user2: claimable"
+            3 * totalPending / 4 - assets,
+            withdrawalQueue.claimableAssetsOf(user2),
+            3,
+            "user2: claimable"
         );
         vm.stopPrank();
     }
