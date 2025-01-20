@@ -247,9 +247,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             }
         }
         if (amount != 0) {
-            /// @dev Transfer the remaining amount to the account as claimable assets
-            _transferClaimableAsPending(accountDataFrom, accountDataTo, amount);
-            emit Transfer(from, to, type(uint256).max, amount);
+            revert("EigenLayerWithdrawalQueue: insufficient pending assets");
         }
     }
 
@@ -394,19 +392,6 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             accountData.withdrawals.add(withdrawalIndex);
         } else {
             accountData.transferredWithdrawals.add(withdrawalIndex);
-        }
-    }
-
-    function _transferClaimableAsPending(
-        AccountData storage accountDataFrom,
-        AccountData storage accountDataTo,
-        uint256 assets
-    ) internal {
-        if (assets > accountDataFrom.claimableAssets) {
-            revert("EigenLayerWithdrawalQueue: insufficient pending assets");
-        } else {
-            accountDataFrom.claimableAssets -= assets;
-            accountDataTo.claimableAssets += assets;
         }
     }
 

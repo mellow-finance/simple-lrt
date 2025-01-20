@@ -90,9 +90,7 @@ abstract contract BaseTest is Test {
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
                 new EigenLayerWstETHWithdrawalQueue(
-                    address(new Claimer()),
-                    Constants.HOLESKY_EL_DELEGATION_MANAGER,
-                    Constants.WSTETH()
+                    address(new Claimer()), Constants.HOLESKY_EL_DELEGATION_MANAGER
                 )
             ),
             vm.createWallet("proxyAdmin").addr

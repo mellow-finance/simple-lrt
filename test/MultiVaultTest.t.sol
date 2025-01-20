@@ -96,11 +96,7 @@ contract MultiVaultTest is Test {
         IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
             delegationManager,
             address(new IsolatedEigenLayerWstETHVault(wsteth)),
-            address(
-                new EigenLayerWstETHWithdrawalQueue(
-                    address(claimer), delegationManager, Constants.WSTETH()
-                )
-            ),
+            address(new EigenLayerWstETHWithdrawalQueue(address(claimer), delegationManager)),
             vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
@@ -226,7 +222,7 @@ contract MultiVaultTest is Test {
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
                 new EigenLayerWstETHWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -338,7 +334,7 @@ contract MultiVaultTest is Test {
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
                 new EigenLayerWstETHWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -446,7 +442,7 @@ contract MultiVaultTest is Test {
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
                 new EigenLayerWstETHWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -573,7 +569,7 @@ contract MultiVaultTest is Test {
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
                 new EigenLayerWstETHWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -710,7 +706,7 @@ contract MultiVaultTest is Test {
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
                 new EigenLayerWstETHWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
                 )
             ),
             vm.createWallet("proxyAdmin").addr
@@ -868,7 +864,7 @@ contract MultiVaultTest is Test {
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
             address(
                 new EigenLayerWstETHWithdrawalQueue(
-                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER, Constants.WSTETH()
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
                 )
             ),
             vm.createWallet("proxyAdmin").addr
