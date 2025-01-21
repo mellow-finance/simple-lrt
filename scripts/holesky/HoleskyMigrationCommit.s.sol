@@ -22,11 +22,11 @@ import {INetworkRestakeDelegator} from
 import {INetworkMiddlewareService} from
     "@symbiotic/core/interfaces/service/INetworkMiddlewareService.sol";
 
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import {IBaseSlasher} from "@symbiotic/core/interfaces/slasher/IBaseSlasher.sol";
 import {ISlasher} from "@symbiotic/core/interfaces/slasher/ISlasher.sol";
 import {IVetoSlasher} from "@symbiotic/core/interfaces/slasher/IVetoSlasher.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "../../src/MellowVaultCompat.sol";
 import "../../src/Migrator.sol";

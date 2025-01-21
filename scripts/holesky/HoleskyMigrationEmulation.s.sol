@@ -22,6 +22,7 @@ import {INetworkRestakeDelegator} from
 import {INetworkMiddlewareService} from
     "@symbiotic/core/interfaces/service/INetworkMiddlewareService.sol";
 
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import {IBaseSlasher} from "@symbiotic/core/interfaces/slasher/IBaseSlasher.sol";
 import {ISlasher} from "@symbiotic/core/interfaces/slasher/ISlasher.sol";
 import {IVetoSlasher} from "@symbiotic/core/interfaces/slasher/IVetoSlasher.sol";
@@ -30,44 +31,55 @@ import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 import "../../src/MellowVaultCompat.sol";
 import "../../src/Migrator.sol";
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+
+interface IMellowLRTExt is IMellowLRT, IERC20 {
+    function deposit(address to, uint256[] memory amounts, uint256 minLpAmount, uint256 deadline)
+        external
+        returns (uint256[] memory actualAmounts, uint256 lpAmount);
+
+    function registerWithdrawal(
+        address to,
+        uint256 lpAmount,
+        uint256[] memory minAmounts,
+        uint256 deadline,
+        uint256 requestDeadline,
+        bool closePrevious
+    ) external;
+}
 
 contract Deploy is Script, FactoryDeploy {
     function run() external {
-        uint256 vaultAdminPk = uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN")));
-        uint256 ownerOfProxyAdminPk = uint256(bytes32(vm.envBytes("HOLESKY_PROXY_VAULT_ADMIN")));
-        uint256 migratorAdminPk = uint256(bytes32(vm.envBytes("HOLESKY_MIGRATOR_ADMIN")));
-
-        Migrator migrator = Migrator(0xFB1fB53Dd6d72226b888d8Ae81c520d4b1ec0eD8);
+        uint256 deployerPk = uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER")));
 
         address vault1 = 0xab6B95B7F8feF87b1297516F5F8Bb8e4F33C6461;
-        address vaultProxyAdmin1 = 0xadB08D2C53D4C47Db0f780B835bA19e71BC19787;
-        address strategy1 = 0x9fBd5B6b71BBAdB8756538e2a027b56A3Bda568A;
-        // stage.1
-        address symbioticVault = 0x7F9dEaA3A26AEA587f8A41C6063D4f93F5a5ee7A;
+        address deployer = vm.addr(deployerPk);
+        vm.startBroadcast(deployerPk);
 
-        // stage.2
-        vm.startBroadcast(migratorAdminPk);
-        migrator.stageMigration(strategy1, vm.addr(vaultAdminPk), vaultProxyAdmin1, symbioticVault);
+        IERC20 wsteth = IERC20(0x8d09a4502Cc8Cf1547aD300E066060D043f6982D);
+        wsteth.approve(address(vault1), type(uint256).max);
+
+        IMellowLRTExt mellowLRT = IMellowLRTExt(vault1);
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = wsteth.balanceOf(deployer) / 2;
+        (, uint256 lpAmount) = mellowLRT.deposit(deployer, amounts, 0, type(uint256).max);
+
+        for (uint256 i = 0; i < 10; i++) {
+            address rndAddress = vm.createWallet(Strings.toString(i)).addr;
+            mellowLRT.transfer(rndAddress, lpAmount / 11);
+        }
+
+        mellowLRT.registerWithdrawal(
+            deployer,
+            mellowLRT.balanceOf(deployer),
+            new uint256[](1),
+            type(uint256).max,
+            type(uint256).max,
+            true
+        );
+
         vm.stopBroadcast();
-
-        // stage.3
-        vm.startBroadcast(vaultAdminPk);
-        IAccessControl(strategy1).grantRole(keccak256("admin_delegate"), vm.addr(vaultAdminPk));
-        IAccessControl(strategy1).grantRole(keccak256("operator"), address(migrator));
-        vm.stopBroadcast();
-
-        // stage.4
-        vm.startBroadcast(ownerOfProxyAdminPk);
-        ProxyAdmin(vaultProxyAdmin1).transferOwnership(address(migrator));
-        vm.stopBroadcast();
-
-        revert("Success");
+        // revert("Success");
     }
-
-    /*
-    TransparentUpgradeableProxy -> implementation
-                                -> admin (ProxyAdmin.sol -> owner)
-
-    */
 }

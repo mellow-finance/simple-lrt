@@ -62,5 +62,4 @@ contract Deploy is Script, FactoryDeploy {
         ProxyAdmin(vaultProxyAdmin1).transferOwnership(address(migrator));
         vm.stopBroadcast();
     }
-
 }
