@@ -61,13 +61,6 @@ contract Deploy is Script, FactoryDeploy {
         vm.startBroadcast(ownerOfProxyAdminPk);
         ProxyAdmin(vaultProxyAdmin1).transferOwnership(address(migrator));
         vm.stopBroadcast();
-
-        revert("Success");
     }
 
-/*
-    TransparentUpgradeableProxy -> implementation
-                                -> admin (ProxyAdmin.sol -> owner)
-
-*/
 }

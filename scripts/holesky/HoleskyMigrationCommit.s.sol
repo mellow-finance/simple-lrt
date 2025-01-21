@@ -26,48 +26,34 @@ import {IBaseSlasher} from "@symbiotic/core/interfaces/slasher/IBaseSlasher.sol"
 import {ISlasher} from "@symbiotic/core/interfaces/slasher/ISlasher.sol";
 import {IVetoSlasher} from "@symbiotic/core/interfaces/slasher/IVetoSlasher.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "../../src/MellowVaultCompat.sol";
 import "../../src/Migrator.sol";
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
+interface IDBStrategy {
+    function processAll() external;
+}
 
 contract Deploy is Script, FactoryDeploy {
     function run() external {
         uint256 vaultAdminPk = uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN")));
-        uint256 ownerOfProxyAdminPk = uint256(bytes32(vm.envBytes("HOLESKY_PROXY_VAULT_ADMIN")));
         uint256 migratorAdminPk = uint256(bytes32(vm.envBytes("HOLESKY_MIGRATOR_ADMIN")));
 
         Migrator migrator = Migrator(0xFB1fB53Dd6d72226b888d8Ae81c520d4b1ec0eD8);
-
         address vault1 = 0xab6B95B7F8feF87b1297516F5F8Bb8e4F33C6461;
-        address vaultProxyAdmin1 = 0xadB08D2C53D4C47Db0f780B835bA19e71BC19787;
         address strategy1 = 0x9fBd5B6b71BBAdB8756538e2a027b56A3Bda568A;
-        // stage.1
-        address symbioticVault = 0x7F9dEaA3A26AEA587f8A41C6063D4f93F5a5ee7A;
 
-        // stage.2
-        vm.startBroadcast(migratorAdminPk);
-        migrator.stageMigration(strategy1, vm.addr(vaultAdminPk), vaultProxyAdmin1, symbioticVault);
-        vm.stopBroadcast();
-
-        // stage.3
+        // commit.1
         vm.startBroadcast(vaultAdminPk);
-        IAccessControl(strategy1).grantRole(keccak256("admin_delegate"), vm.addr(vaultAdminPk));
-        IAccessControl(strategy1).grantRole(keccak256("operator"), address(migrator));
+        IDBStrategy(strategy1).processAll();
         vm.stopBroadcast();
 
-        // stage.4
-        vm.startBroadcast(ownerOfProxyAdminPk);
-        ProxyAdmin(vaultProxyAdmin1).transferOwnership(address(migrator));
+        // commit.2
+        vm.startBroadcast(migratorAdminPk);
+        migrator.migrate(vault1);
         vm.stopBroadcast();
 
         revert("Success");
     }
-
-/*
-    TransparentUpgradeableProxy -> implementation
-                                -> admin (ProxyAdmin.sol -> owner)
-
-*/
 }
