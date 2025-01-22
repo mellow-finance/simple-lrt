@@ -28,7 +28,6 @@ contract Deploy is Script {
     address public constant MELLOW_LIDO_MULTISIG = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
 
     address public constant ROCK_X_CURATOR_MULTISIG = 0x9275cC6de34471f4a669e9dc0F90994Ad6702DA9;
-    address public constant P2P_CURATOR_MULTISIG = 0x4a3c7F2470Aa00ebE6aE7cB1fAF95964b9de1eF4;
     address public constant AMPHOR_CURATOR_MULTISIG = 0xA1E38210B06A05882a7e7Bfe167Cd67F07FA234A;
     address public constant RENZO_CURATOR_MULTISIG = 0x6e5CaD73D00Bc8340f38afb61Fc5E34f7193F599;
     address public constant STEAKHOUSE_CURATOR_MULTISIG = 0x2E93913A796a6C6b2bB76F41690E78a2E206Be54;
@@ -179,13 +178,13 @@ contract Deploy is Script {
 
         // rstETH
         {
-            defaultBurnerParams.globalReceiver = P2P_CURATOR_MULTISIG;
+            defaultBurnerParams.globalReceiver = RE7_CURATOR_MULTISIG;
             address routerBurner = burnerRouterFactory.create(defaultBurnerParams);
             defaultVaultParams.burner = routerBurner;
             defaultNetworkRestakeDelegatorParams.networkLimitSetRoleHolders =
-                _createArray(P2P_CURATOR_MULTISIG);
+                _createArray(RE7_CURATOR_MULTISIG);
             defaultNetworkRestakeDelegatorParams.operatorNetworkSharesSetRoleHolders =
-                _createArray(P2P_CURATOR_MULTISIG);
+                _createArray(RE7_CURATOR_MULTISIG);
             (address vault, address delegator, address slasher) = vaultConfigurator.create(
                 IVaultConfigurator.InitParams({
                     version: VAULT_VERSION,
@@ -200,7 +199,7 @@ contract Deploy is Script {
             );
 
             console2.log("p2p deployment:");
-            console2.log("curator multisig", P2P_CURATOR_MULTISIG);
+            console2.log("curator multisig", RE7_CURATOR_MULTISIG);
             console2.log("symbiotic vault", vault);
             console2.log("delegator", delegator);
             console2.log("slasher", slasher);
