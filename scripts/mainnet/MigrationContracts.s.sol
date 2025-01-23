@@ -22,7 +22,7 @@ import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 contract Deploy is Script {
     address public constant MELLOW_LIDO_MULTISIG = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
 
-    address public constant ROETH_CURATOR_MULTISIG = 0x9275cC6de34471f4a669e9dc0F90994Ad6702DA9;
+    address public constant ROETH_CURATOR_MULTISIG = 0xf9d20f02aB533ac6F990C9D96B595651d83b4b92;
     address public constant AMPHRETH_CURATOR_MULTISIG = 0xA1E38210B06A05882a7e7Bfe167Cd67F07FA234A;
     address public constant PZETH_CURATOR_MULTISIG = 0x6e5CaD73D00Bc8340f38afb61Fc5E34f7193F599;
     address public constant STEAKLRT_CURATOR_MULTISIG = 0x2E93913A796a6C6b2bB76F41690E78a2E206Be54;
@@ -32,8 +32,8 @@ contract Deploy is Script {
     uint256 public constant MIGRATOR_DELAY = 6 hours;
 
     uint32 public constant EPOCH_DURATION = 7 days;
-    uint32 public constant VETO_DURATION = 5 days;
-    uint32 public constant BURNER_DELAY = 1 hours;
+    uint32 public constant VETO_DURATION = 3 days;
+    uint32 public constant BURNER_DELAY = 1 hours; // NOTE: MUST BE CHANGED TO AT LEAST 7 DAYS AFTER COMPLETING THE SETUP
     uint32 public constant VAULT_VERSION = 1;
 
     address public constant VAULT_CONFIGURATOR = 0x29300b1d3150B4E2b12fE80BE72f365E200441EC;
@@ -93,7 +93,7 @@ contract Deploy is Script {
             RE7LRT_CURATOR_MULTISIG, // NOTE: This is the curator of the rstETH and Re7LRT mellow/symbiotic vaults
             RE7LRT_CURATOR_MULTISIG
         ];
-        string[6] memory names = ["roETH", "amphrETH", "pzETH", "steakLRT", "rstETH", "re7LRT"];
+        string[6] memory names = ["roETH", "amphrETH", "pzETH", "steakLRT", "rstETH", "Re7LRT"];
         for (uint256 i = 0; i < 6; i++) {
             address curator = curators[i];
             address burner = burnerRouterFactory.create(
@@ -165,6 +165,5 @@ contract Deploy is Script {
         _deploySymbioticVaults();
 
         vm.stopBroadcast();
-        revert("ok");
     }
 }
