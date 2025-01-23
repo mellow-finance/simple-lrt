@@ -981,7 +981,7 @@ contract Unit is BaseTest {
         ISignatureUtils.SignatureWithExpiry memory signature;
         (address isolatedVault,) = factory.getOrCreate(
             address(vault),
-            0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3,
+            Constants.HOLESKY_EL_STRATEGY,
             0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937,
             abi.encode(signature, bytes32(0))
         );

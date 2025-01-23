@@ -54,7 +54,8 @@ contract Unit is BaseTest {
 
     function testClaimableAssetsOf() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin);
+        (MultiVault vault,,,) =
+            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
         IEigenLayerWithdrawalQueue withdrawalQueue =
             EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -148,7 +149,8 @@ contract Unit is BaseTest {
 
     function testTransferPendingAssets() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin);
+        (MultiVault vault,,,) =
+            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
         IEigenLayerWithdrawalQueue withdrawalQueue =
             EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -229,7 +231,8 @@ contract Unit is BaseTest {
 
     function testGetAccountData() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin);
+        (MultiVault vault,,,) =
+            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
         IEigenLayerWithdrawalQueue withdrawalQueue =
             EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -277,7 +280,8 @@ contract Unit is BaseTest {
 
     function testRequest() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin);
+        (MultiVault vault,,,) =
+            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
         IEigenLayerWithdrawalQueue withdrawalQueue =
             EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -323,7 +327,8 @@ contract Unit is BaseTest {
 
     function testPullWstETH() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin);
+        (MultiVault vault,,,) =
+            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
         IEigenLayerWithdrawalQueue withdrawalQueue =
             EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -370,7 +375,8 @@ contract Unit is BaseTest {
 
     function testPull() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenVault(vaultAdmin);
+        (MultiVault vault,,,) =
+            createDefaultMultiVaultWithEigenVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
         IEigenLayerWithdrawalQueue withdrawalQueue =
             EigenLayerWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 

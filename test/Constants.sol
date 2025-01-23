@@ -19,6 +19,7 @@ library Constants {
     address public constant HOLESKY_EL_STRATEGY_MANAGER = 0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6;
     address public constant HOLESKY_EL_REWARDS_COORDINATOR =
         0xAcc1fb458a1317E886dB376Fc8141540537E68fE;
+    address public constant HOLESKY_EL_STRATEGY = 0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3;
 
     address public constant HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL =
         0x23E98253F372Ee29910e22986fe75Bb287b011fC;

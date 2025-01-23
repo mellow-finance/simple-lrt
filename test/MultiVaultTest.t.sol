@@ -163,10 +163,7 @@ contract MultiVaultTest is Test {
             bytes32 salt = 0;
             address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
             (isolatedVault,) = factory.getOrCreate(
-                address(mv),
-                0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3,
-                operator,
-                abi.encode(signature, salt)
+                address(mv), Constants.HOLESKY_EL_STRATEGY, operator, abi.encode(signature, salt)
             );
         }
         mv.addSubvault(isolatedVault, IMultiVaultStorage.Protocol.EIGEN_LAYER);
@@ -270,7 +267,7 @@ contract MultiVaultTest is Test {
             ISignatureUtils.SignatureWithExpiry memory signature;
             bytes32 salt = 0;
             address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
-            address eigenStrategy = 0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3;
+            address eigenStrategy = Constants.HOLESKY_EL_STRATEGY;
             (isolatedVault, withdrawalQueue) = factory.getOrCreate(
                 address(mv), eigenStrategy, operator, abi.encode(signature, salt)
             );
@@ -382,7 +379,7 @@ contract MultiVaultTest is Test {
             ISignatureUtils.SignatureWithExpiry memory signature;
             bytes32 salt = 0;
             address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
-            address eigenStrategy = 0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3;
+            address eigenStrategy = Constants.HOLESKY_EL_STRATEGY;
             (isolatedVault, withdrawalQueue) = factory.getOrCreate(
                 address(mv), eigenStrategy, operator, abi.encode(signature, salt)
             );
@@ -490,7 +487,7 @@ contract MultiVaultTest is Test {
             ISignatureUtils.SignatureWithExpiry memory signature;
             bytes32 salt = 0;
             address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
-            address eigenStrategy = 0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3;
+            address eigenStrategy = Constants.HOLESKY_EL_STRATEGY;
             (isolatedVault, withdrawalQueue) = factory.getOrCreate(
                 address(mv), eigenStrategy, operator, abi.encode(signature, salt)
             );
@@ -618,7 +615,7 @@ contract MultiVaultTest is Test {
             ISignatureUtils.SignatureWithExpiry memory signature;
             bytes32 salt = 0;
             address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
-            address eigenStrategy = 0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3;
+            address eigenStrategy = Constants.HOLESKY_EL_STRATEGY;
 
             (isolatedVault, wq) = factory.getOrCreate(
                 address(mv), eigenStrategy, operator, abi.encode(signature, salt)
@@ -755,7 +752,7 @@ contract MultiVaultTest is Test {
             ISignatureUtils.SignatureWithExpiry memory signature;
             bytes32 salt = 0;
             address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
-            address eigenStrategy = 0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3;
+            address eigenStrategy = Constants.HOLESKY_EL_STRATEGY;
 
             (isolatedVault, wq) = factory.getOrCreate(
                 address(mv), eigenStrategy, operator, abi.encode(signature, salt)

@@ -101,7 +101,7 @@ contract Unit is BaseTest {
         ISignatureUtils.SignatureWithExpiry memory signature;
         (address isolatedVault,) = factory.getOrCreate(
             address(vault),
-            0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3,
+            Constants.HOLESKY_EL_STRATEGY,
             0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937,
             abi.encode(signature, bytes32(0))
         );
@@ -159,7 +159,7 @@ contract Unit is BaseTest {
     function testMaxDeposit() external {
         address vaultAdmin = rnd.randAddress();
         (MultiVault vault, EigenLayerAdapter eigenLayerAdapter,, address eigenLayerVault) =
-            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin);
+            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
         IEigenLayerWithdrawalQueue withdrawalQueue =
             EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -197,6 +197,13 @@ contract Unit is BaseTest {
         maxDeposit = eigenLayerAdapter.maxDeposit(eigenLayerVault);
         assertEq(maxDeposit, type(uint256).max, "maxDeposit");
 
+        vm.startPrank(pauserRegistry.unpauser());
+        MockStrategyBaseTVLLimits(withdrawalQueue.strategy()).setTVLLimits(0, 0);
+        vm.stopPrank();
+
+        maxDeposit = eigenLayerAdapter.maxDeposit(eigenLayerVault);
+        assertEq(maxDeposit, 0, "maxDeposit not zero");
+
         vm.startPrank(0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937);
         IDelegationManager(Constants.HOLESKY_EL_DELEGATION_MANAGER).undelegate(eigenLayerVault);
         vm.stopPrank();
@@ -206,10 +213,22 @@ contract Unit is BaseTest {
         assertEq(maxDeposit, 0, "maxDeposit not zero");
     }
 
+    function testMaxDeposit2() external {
+        address vaultAdmin = rnd.randAddress();
+        (MultiVault vault, EigenLayerAdapter eigenLayerAdapter,, address eigenLayerVault) =
+            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, address(0));
+        IEigenLayerWithdrawalQueue withdrawalQueue =
+            EigenLayerWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
+
+        MockStrategyBaseTVLLimits(withdrawalQueue.strategy()).setGetTVLLimitsRevert(true);
+        uint256 maxDeposit = eigenLayerAdapter.maxDeposit(eigenLayerVault);
+        assertEq(maxDeposit, type(uint256).max, "maxDeposit");
+    }
+
     function testStakedAt() external {
         address vaultAdmin = rnd.randAddress();
         (, EigenLayerAdapter eigenLayerAdapter,, address eigenLayerVault) =
-            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin);
+            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
 
         vm.startPrank(0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937);
         IDelegationManager(Constants.HOLESKY_EL_DELEGATION_MANAGER).undelegate(eigenLayerVault);

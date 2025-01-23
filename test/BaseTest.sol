@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import "./Imports.sol";
+import "./mocks/MockStrategyTVLLimits.sol";
 
 abstract contract BaseTest is Test {
     SymbioticHelper public immutable symbioticHelper = new SymbioticHelper();
@@ -68,7 +69,10 @@ abstract contract BaseTest is Test {
         }
     }
 
-    function createDefaultMultiVaultWithEigenWstETHVault(address vaultAdmin)
+    function createDefaultMultiVaultWithEigenWstETHVault(
+        address vaultAdmin,
+        address eigenLayerStrategy
+    )
         internal
         returns (
             MultiVault vault,
@@ -127,7 +131,9 @@ abstract contract BaseTest is Test {
             ISignatureUtils.SignatureWithExpiry memory signature;
             bytes32 salt = 0;
             address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
-            address eigenLayerStrategy = 0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3;
+            if (eigenLayerStrategy == address(0)) {
+                eigenLayerStrategy = deployEigenStrategy(Constants.WSTETH());
+            }
             (eigenLayerVault,) = factory.getOrCreate(
                 address(vault), eigenLayerStrategy, operator, abi.encode(signature, salt)
             );
@@ -145,7 +151,23 @@ abstract contract BaseTest is Test {
         }
     }
 
-    function createDefaultMultiVaultWithEigenVault(address vaultAdmin)
+    function deployEigenStrategy(address underlyingToken) public returns (address) {
+        IStrategyManager strategyManager = IStrategyManager(Constants.HOLESKY_EL_STRATEGY_MANAGER);
+        MockStrategyBaseTVLLimits strategyBase = new MockStrategyBaseTVLLimits(strategyManager);
+        {
+            IStrategy[] memory strategiesToWhitelist = new IStrategy[](1);
+            bool[] memory thirdPartyTransfersForbiddenValues = new bool[](1);
+            strategiesToWhitelist[0] = IStrategy(strategyBase);
+            thirdPartyTransfersForbiddenValues[0] = false;
+            vm.prank(strategyManager.strategyWhitelister());
+            strategyManager.addStrategiesToDepositWhitelist(
+                strategiesToWhitelist, thirdPartyTransfersForbiddenValues
+            );
+        }
+        return address(strategyBase);
+    }
+
+    function createDefaultMultiVaultWithEigenVault(address vaultAdmin, address eigenLayerStrategy)
         internal
         returns (
             MultiVault vault,
@@ -203,7 +225,9 @@ abstract contract BaseTest is Test {
             ISignatureUtils.SignatureWithExpiry memory signature;
             bytes32 salt = 0;
             address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
-            address eigenLayerStrategy = 0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3;
+            if (eigenLayerStrategy == address(0)) {
+                eigenLayerStrategy = deployEigenStrategy(Constants.STETH());
+            }
             (eigenLayerVault,) = factory.getOrCreate(
                 address(vault), eigenLayerStrategy, operator, abi.encode(signature, salt)
             );
