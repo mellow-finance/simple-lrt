@@ -5,7 +5,6 @@ import "forge-std/Script.sol";
 
 import {EthWrapper} from "../../src/EthWrapper.sol";
 import {MellowSymbioticVault} from "../../src/MellowSymbioticVault.sol";
-
 import {MellowSymbioticVaultFactory} from "../../src/MellowSymbioticVaultFactory.sol";
 import {MellowVaultCompat} from "../../src/MellowVaultCompat.sol";
 import {Migrator} from "../../src/Migrator.sol";
@@ -14,37 +13,34 @@ import {IBurnerRouter} from "@symbiotic/burners/interfaces/router/IBurnerRouter.
 import {IBurnerRouterFactory} from "@symbiotic/burners/interfaces/router/IBurnerRouterFactory.sol";
 import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
 import {IBaseDelegator} from "@symbiotic/core/interfaces/delegator/IBaseDelegator.sol";
-import {IFullRestakeDelegator} from "@symbiotic/core/interfaces/delegator/IFullRestakeDelegator.sol";
 import {INetworkRestakeDelegator} from
     "@symbiotic/core/interfaces/delegator/INetworkRestakeDelegator.sol";
 import {IBaseSlasher} from "@symbiotic/core/interfaces/slasher/IBaseSlasher.sol";
-import {ISlasher} from "@symbiotic/core/interfaces/slasher/ISlasher.sol";
 import {IVetoSlasher} from "@symbiotic/core/interfaces/slasher/IVetoSlasher.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
-
-import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 contract Deploy is Script {
     address public constant MELLOW_LIDO_MULTISIG = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
 
-    address public constant ROCK_X_CURATOR_MULTISIG = 0x9275cC6de34471f4a669e9dc0F90994Ad6702DA9;
-    address public constant AMPHOR_CURATOR_MULTISIG = 0xA1E38210B06A05882a7e7Bfe167Cd67F07FA234A;
-    address public constant RENZO_CURATOR_MULTISIG = 0x6e5CaD73D00Bc8340f38afb61Fc5E34f7193F599;
-    address public constant STEAKHOUSE_CURATOR_MULTISIG = 0x2E93913A796a6C6b2bB76F41690E78a2E206Be54;
-    address public constant RE7_CURATOR_MULTISIG = 0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433;
+    address public constant ROETH_CURATOR_MULTISIG = 0x9275cC6de34471f4a669e9dc0F90994Ad6702DA9;
+    address public constant AMPHRETH_CURATOR_MULTISIG = 0xA1E38210B06A05882a7e7Bfe167Cd67F07FA234A;
+    address public constant PZETH_CURATOR_MULTISIG = 0x6e5CaD73D00Bc8340f38afb61Fc5E34f7193F599;
+    address public constant STEAKLRT_CURATOR_MULTISIG = 0x2E93913A796a6C6b2bB76F41690E78a2E206Be54;
+    address public constant RE7LRT_CURATOR_MULTISIG = 0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433;
 
     address public constant MIGRATOR_ADMIN = 0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
     uint256 public constant MIGRATOR_DELAY = 6 hours;
 
     uint32 public constant EPOCH_DURATION = 7 days;
     uint32 public constant VETO_DURATION = 5 days;
-    uint32 public constant BURNER_DELAY = 1 hours; // reasoning: to make it possible to change values in the BurnerRouter contract right after deployment (JIC)
+    uint32 public constant BURNER_DELAY = 1 hours;
     uint32 public constant VAULT_VERSION = 1;
 
-    uint32 public constant VETO_SLASHER_INDEX = 1;
+    address public constant VAULT_CONFIGURATOR = 0x29300b1d3150B4E2b12fE80BE72f365E200441EC;
+    address public constant BURNER_ROUTER_FACTORY = 0x99F2B89fB3C363fBafD8d826E5AA77b28bAB70a0;
 
+    uint32 public constant VETO_SLASHER_INDEX = 1;
     uint32 public constant NETWORK_RESTAKE_DELEGATOR_INDEX = 0;
-    uint32 public constant FULL_RESTAKE_DELEGATOR_INDEX = 1;
 
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
@@ -54,7 +50,7 @@ contract Deploy is Script {
     bytes32 public constant MIGRATOR_SALT = bytes32(uint256(1037221950));
     bytes32 public constant ETH_WRAPPER_SALT = bytes32(uint256(2035485209));
     bytes32 public constant MELLOW_SYMBIOTIC_VAULT_SINGLETON_SALT = bytes32(uint256(130700478));
-    bytes32 public constant MELLOW_SYMBIOTIC_VAULT_FACTORY_SALT = bytes32(uint256(655157589)); // NOTE: TO BE SET
+    bytes32 public constant MELLOW_SYMBIOTIC_VAULT_FACTORY_SALT = bytes32(uint256(655157589));
 
     function _deployCoreContracts() internal {
         MellowVaultCompat mellowVaultCompatSingleton = new MellowVaultCompat{
@@ -87,11 +83,9 @@ contract Deploy is Script {
     }
 
     function _deploySymbioticVaults() internal {
-        IVaultConfigurator vaultConfigurator =
-            IVaultConfigurator(0x29300b1d3150B4E2b12fE80BE72f365E200441EC);
+        IVaultConfigurator vaultConfigurator = IVaultConfigurator(VAULT_CONFIGURATOR);
 
-        IBurnerRouterFactory burnerRouterFactory =
-            IBurnerRouterFactory(0x99F2B89fB3C363fBafD8d826E5AA77b28bAB70a0);
+        IBurnerRouterFactory burnerRouterFactory = IBurnerRouterFactory(BURNER_ROUTER_FACTORY);
 
         IVault.InitParams memory defaultVaultParams = IVault.InitParams({
             collateral: WSTETH,
@@ -124,8 +118,8 @@ contract Deploy is Script {
             })
         );
 
-        INetworkRestakeDelegator.InitParams memory defaultNetworkRestakeDelegatorParams =
-        INetworkRestakeDelegator.InitParams({
+        INetworkRestakeDelegator.InitParams memory defaultDelegatorParams = INetworkRestakeDelegator
+            .InitParams({
             baseParams: IBaseDelegator.BaseParams({
                 defaultAdminRoleHolder: MELLOW_LIDO_MULTISIG,
                 hook: address(0),
@@ -135,41 +129,29 @@ contract Deploy is Script {
             operatorNetworkSharesSetRoleHolders: new address[](0) // NOTE: TO BE SET
         });
 
-        IFullRestakeDelegator.InitParams memory defaultFullRestakeDelegatorParams =
-        IFullRestakeDelegator.InitParams({
-            baseParams: IBaseDelegator.BaseParams({
-                defaultAdminRoleHolder: MELLOW_LIDO_MULTISIG,
-                hook: address(0),
-                hookSetRoleHolder: MELLOW_LIDO_MULTISIG
-            }),
-            networkLimitSetRoleHolders: new address[](0), // NOTE: TO BE SET
-            operatorNetworkLimitSetRoleHolders: new address[](0) // NOTE: TO BE SET
-        });
-
         // rockX
         {
-            defaultBurnerParams.globalReceiver = ROCK_X_CURATOR_MULTISIG;
+            defaultBurnerParams.globalReceiver = ROETH_CURATOR_MULTISIG;
             address routerBurner = burnerRouterFactory.create(defaultBurnerParams);
             defaultVaultParams.burner = routerBurner;
-            defaultNetworkRestakeDelegatorParams.networkLimitSetRoleHolders =
-                _createArray(ROCK_X_CURATOR_MULTISIG);
-            defaultNetworkRestakeDelegatorParams.operatorNetworkSharesSetRoleHolders =
-                _createArray(ROCK_X_CURATOR_MULTISIG);
+            defaultDelegatorParams.networkLimitSetRoleHolders = _createArray(ROETH_CURATOR_MULTISIG);
+            defaultDelegatorParams.operatorNetworkSharesSetRoleHolders =
+                _createArray(ROETH_CURATOR_MULTISIG);
             (address vault, address delegator, address slasher) = vaultConfigurator.create(
                 IVaultConfigurator.InitParams({
                     version: VAULT_VERSION,
                     owner: MELLOW_LIDO_MULTISIG,
                     vaultParams: abi.encode(defaultVaultParams),
                     delegatorIndex: NETWORK_RESTAKE_DELEGATOR_INDEX,
-                    delegatorParams: abi.encode(defaultNetworkRestakeDelegatorParams),
+                    delegatorParams: abi.encode(defaultDelegatorParams),
                     withSlasher: true,
                     slasherIndex: VETO_SLASHER_INDEX,
                     slasherParams: defaultSlasherParams
                 })
             );
 
-            console2.log("rockX deployment:");
-            console2.log("curator multisig", ROCK_X_CURATOR_MULTISIG);
+            console2.log("roETH deployment:");
+            console2.log("curator multisig", ROETH_CURATOR_MULTISIG);
             console2.log("symbiotic vault", vault);
             console2.log("delegator", delegator);
             console2.log("slasher", slasher);
@@ -178,88 +160,87 @@ contract Deploy is Script {
 
         // rstETH
         {
-            defaultBurnerParams.globalReceiver = RE7_CURATOR_MULTISIG;
+            defaultBurnerParams.globalReceiver = RE7LRT_CURATOR_MULTISIG;
             address routerBurner = burnerRouterFactory.create(defaultBurnerParams);
             defaultVaultParams.burner = routerBurner;
-            defaultNetworkRestakeDelegatorParams.networkLimitSetRoleHolders =
-                _createArray(RE7_CURATOR_MULTISIG);
-            defaultNetworkRestakeDelegatorParams.operatorNetworkSharesSetRoleHolders =
-                _createArray(RE7_CURATOR_MULTISIG);
+            defaultDelegatorParams.networkLimitSetRoleHolders =
+                _createArray(RE7LRT_CURATOR_MULTISIG);
+            defaultDelegatorParams.operatorNetworkSharesSetRoleHolders =
+                _createArray(RE7LRT_CURATOR_MULTISIG);
             (address vault, address delegator, address slasher) = vaultConfigurator.create(
                 IVaultConfigurator.InitParams({
                     version: VAULT_VERSION,
                     owner: MELLOW_LIDO_MULTISIG,
                     vaultParams: abi.encode(defaultVaultParams),
                     delegatorIndex: NETWORK_RESTAKE_DELEGATOR_INDEX,
-                    delegatorParams: abi.encode(defaultNetworkRestakeDelegatorParams),
+                    delegatorParams: abi.encode(defaultDelegatorParams),
                     withSlasher: true,
                     slasherIndex: VETO_SLASHER_INDEX,
                     slasherParams: defaultSlasherParams
                 })
             );
 
-            console2.log("p2p deployment:");
-            console2.log("curator multisig", RE7_CURATOR_MULTISIG);
+            console2.log("rstETH deployment:");
+            console2.log("curator multisig", RE7LRT_CURATOR_MULTISIG);
             console2.log("symbiotic vault", vault);
             console2.log("delegator", delegator);
             console2.log("slasher", slasher);
             console2.log("router burner", routerBurner);
         }
 
-        // amphorETH
+        // amphrETH
         {
-            defaultBurnerParams.globalReceiver = AMPHOR_CURATOR_MULTISIG;
+            defaultBurnerParams.globalReceiver = AMPHRETH_CURATOR_MULTISIG;
             address routerBurner = burnerRouterFactory.create(defaultBurnerParams);
             defaultVaultParams.burner = routerBurner;
-            defaultFullRestakeDelegatorParams.networkLimitSetRoleHolders =
-                _createArray(AMPHOR_CURATOR_MULTISIG);
-            defaultFullRestakeDelegatorParams.operatorNetworkLimitSetRoleHolders =
-                _createArray(AMPHOR_CURATOR_MULTISIG);
-            (address vault, address delegator, address slasher) = vaultConfigurator.create(
-                IVaultConfigurator.InitParams({
-                    version: VAULT_VERSION,
-                    owner: MELLOW_LIDO_MULTISIG,
-                    vaultParams: abi.encode(defaultVaultParams),
-                    delegatorIndex: FULL_RESTAKE_DELEGATOR_INDEX,
-                    delegatorParams: abi.encode(defaultFullRestakeDelegatorParams),
-                    withSlasher: true,
-                    slasherIndex: VETO_SLASHER_INDEX,
-                    slasherParams: defaultSlasherParams
-                })
-            );
-
-            console2.log("amphor deployment:");
-            console2.log("curator multisig", AMPHOR_CURATOR_MULTISIG);
-            console2.log("symbiotic vault", vault);
-            console2.log("delegator", delegator);
-            console2.log("slasher", slasher);
-            console2.log("router burner", routerBurner);
-        }
-
-        // renzo
-        {
-            defaultBurnerParams.globalReceiver = RENZO_CURATOR_MULTISIG;
-            address routerBurner = burnerRouterFactory.create(defaultBurnerParams);
-            defaultVaultParams.burner = routerBurner;
-            defaultNetworkRestakeDelegatorParams.networkLimitSetRoleHolders =
-                _createArray(RENZO_CURATOR_MULTISIG);
-            defaultNetworkRestakeDelegatorParams.operatorNetworkSharesSetRoleHolders =
-                _createArray(RENZO_CURATOR_MULTISIG);
+            defaultDelegatorParams.networkLimitSetRoleHolders =
+                _createArray(AMPHRETH_CURATOR_MULTISIG);
+            defaultDelegatorParams.operatorNetworkSharesSetRoleHolders =
+                _createArray(AMPHRETH_CURATOR_MULTISIG);
             (address vault, address delegator, address slasher) = vaultConfigurator.create(
                 IVaultConfigurator.InitParams({
                     version: VAULT_VERSION,
                     owner: MELLOW_LIDO_MULTISIG,
                     vaultParams: abi.encode(defaultVaultParams),
                     delegatorIndex: NETWORK_RESTAKE_DELEGATOR_INDEX,
-                    delegatorParams: abi.encode(defaultNetworkRestakeDelegatorParams),
+                    delegatorParams: abi.encode(defaultDelegatorParams),
                     withSlasher: true,
                     slasherIndex: VETO_SLASHER_INDEX,
                     slasherParams: defaultSlasherParams
                 })
             );
 
-            console2.log("p2p deployment:");
-            console2.log("curator multisig", RENZO_CURATOR_MULTISIG);
+            console2.log("amphrETH deployment:");
+            console2.log("curator multisig", AMPHRETH_CURATOR_MULTISIG);
+            console2.log("symbiotic vault", vault);
+            console2.log("delegator", delegator);
+            console2.log("slasher", slasher);
+            console2.log("router burner", routerBurner);
+        }
+
+        // pzETH
+        {
+            defaultBurnerParams.globalReceiver = PZETH_CURATOR_MULTISIG;
+            address routerBurner = burnerRouterFactory.create(defaultBurnerParams);
+            defaultVaultParams.burner = routerBurner;
+            defaultDelegatorParams.networkLimitSetRoleHolders = _createArray(PZETH_CURATOR_MULTISIG);
+            defaultDelegatorParams.operatorNetworkSharesSetRoleHolders =
+                _createArray(PZETH_CURATOR_MULTISIG);
+            (address vault, address delegator, address slasher) = vaultConfigurator.create(
+                IVaultConfigurator.InitParams({
+                    version: VAULT_VERSION,
+                    owner: MELLOW_LIDO_MULTISIG,
+                    vaultParams: abi.encode(defaultVaultParams),
+                    delegatorIndex: NETWORK_RESTAKE_DELEGATOR_INDEX,
+                    delegatorParams: abi.encode(defaultDelegatorParams),
+                    withSlasher: true,
+                    slasherIndex: VETO_SLASHER_INDEX,
+                    slasherParams: defaultSlasherParams
+                })
+            );
+
+            console2.log("pzETH deployment:");
+            console2.log("curator multisig", PZETH_CURATOR_MULTISIG);
             console2.log("symbiotic vault", vault);
             console2.log("delegator", delegator);
             console2.log("slasher", slasher);
@@ -268,58 +249,58 @@ contract Deploy is Script {
 
         // steakLRT
         {
-            defaultBurnerParams.globalReceiver = STEAKHOUSE_CURATOR_MULTISIG;
+            defaultBurnerParams.globalReceiver = STEAKLRT_CURATOR_MULTISIG;
             address routerBurner = burnerRouterFactory.create(defaultBurnerParams);
             defaultVaultParams.burner = routerBurner;
-            defaultNetworkRestakeDelegatorParams.networkLimitSetRoleHolders =
-                _createArray(STEAKHOUSE_CURATOR_MULTISIG);
-            defaultNetworkRestakeDelegatorParams.operatorNetworkSharesSetRoleHolders =
-                _createArray(STEAKHOUSE_CURATOR_MULTISIG);
+            defaultDelegatorParams.networkLimitSetRoleHolders =
+                _createArray(STEAKLRT_CURATOR_MULTISIG);
+            defaultDelegatorParams.operatorNetworkSharesSetRoleHolders =
+                _createArray(STEAKLRT_CURATOR_MULTISIG);
             (address vault, address delegator, address slasher) = vaultConfigurator.create(
                 IVaultConfigurator.InitParams({
                     version: VAULT_VERSION,
                     owner: MELLOW_LIDO_MULTISIG,
                     vaultParams: abi.encode(defaultVaultParams),
                     delegatorIndex: NETWORK_RESTAKE_DELEGATOR_INDEX,
-                    delegatorParams: abi.encode(defaultNetworkRestakeDelegatorParams),
+                    delegatorParams: abi.encode(defaultDelegatorParams),
                     withSlasher: true,
                     slasherIndex: VETO_SLASHER_INDEX,
                     slasherParams: defaultSlasherParams
                 })
             );
 
-            console2.log("steakhouse deployment:");
-            console2.log("curator multisig", STEAKHOUSE_CURATOR_MULTISIG);
+            console2.log("steakLRT deployment:");
+            console2.log("curator multisig", STEAKLRT_CURATOR_MULTISIG);
             console2.log("symbiotic vault", vault);
             console2.log("delegator", delegator);
             console2.log("slasher", slasher);
             console2.log("router burner", routerBurner);
         }
 
-        // re7ETH
+        // Re7LRT
         {
-            defaultBurnerParams.globalReceiver = RE7_CURATOR_MULTISIG;
+            defaultBurnerParams.globalReceiver = RE7LRT_CURATOR_MULTISIG;
             address routerBurner = burnerRouterFactory.create(defaultBurnerParams);
             defaultVaultParams.burner = routerBurner;
-            defaultNetworkRestakeDelegatorParams.networkLimitSetRoleHolders =
-                _createArray(RE7_CURATOR_MULTISIG);
-            defaultNetworkRestakeDelegatorParams.operatorNetworkSharesSetRoleHolders =
-                _createArray(RE7_CURATOR_MULTISIG);
+            defaultDelegatorParams.networkLimitSetRoleHolders =
+                _createArray(RE7LRT_CURATOR_MULTISIG);
+            defaultDelegatorParams.operatorNetworkSharesSetRoleHolders =
+                _createArray(RE7LRT_CURATOR_MULTISIG);
             (address vault, address delegator, address slasher) = vaultConfigurator.create(
                 IVaultConfigurator.InitParams({
                     version: VAULT_VERSION,
                     owner: MELLOW_LIDO_MULTISIG,
                     vaultParams: abi.encode(defaultVaultParams),
                     delegatorIndex: NETWORK_RESTAKE_DELEGATOR_INDEX,
-                    delegatorParams: abi.encode(defaultNetworkRestakeDelegatorParams),
+                    delegatorParams: abi.encode(defaultDelegatorParams),
                     withSlasher: true,
                     slasherIndex: VETO_SLASHER_INDEX,
                     slasherParams: defaultSlasherParams
                 })
             );
 
-            console2.log("re7 deployment:");
-            console2.log("curator multisig", RE7_CURATOR_MULTISIG);
+            console2.log("Re7LRT deployment:");
+            console2.log("curator multisig", RE7LRT_CURATOR_MULTISIG);
             console2.log("symbiotic vault", vault);
             console2.log("delegator", delegator);
             console2.log("slasher", slasher);
