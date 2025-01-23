@@ -33,7 +33,7 @@ contract Deploy is Script {
 
     uint32 public constant EPOCH_DURATION = 7 days;
     uint32 public constant VETO_DURATION = 3 days;
-    uint32 public constant BURNER_DELAY = 1 hours;
+    uint32 public constant BURNER_DELAY = 1 hours; // NOTE: MUST BE CHANGED TO AT LEAST 7 DAYS AFTER COMPLETING THE SETUP
     uint32 public constant VAULT_VERSION = 1;
 
     address public constant VAULT_CONFIGURATOR = 0x29300b1d3150B4E2b12fE80BE72f365E200441EC;
@@ -93,7 +93,7 @@ contract Deploy is Script {
             RE7LRT_CURATOR_MULTISIG, // NOTE: This is the curator of the rstETH and Re7LRT mellow/symbiotic vaults
             RE7LRT_CURATOR_MULTISIG
         ];
-        string[6] memory names = ["roETH", "amphrETH", "pzETH", "steakLRT", "rstETH", "re7LRT"];
+        string[6] memory names = ["roETH", "amphrETH", "pzETH", "steakLRT", "rstETH", "Re7LRT"];
         for (uint256 i = 0; i < 6; i++) {
             address curator = curators[i];
             address burner = burnerRouterFactory.create(
