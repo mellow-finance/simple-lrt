@@ -188,6 +188,28 @@ contract Unit is BaseTest {
         uint256 shares =
             IStrategy(withdrawalQueue.strategy()).shares(withdrawalQueue.isolatedVault());
 
+        IPauserRegistry pauserRegistry = IPauserRegistry(Constants.HOLESKY_EL_PAUSER_REGISTRY);
+        vm.startPrank(pauserRegistry.unpauser());
+        IPausable(withdrawalQueue.strategy()).pause(uint256(1)); // pause deposit
+        vm.stopPrank();
+
+        maxDeposit = eigenLayerAdapter.maxDeposit(eigenLayerVault);
+        assertEq(maxDeposit, 0, "maxDeposit not zero");
+
+        vm.startPrank(pauserRegistry.unpauser());
+        IPausable(withdrawalQueue.strategy()).unpause(0); // unpause all
+        vm.stopPrank();
+
+        maxDeposit = eigenLayerAdapter.maxDeposit(eigenLayerVault);
+        assertEq(
+            maxDeposit,
+            type(uint256).max
+                - IERC20(EigenLayerAdapter(eigenLayerAdapter).assetOf(eigenLayerVault)).balanceOf(
+                    withdrawalQueue.strategy()
+                ),
+            "maxDeposit"
+        );
+
         vm.startPrank(0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937);
         IDelegationManager(Constants.HOLESKY_EL_DELEGATION_MANAGER).undelegate(eigenLayerVault);
         vm.stopPrank();
