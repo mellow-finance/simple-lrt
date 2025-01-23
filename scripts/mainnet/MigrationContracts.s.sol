@@ -19,6 +19,10 @@ import {IBaseSlasher} from "@symbiotic/core/interfaces/slasher/IBaseSlasher.sol"
 import {IVetoSlasher} from "@symbiotic/core/interfaces/slasher/IVetoSlasher.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
+interface ISafe {
+    function getOwners() external view returns (address[] memory);
+}
+
 contract Deploy is Script {
     address public constant MELLOW_LIDO_MULTISIG = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
 
@@ -94,7 +98,20 @@ contract Deploy is Script {
             RE7LRT_CURATOR_MULTISIG
         ];
         string[6] memory names = ["roETH", "amphrETH", "pzETH", "steakLRT", "rstETH", "Re7LRT"];
-        for (uint256 i = 0; i < 6; i++) {
+        address[6] memory owners = [
+            0x4f9d7fa0D9101721b58889C0746424860086302A,
+            0xbD5919a0Bd6dE1Dc47E8597892FD25aa13A19599,
+            0xB4eB4DC7b6361594BcB8F7B40c6ac1ef9672f6AF,
+            0xe5a1ACe46E10B02961556F352cF151ad3b45d39C,
+            0xFEf39127235C265C4b58bd7638EF1EDeA815F128,
+            0x868419dBd5120E31BC7cCc9Fa90f73C4c7653089
+        ];
+        for (uint256 i = 1; i < 6; i++) {
+            {
+                address[] memory safeOwners = ISafe(owners[i]).getOwners();
+                require(safeOwners.length == 1 && safeOwners[0] == MIGRATOR_ADMIN, "owner mismatch");
+            }
+
             address curator = curators[i];
             address burner = burnerRouterFactory.create(
                 IBurnerRouter.InitParams({
@@ -109,7 +126,7 @@ contract Deploy is Script {
             (address vault, address delegator, address slasher) = vaultConfigurator.create(
                 IVaultConfigurator.InitParams({
                     version: VAULT_VERSION,
-                    owner: MELLOW_LIDO_MULTISIG,
+                    owner: owners[i],
                     vaultParams: abi.encode(
                         IVault.InitParams({
                             collateral: WSTETH,
