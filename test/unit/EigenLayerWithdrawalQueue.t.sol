@@ -321,22 +321,68 @@ contract Unit is BaseTest {
         assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 2: claimableAssetsOf");
     }
 
-    function testPull() external {
+    function testPullWstETH() external {
         address vaultAdmin = rnd.randAddress();
         (MultiVault vault,,,) = createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin);
         IEigenLayerWithdrawalQueue withdrawalQueue =
             EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
         address user1 = rnd.randAddress();
-        address user2 = rnd.randAddress();
 
         uint256 amount1 = 100 ether;
 
         deal(Constants.WSTETH(), user1, amount1);
-        deal(Constants.WSTETH(), user2, amount1);
 
         vm.startPrank(user1);
         IERC20(Constants.WSTETH()).approve(address(vault), amount1);
+        vault.deposit(amount1, user1);
+        vault.withdraw(amount1 / 2, user1, user1);
+        vm.stopPrank();
+
+        assertApproxEqAbs(
+            withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, 3, "stage 0: pendingAssetsOf"
+        );
+        assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
+
+        assertApproxEqAbs(
+            withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, 3, "stage 1: pendingAssetsOf"
+        );
+        assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 1: claimableAssetsOf");
+
+        vm.roll(block.number + 10); // skip delay
+
+        vm.expectRevert();
+        withdrawalQueue.pull(1);
+        withdrawalQueue.pull(0);
+
+        assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 2: pendingAssetsOf");
+        assertApproxEqAbs(
+            withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, 3, "stage 2: claimableAssetsOf"
+        );
+
+        // early exit because claimed
+        withdrawalQueue.pull(0);
+
+        vm.startPrank(user1);
+        withdrawalQueue.claim(user1, user1, withdrawalQueue.claimableAssetsOf(user1));
+        vm.stopPrank();
+    }
+
+    function testPull() external {
+        address vaultAdmin = rnd.randAddress();
+        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenVault(vaultAdmin);
+        IEigenLayerWithdrawalQueue withdrawalQueue =
+            EigenLayerWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
+
+        address user1 = rnd.randAddress();
+
+        uint256 amount1 = 100 ether;
+
+        deal(Constants.WSTETH(), user1, amount1);
+
+        vm.startPrank(user1);
+        amount1 = IWSTETH(Constants.WSTETH()).unwrap(amount1);
+        IERC20(Constants.STETH()).approve(address(vault), amount1);
         vault.deposit(amount1, user1);
         vault.withdraw(amount1 / 2, user1, user1);
         vm.stopPrank();
