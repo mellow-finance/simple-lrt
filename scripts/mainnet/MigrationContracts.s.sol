@@ -315,7 +315,5 @@ contract Deploy is Script {
         _deploySymbioticVaults();
 
         vm.stopBroadcast();
-
-        revert("WIP!!!");
     }
 }
