@@ -9,6 +9,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+interface IWSTETHExt is IWSTETH {
+    function stETH() external view returns (address);
+}
+
 contract Collector is Ownable {
     struct WithdrawalData {
         uint256 pendingAssets;
@@ -41,7 +45,8 @@ contract Collector is Ownable {
         uint256 lpPriceAssetD18; // LP price in asset weis 1e18 (due to chainlink decimals)
         uint256 lpPriceWSTETHD18; // LP price in WSTETH weis 1e8 (due to chainlink decimals)
         WithdrawalData withdrawalData; // withdrawal queue data
-        NetworkData[] networks;
+        address symbioticVault;
+        SymbioticModule.NetworkData[] networks;
     }
 
     uint256 private constant Q96 = 2 ** 96;
@@ -56,10 +61,10 @@ contract Collector is Ownable {
     Oracle public oracle;
     SymbioticModule public symbioticModule;
 
-    constructor(address wsteth_, address weth_, address steth_, address owner_) Ownable(owner_) {
+    constructor(address wsteth_, address weth_, address owner_) Ownable(owner_) {
         wsteth = wsteth_;
         weth = weth_;
-        steth = steth_;
+        steth = address(IWSTETHExt(wsteth_).stETH());
     }
 
     function setOracle(Oracle oracle_) external onlyOwner {
@@ -122,6 +127,9 @@ contract Collector is Ownable {
             pendingAssets: vault.pendingAssetsOf(user),
             claimableAssets: vault.claimableAssetsOf(user)
         });
+
+        response.symbioticVault = address(vault.symbioticVault());
+        response.networks = calculateNetworkLimits(response.symbioticVault, vault_);
     }
 
     function collect(address user, address[] memory vaults)
@@ -146,11 +154,28 @@ contract Collector is Ownable {
         }
     }
 
-    function calculateNetworkLimits(address vault)
+    function calculateNetworkLimits(address symbioticVault, address vault)
         public
         view
-        returns (NetworkData[] memory networks)
-    {}
+        returns (SymbioticModule.NetworkData[] memory networks)
+    {
+        networks = symbioticModule.getLimits(symbioticVault);
+        if (vault == address(0) || networks.length) {
+            return networks;
+        }
+        uint256 activeStake = ISymbioticVault(symbioticVault).activeStake();
+        uint256 vaultBalance = ISymbioticVault(symbioticVault).activeBalanceOf(vault);
+        if (vaultBalance < activeStake) {
+            for (uint256 i = 0; i < networks.length; i++) {
+                networks[i].limit = Math.mulDiv(networks[i].limit, vaultBalance, activeStake);
+                for (uint256 j = 0; j < networks[i].operators.length; j++) {
+                    networks[i].operators[j].slashableStake = Math.mulDiv(
+                        networks[i].operators[j].slashableStake, vaultBalance, activeStake
+                    );
+                }
+            }
+        }
+    }
 
     function fetchWithdrawalAmounts(uint256 lpAmount, address vault)
         external

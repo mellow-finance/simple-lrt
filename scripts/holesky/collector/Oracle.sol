@@ -42,12 +42,12 @@ contract Oracle {
         if (token == usdc) {
             return Q96;
         }
-        address usdOracle = usdOracle[token];
-        address ethOracle = ethOracle[token];
-        require(usdOracle != address(0) || ethOracle != address(0), "Oracle: usd oracle not set");
+        address usdOracle_ = usdOracle[token];
+        address ethOracle_ = ethOracle[token];
+        require(usdOracle_ != address(0) || ethOracle_ != address(0), "Oracle: usd oracle not set");
 
-        if (usdOracle != address(0)) {
-            return IOracle(usdOracle).priceX96();
+        if (usdOracle_ != address(0)) {
+            return IOracle(usdOracle_).priceX96();
         }
 
         return getUsdValue(weth, getEthPrice(token));
@@ -58,12 +58,12 @@ contract Oracle {
             return Q96;
         }
 
-        address ethOracle = ethOracle[token];
-        address usdOracle = usdOracle[token];
-        require(ethOracle != address(0) || usdOracle != address(0), "Oracle: eth oracle not set");
+        address ethOracle_ = ethOracle[token];
+        address usdOracle_ = usdOracle[token];
+        require(ethOracle_ != address(0) || usdOracle_ != address(0), "Oracle: eth oracle not set");
 
-        if (ethOracle != address(0)) {
-            return IOracle(ethOracle).priceX96();
+        if (ethOracle_ != address(0)) {
+            return IOracle(ethOracle_).priceX96();
         }
         return getEthValue(usdc, getUsdPrice(token));
     }
