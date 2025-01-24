@@ -8,6 +8,7 @@
     "test": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2560000",
     "test:solvency": "forge test -vv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2560000 --match-path test/solvency\\**.sol",
     "test:migrations:mainnet": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20760000 --match-test testMigrations",
+    "test:acceptance:mainnet:roeth": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --evm-version cancun --fork-block-number 21692588 --match-test testAcceptanceRoETHMigration",
     "test:acceptance:migration:holesky": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2560000 --match-test testAcceptanceMigrationOnlyDeployment",
     "compile": "forge build",
     "sizes": "forge build --sizes --force",
