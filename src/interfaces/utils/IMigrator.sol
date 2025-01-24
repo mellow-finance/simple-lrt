@@ -24,6 +24,8 @@ interface IMellowLRT {
         returns (address[] memory tokens, uint256[] memory amounts);
 
     function tvlModules() external view returns (address[] memory);
+
+    function pendingWithdrawersCount() external view returns (uint256);
 }
 
 interface IMellowLRTConfigurator {
