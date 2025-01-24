@@ -19,6 +19,7 @@
     "deploy:holesky:migration": "forge script --use 0.8.25 scripts/holesky/HoleskyMigrator.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
     "deploy:holesky:migration:stage": "forge script --use 0.8.25 scripts/holesky/HoleskyMigrationStage.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
     "deploy:holesky:migration:commit": "forge script --use 0.8.25 scripts/holesky/HoleskyMigrationCommit.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
-    "deploy:holesky:migration:emulation": "forge script --use 0.8.25 scripts/holesky/HoleskyMigrationEmulation.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)"
+    "deploy:holesky:migration:emulation": "forge script --use 0.8.25 scripts/holesky/HoleskyMigrationEmulation.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
+    "deploy:holesky:collector": "forge script --use 0.8.25 scripts/holesky/HoleskyCollector.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)"
   }
 }

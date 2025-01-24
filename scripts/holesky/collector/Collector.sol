@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
+import "../../../src/MellowSymbioticVault.sol";
+import "../../../src/interfaces/tokens/IWSTETH.sol";
+import "./Oracle.sol";
+import "./SymbioticModule.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "../../../src/interfaces/tokens/IWSTETH.sol";
-
-import "../../../src/MellowSymbioticVault.sol";
-import "./Oracle.sol";
-
-contract Collector {
+contract Collector is Ownable {
     struct WithdrawalData {
         uint256 pendingAssets;
         uint256 claimableAssets;
@@ -41,6 +41,7 @@ contract Collector {
         uint256 lpPriceAssetD18; // LP price in asset weis 1e18 (due to chainlink decimals)
         uint256 lpPriceWSTETHD18; // LP price in WSTETH weis 1e8 (due to chainlink decimals)
         WithdrawalData withdrawalData; // withdrawal queue data
+        NetworkData[] networks;
     }
 
     uint256 private constant Q96 = 2 ** 96;
@@ -51,13 +52,22 @@ contract Collector {
     address public immutable weth;
     address public immutable steth;
     address public constant eth = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    Oracle public immutable oracle;
 
-    constructor(address wsteth_, address weth_, address steth_, address oracle_) {
+    Oracle public oracle;
+    SymbioticModule public symbioticModule;
+
+    constructor(address wsteth_, address weth_, address steth_, address owner_) Ownable(owner_) {
         wsteth = wsteth_;
         weth = weth_;
         steth = steth_;
-        oracle = Oracle(oracle_);
+    }
+
+    function setOracle(Oracle oracle_) external onlyOwner {
+        oracle = oracle_;
+    }
+
+    function setSymbioticModule(SymbioticModule symbioticModule_) external onlyOwner {
+        symbioticModule = symbioticModule_;
     }
 
     function collect(address user, address vault_) public view returns (Response memory response) {
@@ -135,6 +145,12 @@ contract Collector {
             responses[i] = collect(users[i], vaults);
         }
     }
+
+    function calculateNetworkLimits(address vault)
+        public
+        view
+        returns (NetworkData[] memory networks)
+    {}
 
     function fetchWithdrawalAmounts(uint256 lpAmount, address vault)
         external
