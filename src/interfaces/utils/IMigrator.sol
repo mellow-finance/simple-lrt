@@ -26,6 +26,20 @@ interface IMellowLRT {
     function tvlModules() external view returns (address[] memory);
 
     function pendingWithdrawersCount() external view returns (uint256);
+
+    struct ProcessWithdrawalsStack {
+        address[] tokens;
+        uint128[] ratiosX96;
+        uint256[] erc20Balances;
+        uint256 totalSupply;
+        uint256 totalValue;
+        uint256 ratiosX96Value;
+        uint256 timestamp;
+        uint256 feeD9;
+        bytes32 tokensHash; // keccak256 hash of the tokens array at the moment of the call
+    }
+
+    function calculateStack() external view returns (ProcessWithdrawalsStack memory);
 }
 
 interface IMellowLRTConfigurator {
