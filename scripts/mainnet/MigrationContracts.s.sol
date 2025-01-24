@@ -106,7 +106,7 @@ contract Deploy is Script {
             0xFEf39127235C265C4b58bd7638EF1EDeA815F128,
             0x868419dBd5120E31BC7cCc9Fa90f73C4c7653089
         ];
-        for (uint256 i = 1; i < 6; i++) {
+        for (uint256 i = 0; i < 6; i++) {
             {
                 address[] memory safeOwners = ISafe(owners[i]).getOwners();
                 require(safeOwners.length == 1 && safeOwners[0] == MIGRATOR_ADMIN, "owner mismatch");
