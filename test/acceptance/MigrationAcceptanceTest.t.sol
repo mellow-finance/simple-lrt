@@ -47,29 +47,33 @@ contract AcceptanceMigrationTest is Test {
         {
             // stage.1 - symbioticVault = 0x575d6DD4EA8636E08952Bd7f8AF977081754B1B7
 
-            {
-                assertEq(migrator.timestamps(vault), 0, "Migration already started");
-                IMigrator.Parameters memory emptyParams;
-                assertEq(
-                    keccak256(abi.encode(migrator.migration(vault))),
-                    keccak256(abi.encode(emptyParams)),
-                    "Migration already started"
-                );
-                IMellowSymbioticVault.InitParams memory emptyInitParams;
-                assertEq(
-                    keccak256(abi.encode(migrator.vaultInitParams(vault))),
-                    keccak256(abi.encode(emptyInitParams)),
-                    "Migration already started"
-                );
+            if (block.number < 21696723) {
+                {
+                    assertEq(migrator.timestamps(vault), 0, "Migration already started");
+                    IMigrator.Parameters memory emptyParams;
+                    assertEq(
+                        keccak256(abi.encode(migrator.migration(vault))),
+                        keccak256(abi.encode(emptyParams)),
+                        "Migration already started"
+                    );
+                    IMellowSymbioticVault.InitParams memory emptyInitParams;
+                    assertEq(
+                        keccak256(abi.encode(migrator.vaultInitParams(vault))),
+                        keccak256(abi.encode(emptyInitParams)),
+                        "Migration already started"
+                    );
+                }
+
+                // stage.2:
+                vm.startPrank(vaultProxyAdminMultisig);
+                migrator.stageMigration(strategy, vaultAdminMultisig, proxyAdmin, symbioticVault);
+                vm.stopPrank();
+                assertEq(migrator.timestamps(vault), block.timestamp, "Invalid timestamp");
+            } else {
+                assertEq(migrator.timestamps(vault), 1737750167, "Invalid timestamp");
             }
 
-            // stage.2:
-            vm.startPrank(vaultProxyAdminMultisig);
-            migrator.stageMigration(strategy, vaultAdminMultisig, proxyAdmin, symbioticVault);
-            vm.stopPrank();
-
             {
-                assertEq(migrator.timestamps(vault), block.timestamp, "Invalid timestamp");
                 IMigrator.Parameters memory expectedParams = IMigrator.Parameters({
                     proxyAdmin: proxyAdmin,
                     proxyAdminOwner: vaultProxyAdminMultisig,
