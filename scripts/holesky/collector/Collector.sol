@@ -160,7 +160,7 @@ contract Collector is Ownable {
         returns (SymbioticModule.NetworkData[] memory networks)
     {
         networks = symbioticModule.getLimits(symbioticVault);
-        if (vault == address(0) || networks.length) {
+        if (vault == address(0) || networks.length == 0) {
             return networks;
         }
         uint256 activeStake = ISymbioticVault(symbioticVault).activeStake();
