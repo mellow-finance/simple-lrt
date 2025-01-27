@@ -87,7 +87,7 @@ contract FullMigrationTest is CompletionMigrationTest {
         assertEq(migrator.singleton(), IMPLEMENTATION_AFTER, "Invalid singleton implementation");
 
         IMellowLRT.ProcessWithdrawalsStack memory stack;
-
+        console2.log("VAULT_INDEX:", VAULT_INDEX);
         // stage phase:
         {
             if (!isPendingState) {
