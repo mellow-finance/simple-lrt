@@ -26,12 +26,8 @@ interface ISafe {
 contract Deploy is Script {
     address public constant MELLOW_LIDO_MULTISIG = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
 
-    address public constant COETH_CURATOR_MULTISIG = 0xD36BE1D5d02ffBFe7F9640C3757999864BB84979;
-    address public constant HCETH_CURATOR_MULTISIG = 0x323B1370eC7D17D0c70b2CbebE052b9ed0d8A289;
-    address public constant IFSETH_CURATOR_MULTISIG = 0x7d69615DDD0207ffaD3D89493f44362B471Cfc5C;
-    address public constant LUGAETH_CURATOR_MULTISIG = 0x5dbb14865609574ABE0d701B1E23E11dF8312548;
-    address public constant URLRT_CURATOR_MULTISIG = 0x013B33aAdae8aBdc7c2B1529BB28a37299D6EadE;
-    address public constant ISETH_CURATOR_MULTISIG = 0x903D4E20a3b70D6aE54E1Cb91Fec2E661E2af3A5;
+    address public constant CP0X_CURATOR_MULTISIG = 0xD1f59ba974E828dF68cB2592C16b967B637cB4e4;
+    address public constant HYVEX_CURATOR_MULTISIG = 0xE3a148b25Cca54ECCBD3A4aB01e235D154f03eFa;
 
     uint32 public constant EPOCH_DURATION = 7 days;
     uint32 public constant VETO_DURATION = 3 days;
@@ -50,7 +46,9 @@ contract Deploy is Script {
     address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public constant STETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
 
-    address public constant MIGRATOR_ADMIN = 0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
+    address public constant VAULT_PROXY_ADMIN = 0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
+
+    address public constant MELLOW_VAULT_FACTORY = 0x6EA5a344d116Db8949348648713760836D60fC5a;
 
     function _createArray(address curator) internal pure returns (address[] memory a) {
         a = new address[](1);
@@ -60,16 +58,9 @@ contract Deploy is Script {
     function _deploySymbioticVaults() internal {
         IVaultConfigurator vaultConfigurator = IVaultConfigurator(VAULT_CONFIGURATOR);
         IBurnerRouterFactory burnerRouterFactory = IBurnerRouterFactory(BURNER_ROUTER_FACTORY);
-        address[6] memory curators = [
-            COETH_CURATOR_MULTISIG,
-            HCETH_CURATOR_MULTISIG,
-            IFSETH_CURATOR_MULTISIG,
-            LUGAETH_CURATOR_MULTISIG,
-            URLRT_CURATOR_MULTISIG,
-            ISETH_CURATOR_MULTISIG
-        ];
-        string[6] memory names = ["coETH", "hcETH", "ifsETH", "LugaETH", "urLRT", "isETH"];
-        for (uint256 i = 0; i < 6; i++) {
+        address[2] memory curators = [CP0X_CURATOR_MULTISIG, HYVEX_CURATOR_MULTISIG];
+        string[2] memory names = ["cp0xLRT", "HYVEX"];
+        for (uint256 i = 0; i < names.length; i++) {
             address curator = curators[i];
             address burner = burnerRouterFactory.create(
                 IBurnerRouter.InitParams({
@@ -84,7 +75,7 @@ contract Deploy is Script {
             (address vault, address delegator, address slasher) = vaultConfigurator.create(
                 IVaultConfigurator.InitParams({
                     version: VAULT_VERSION,
-                    owner: MIGRATOR_ADMIN,
+                    owner: VAULT_PROXY_ADMIN,
                     vaultParams: abi.encode(
                         IVault.InitParams({
                             collateral: WSTETH,
