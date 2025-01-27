@@ -21,7 +21,7 @@ interface ISymbioticFactory {
     function isEntity(address entity) external view returns (bool);
 }
 
-contract AcceptanceMigrationTest is Test {
+contract CompletionMigrationTest is Test {
     address constant IMPLEMENTATION_AFTER = 0x09bBa67C316e59840699124a8DC0bBDa6A2A9d59;
     bytes32 constant INITIALIZABLE_STORAGE =
         0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00;
@@ -30,11 +30,14 @@ contract AcceptanceMigrationTest is Test {
 
     uint256 public PARIS_BYTECODE_LENGTH = 1106;
     uint256 public SHANGHAI_BYTECODE_LENGTH = 1076;
+    uint256 public CANCUN_BYTECODE_LENGTH = 1054;
 
     bytes32 constant EXPECTED_BYTECODE_HASH_PARIS =
         0x86bf442f4c724643a9602773f67abcd9c70db7092034d0e50ed084ec0bbdb1ba;
     bytes32 constant EXPECTED_BYTECODE_HASH_SHANGHAI =
         0xf0fef8f69bb49cd2a13055d413f2497fb1a5b3c3284d1cacab63d98a480c3858;
+    bytes32 constant EXPECTED_BYTECODE_HASH_CANCUN =
+        0xc8e791180744f196d2b9a58347a369f3b513f698e458effd4246864fae0c6ac0;
 
     address constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address constant SYMBIOTIC_VAULT_FACTORY = 0xAEb6bdd95c502390db8f52c8909F703E9Af6a346;
@@ -48,7 +51,8 @@ contract AcceptanceMigrationTest is Test {
     address constant VAULT_ADMIN_MULTISIG = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
     address constant VAULT_PROXY_ADMIN_MULTISIG = 0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
 
-    uint256 constant VAULT_INDEX = 0;
+    uint256 VAULT_INDEX = 0;
+
     address[18] VAULTS = [
         // 0 batch
         0x7b31F008c48EFb65da78eA0f255EE424af855249, // roETH
@@ -129,6 +133,12 @@ contract AcceptanceMigrationTest is Test {
                 mstore(proxy_, length)
             }
             require(keccak256(proxy_) == EXPECTED_BYTECODE_HASH_SHANGHAI, "unexpected bytecode");
+        } else if (proxy_.length == CANCUN_BYTECODE_LENGTH + 53) {
+            uint256 length = CANCUN_BYTECODE_LENGTH;
+            assembly {
+                mstore(proxy_, length)
+            }
+            require(keccak256(proxy_) == EXPECTED_BYTECODE_HASH_CANCUN, "unexpected bytecode");
         } else {
             revert("unknown bytecode length");
         }
@@ -147,7 +157,7 @@ contract AcceptanceMigrationTest is Test {
         );
     }
 
-    function testCompletionMigrationTest() external {
+    function testCompletionMigrationTest() external virtual {
         validateProxyBytecodes();
 
         MellowVaultCompat vault = MellowVaultCompat(VAULTS[VAULT_INDEX]);
@@ -160,7 +170,7 @@ contract AcceptanceMigrationTest is Test {
         validateSymbioticWithdrawalQueueState(vault, symbioticVault, queue);
     }
 
-    function validateVaultState(MellowVaultCompat vault) public {
+    function validateVaultState(MellowVaultCompat vault) public view {
         require(vault.getRoleMemberCount(vault.DEFAULT_ADMIN_ROLE()) == 1, "unexpected admin count");
         address vaultAdmin = vault.getRoleMember(vault.DEFAULT_ADMIN_ROLE(), 0);
         require(vaultAdmin == VAULT_ADMIN_MULTISIG, "unexpected admin");
@@ -221,6 +231,7 @@ contract AcceptanceMigrationTest is Test {
 
     function validateSymbioticVaultState(MellowVaultCompat vault, ISymbioticVault symbioticVault)
         public
+        view
     {
         require(
             ISymbioticFactory(SYMBIOTIC_VAULT_FACTORY).isEntity(address(symbioticVault)),
@@ -342,7 +353,7 @@ contract AcceptanceMigrationTest is Test {
         MellowVaultCompat vault,
         ISymbioticVault symbioticVault,
         ISymbioticWithdrawalQueue queue
-    ) public {
+    ) public view {
         require(address(queue) != address(0), "withdrawal queue not set");
         require(address(queue.vault()) == address(vault), "unexpected vault");
         require(
