@@ -10,6 +10,7 @@
     "test:migrations:mainnet": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20760000 --match-test testMigrations",
     "test:acceptance:mainnet:roeth": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --evm-version cancun --fork-block-number 21699706 --match-test testAcceptanceRoETHMigration",
     "test:acceptance:migration:holesky": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2560000 --match-test testAcceptanceMigrationOnlyDeployment",
+    "test:migration:acceptance": "forge test -vv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-test testCompletionMigrationTest",
     "compile": "forge build",
     "sizes": "forge build --sizes --force",
     "scc:report": "scc src --sort names --no-cocomo --exclude-dir interfaces --by-file --format wide > scc-report.txt",
