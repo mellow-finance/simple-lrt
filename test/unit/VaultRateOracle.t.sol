@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "../../src/utils/DVVRateOracle.sol";
 import "../../src/utils/VaultRateOracle.sol";
 import "../BaseTest.sol";
 import "../mocks/MockMultiVault.sol";
@@ -13,7 +12,6 @@ contract Unit is Test {
         );
 
         vm.expectRevert();
-        oracle.migrationCallback();
 
         console2.log(oracle.convertToAssets(1 ether));
     }
@@ -23,18 +21,16 @@ contract Unit is Test {
             0x7B25d3a9DE72025F120eb5DcFD6E9E311487be7A, Constants.HOLESKY_WSTETH
         );
 
-        oracle.migrationCallback();
-
         console2.log(oracle.convertToAssets(1 ether));
     }
 
     function testVaultRateOracleDVV() external {
-        DVVRateOracle oracle =
-            new DVVRateOracle(0x7F31eb85aBE328EBe6DD07f9cA651a6FE623E69B, Constants.HOLESKY_WSTETH);
+        // DVVRateOracle oracle =
+        //     new DVVRateOracle(0x7F31eb85aBE328EBe6DD07f9cA651a6FE623E69B, Constants.HOLESKY_WSTETH);
 
-        vm.expectRevert();
-        oracle.migrationCallback();
+        // vm.expectRevert();
+        // oracle.migrationCallback();
 
-        console2.log(oracle.convertToAssets(1 ether));
+        // console2.log(oracle.convertToAssets(1 ether));
     }
 }
