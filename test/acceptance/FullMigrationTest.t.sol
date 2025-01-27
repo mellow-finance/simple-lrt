@@ -29,46 +29,51 @@ contract FullMigrationTest is CompletionMigrationTest {
         address symbioticVault;
         address strategy;
         address proxyAdmin;
+        bool isPendingState;
     }
 
     function testCompletionMigrationTest() external override {
         Setup[5] memory setups = [
-            Setup("Rockmelon ETH", "roETH", address(0), address(0), address(0), address(0)),
+            Setup("Rockmelon ETH", "roETH", address(0), address(0), address(0), address(0), false),
             Setup(
                 "Steakhouse Resteaking Vault",
                 "steakLRT",
                 0xC915FADA26dc6c123620A9c2a7a55c1ad45b077A,
                 0xf7Ce770AbdD1895f2CB0989D7cf2A26705FF37a7,
                 0x7a14b34a9a8EA235C66528dc3bF3aeFC36DFc268,
-                0xed792a3fDEB9044C70c951260AaAe974Fb3dB38F
+                0xed792a3fDEB9044C70c951260AaAe974Fb3dB38F,
+                true
             ),
             Setup(
                 "Re7 Labs LRT",
                 "Re7LRT",
-                0xC915FADA26dc6c123620A9c2a7a55c1ad45b077A,
+                0x9668bd17947b2baD83857a75737faF17575628B8,
                 0x3D93b33f5E5fe74D54676720e70EA35210cdD46E,
                 0xcE3A8820265AD186E8C1CeAED16ae97176D020bA,
-                0xF076CF343DCfD01BBA57dFEB5C74F7B015951fcF
+                0xF076CF343DCfD01BBA57dFEB5C74F7B015951fcF,
+                true
             ),
             Setup(
                 "Amphor Restaked ETH",
                 "amphrETH",
-                0xC915FADA26dc6c123620A9c2a7a55c1ad45b077A,
+                0x2142acB6b0424578d443A4b2E396a1b7cFb5c1e9,
                 0x446970400e1787814CA050A4b45AE9d21B3f7EA7,
                 0xc3A149b5Ca3f4A5F17F5d865c14AA9DBb570F10A,
-                0xc24891B75ef55fedC377c5e6Ec59A850b12E23ac
+                0xc24891B75ef55fedC377c5e6Ec59A850b12E23ac,
+                true
             ),
             Setup(
                 "Renzo Restaked LST ",
                 "pzETH",
-                0xC915FADA26dc6c123620A9c2a7a55c1ad45b077A,
+                0xcDbff91f6fCcDa7367d71b065c7494526b830A89,
                 0xa88e91cEF50b792f9449e2D4C699b6B3CcE1D19F,
                 0xE8206Fbf2D9F9E7fbf2F7b997E20a34f9158cC14,
-                0x985E459801d37749C331BBd2673B665b9114fB01
+                0x985E459801d37749C331BBd2673B665b9114fB01,
+                true
             )
         ];
 
-        VAULT_INDEX = 4;
+        VAULT_INDEX = 1;
         address vault = VAULTS[VAULT_INDEX];
         string memory name = setups[VAULT_INDEX].name;
         string memory symbol = setups[VAULT_INDEX].symbol;
@@ -77,6 +82,7 @@ contract FullMigrationTest is CompletionMigrationTest {
         address symbioticVault = setups[VAULT_INDEX].symbioticVault;
         address strategy = setups[VAULT_INDEX].strategy;
         address proxyAdmin = setups[VAULT_INDEX].proxyAdmin;
+        bool isPendingState = setups[VAULT_INDEX].isPendingState;
 
         assertEq(migrator.singleton(), IMPLEMENTATION_AFTER, "Invalid singleton implementation");
 
@@ -84,7 +90,7 @@ contract FullMigrationTest is CompletionMigrationTest {
 
         // stage phase:
         {
-            {
+            if (!isPendingState) {
                 assertEq(migrator.timestamps(vault), 0, "Migration already started");
                 IMigrator.Parameters memory emptyParams;
                 assertEq(
@@ -100,11 +106,13 @@ contract FullMigrationTest is CompletionMigrationTest {
                 );
             }
 
-            // stage.2:
-            vm.startPrank(vaultProxyAdminMultisig);
-            migrator.stageMigration(strategy, vaultAdminMultisig, proxyAdmin, symbioticVault);
-            vm.stopPrank();
-            assertEq(migrator.timestamps(vault), block.timestamp, "Invalid timestamp");
+            if (!isPendingState) {
+                // stage.2:
+                vm.startPrank(vaultProxyAdminMultisig);
+                migrator.stageMigration(strategy, vaultAdminMultisig, proxyAdmin, symbioticVault);
+                vm.stopPrank();
+                assertEq(migrator.timestamps(vault), block.timestamp, "Invalid timestamp");
+            }
 
             {
                 IMigrator.Parameters memory expectedParams = IMigrator.Parameters({
@@ -140,22 +148,20 @@ contract FullMigrationTest is CompletionMigrationTest {
                 );
             }
 
-            {
-                // IMPORTANT WONT WORK FOR RENZO!
-
+            if (!isPendingState) {
                 assertFalse(
                     IAccessControl(strategy).hasRole(OPERATOR, address(migrator)),
                     "Operator role already granted"
                 );
-            }
 
-            // stage.3:
-            vm.startPrank(vaultAdminMultisig);
-            if (!IAccessControl(strategy).hasRole(ADMIN_DELEGATE_ROLE, vaultAdminMultisig)) {
-                IAccessControl(strategy).grantRole(ADMIN_DELEGATE_ROLE, vaultAdminMultisig);
+                // stage.3:
+                vm.startPrank(vaultAdminMultisig);
+                if (!IAccessControl(strategy).hasRole(ADMIN_DELEGATE_ROLE, vaultAdminMultisig)) {
+                    IAccessControl(strategy).grantRole(ADMIN_DELEGATE_ROLE, vaultAdminMultisig);
+                }
+                IAccessControl(strategy).grantRole(OPERATOR, address(migrator));
+                vm.stopPrank();
             }
-            IAccessControl(strategy).grantRole(OPERATOR, address(migrator));
-            vm.stopPrank();
 
             {
                 assertTrue(
