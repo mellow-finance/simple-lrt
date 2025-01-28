@@ -62,11 +62,12 @@ contract CompletionMigrationTest is Test {
         0x5fD13359Ba15A84B76f7F87568309040176167cd, // amphrETH
         0x8c9532a60E0E7C6BbD2B2c1303F63aCE1c3E9811, // pzETH
         // 2 batch
+        0x7a4EffD87C2f3C55CA251080b1343b605f327E3a, // rstETH
+        0xd6E09a5e6D719d1c881579C9C8670a210437931b, // coETH
+        0x375A8eE22280076610cA2B4348d37cB1bEEBeba0, // hcETH
         0x49cd586dd9BA227Be9654C735A659a1dB08232a9, // ifsETH
         0x82dc3260f599f4fC4307209A1122B6eAa007163b, // LugaETH
-        0xd6E09a5e6D719d1c881579C9C8670a210437931b, // coETH
         0x4f3Cc6359364004b245ad5bE36E6ad4e805dC961, // urLRT
-        0x375A8eE22280076610cA2B4348d37cB1bEEBeba0, // hcETH
         0xcC36e5272c422BEE9A8144cD2493Ac472082eBaD, // isETH
         // 2.5 batch
         0x82f5104b23FF2FA54C2345F821dAc9369e9E0B26, // rsUSDe
@@ -75,8 +76,6 @@ contract CompletionMigrationTest is Test {
         0x64047dD3288276d70A4F8B5Df54668c8403f877F, // amphrBTC
         0x3a828C183b3F382d030136C824844Ea30145b4c7, // Re7rtBTC
         // 3 batch
-        0x7a4EffD87C2f3C55CA251080b1343b605f327E3a, // rstETH
-        // 4 batch
         0x5E362eb2c0706Bd1d134689eC75176018385430B // DVstETH
     ];
 
@@ -89,12 +88,13 @@ contract CompletionMigrationTest is Test {
         0xA1E38210B06A05882a7e7Bfe167Cd67F07FA234A, // amphrETH
         0x6e5CaD73D00Bc8340f38afb61Fc5E34f7193F599, // pzETH
         // 2 batch
-        address(0), // ifsETH
-        address(0), // LugaETH
-        address(0), // coETH
-        address(0), // urLRT
-        address(0), // hcETH
-        address(0), // isETH
+        0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433, // rstETH
+        0xD36BE1D5d02ffBFe7F9640C3757999864BB84979, // coETH
+        0x323B1370eC7D17D0c70b2CbebE052b9ed0d8A289, // hcETH
+        0x7d69615DDD0207ffaD3D89493f44362B471Cfc5C, // ifsETH
+        0x5dbb14865609574ABE0d701B1E23E11dF8312548, // LugaETH
+        0x013B33aAdae8aBdc7c2B1529BB28a37299D6EadE, // urLRT
+        0x903D4E20a3b70D6aE54E1Cb91Fec2E661E2af3A5, // isETH
         // 2.5 batch
         address(0), // rsUSDe
         address(0), // rsENA
@@ -102,8 +102,6 @@ contract CompletionMigrationTest is Test {
         address(0), // amphrBTC
         address(0), // Re7rtBTC
         // 3 batch
-        0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433, // rstETH
-        // 4 batch
         address(0) // DVstETH
     ];
 
@@ -251,6 +249,7 @@ contract CompletionMigrationTest is Test {
             ISymbioticFactory(SYMBIOTIC_DELEGATOR_FACTORY).isEntity(symbioticVault.delegator()),
             "symbiotic delegator not registered"
         );
+        require(symbioticVault.isDepositLimit(), "symbiotic vault deposit limit is not enabled");
 
         INetworkRestakeDelegator delegator = INetworkRestakeDelegator(symbioticVault.delegator());
         require(delegator.TYPE() == DELEGATOR_TYPE, "unexpected delegator type");
