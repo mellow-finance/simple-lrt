@@ -82,7 +82,7 @@ contract Deploy is Script {
                             burner: burner,
                             epochDuration: EPOCH_DURATION,
                             depositWhitelist: true,
-                            isDepositLimit: false,
+                            isDepositLimit: true,
                             depositLimit: 0,
                             defaultAdminRoleHolder: MELLOW_LIDO_MULTISIG,
                             depositWhitelistSetRoleHolder: MELLOW_LIDO_MULTISIG,
