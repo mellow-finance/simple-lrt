@@ -11,7 +11,7 @@
     "test:acceptance:mainnet:roeth": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --evm-version cancun --fork-block-number 21699706 --match-test testAcceptanceRoETHMigration",
     "test:acceptance:migration:holesky": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2560000 --match-test testAcceptanceMigrationOnlyDeployment",
     "test:migration:acceptance:completion": "forge test -vv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./test/acceptance/CompletionMigrationTest.t.sol",
-    "test:migration:acceptance:full": "forge test -vv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./test/acceptance/FullMigrationTest.t.sol --evm-version cancun --fork-block-number 21721500",
+    "test:migration:acceptance:full": "forge test -vv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./test/acceptance/FullMigrationTest.t.sol --evm-version cancun --fork-block-number 21723473",
     "test:factory:acceptance:batch1": "forge test -vv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./test/acceptance/AcceptanceFactoryTest.t.sol --match-test testAcceptanceFactoryBatch1WstETH --evm-version cancun --fork-block-number 21721500",
     "compile": "forge build",
     "sizes": "forge build --sizes --force",
