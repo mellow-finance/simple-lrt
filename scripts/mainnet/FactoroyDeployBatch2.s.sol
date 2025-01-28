@@ -128,11 +128,10 @@ contract Deploy is Script {
             })
         );
 
-        console2.log("curator multisig", s.curator);
-        console2.log("symbiotic vault", symbioticVault);
-        console2.log("delegator", delegator);
-        console2.log("slasher", slasher);
-        console2.log("burner", burner);
+        console2.log("SymbioticVault", symbioticVault);
+        console2.log("Delegator", delegator);
+        console2.log("VetoSlasher", slasher);
+        console2.log("RouterBurner", burner);
 
         return symbioticVault;
     }
@@ -154,21 +153,7 @@ contract Deploy is Script {
             asset, 0, vaultAdminMultisig
         );
 
-        IMellowSymbioticVaultFactory.InitParams memory initParams = IMellowSymbioticVaultFactory
-            .InitParams({
-            proxyAdmin: vaultProxyAdminMultisig,
-            limit: vaultLimit,
-            symbioticCollateral: defaultCollateral,
-            symbioticVault: address(0),
-            admin: vaultAdminMultisig,
-            depositPause: false,
-            withdrawalPause: false,
-            depositWhitelist: false,
-            name: vaultName,
-            symbol: vaultSymbol
-        });
-
-        initParams.symbioticVault = _deploySymbioticVault(
+        address symbioticVault = _deploySymbioticVault(
             Stack({
                 asset: asset,
                 globalReceiver: globalReceiver,
@@ -180,14 +165,34 @@ contract Deploy is Script {
             })
         );
 
-        (IMellowSymbioticVault vault, IWithdrawalQueue withdrawalQueue) = factory.create(initParams);
-
-        console2.log(
-            "Vault (%s) created: %s, withdrawalQueue: %s",
-            initParams.symbol,
-            address(vault),
-            address(withdrawalQueue)
+        (IMellowSymbioticVault vault, IWithdrawalQueue withdrawalQueue) = factory.create(
+            IMellowSymbioticVaultFactory.InitParams({
+                proxyAdmin: vaultProxyAdminMultisig,
+                limit: vaultLimit,
+                symbioticCollateral: defaultCollateral,
+                symbioticVault: symbioticVault,
+                admin: vaultAdminMultisig,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                name: vaultName,
+                symbol: vaultSymbol
+            })
         );
+
+        console2.log("MellowSymbioticVault:", address(vault));
+        console2.log("SymbioticWithdrawalQueue:", address(withdrawalQueue));
+        console2.log("DefaultCollateral:", defaultCollateral);
+        console2.log("VaultAdminMultisig:", vaultAdminMultisig);
+        console2.log("VaultProxyAdminMultisig:", vaultProxyAdminMultisig);
+        console2.log("Curator:", curator);
+        console2.log("VaultEpochDuration:", vaultEpochDuration);
+        console2.log("VetoDuration:", vetoDuration);
+        console2.log("Asset:", asset);
+        console2.log("VaultLimit:", vaultLimit);
+        console2.log("GlobalReceiver:", globalReceiver);
+        console2.log("VaultName:", vaultName);
+        console2.log("VaultSymbol:", vaultSymbol);
     }
 
     function run() external {
