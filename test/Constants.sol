@@ -85,7 +85,17 @@ library Constants {
                 operatorNetworkOptInService: address(0x58973d16FFA900D11fC22e5e2B6840d9f7e13401)
             });
         } else if (block.chainid == 1) {
-            revert("Not yet implemented");
+            return SymbioticDeployment({
+                networkRegistry: address(0xC773b1011461e7314CF05f97d95aa8e92C1Fd8aA),
+                operatorRegistry: address(0xAd817a6Bc954F678451A71363f04150FDD81Af9F),
+                vaultFactory: address(0xAEb6bdd95c502390db8f52c8909F703E9Af6a346),
+                delegatorFactory: address(0x985Ed57AF9D475f1d83c1c1c8826A0E5A34E8C7B),
+                slasherFactory: address(0x685c2eD7D59814d2a597409058Ee7a92F21e48Fd),
+                vaultConfigurator: address(0x29300b1d3150B4E2b12fE80BE72f365E200441EC),
+                networkMiddlewareService: address(0xD7dC9B366c027743D90761F71858BCa83C6899Ad),
+                operatorVaultOptInService: address(0xb361894bC06cbBA7Ea8098BF0e32EB1906A5F891),
+                operatorNetworkOptInService: address(0x7133415b33B438843D581013f98A08704316633c)
+            });
         } else {
             revert("Unsupported chain");
         }
