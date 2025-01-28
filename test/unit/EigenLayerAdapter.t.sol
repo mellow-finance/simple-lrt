@@ -152,6 +152,21 @@ contract Unit is BaseTest {
         rewardsMerkleClaim.tokenIndices = new uint32[](1);
         vm.expectRevert("RewardsCoordinator._verifyEarnerClaimProof: invalid earner claim proof");
         vault.pushRewards(0, abi.encode(rewardsMerkleClaim));
+
+        assertEq(IsolatedEigenLayerVault(isolatedVault).isDelegated(), true, "not delegated");
+        address delegation =
+            address(IStrategyManager(Constants.HOLESKY_EL_STRATEGY_MANAGER).delegation());
+        vm.expectRevert("IsolatedEigenLayerVault: already delegated");
+        IsolatedEigenLayerVault(isolatedVault).delegateTo(
+            delegation, 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937, signature, bytes32(uint256(0))
+        );
+
+        vm.expectRevert("Only vault");
+        IsolatedEigenLayerVault(isolatedVault).processClaim(
+            IRewardsCoordinator(Constants.HOLESKY_EL_REWARDS_COORDINATOR),
+            rewardsMerkleClaim,
+            IERC20(rewardToken)
+        );
     }
 
     function testMaxDeposit() external {
