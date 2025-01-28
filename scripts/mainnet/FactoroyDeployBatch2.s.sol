@@ -45,6 +45,13 @@ contract Deploy is Script {
 
     address public constant DEFAULT_COLLATERAL_FACTORY = 0x1BC8FCFbE6Aa17e4A7610F51B888f34583D202Ec;
 
+    uint48 public constant IBTC_VAULT_EPOCH_DURATION = 10 days;
+    uint48 public constant IBTC_VETO_DURATION = 4 days;
+
+    address public constant IBTC_GLOBAL_RECEIVER = address(0xdead);
+
+    uint256 public constant IBTC_VAULT_LIMIT = 235e8;
+
     function _createArray(address curator) internal pure returns (address[] memory a) {
         a = new address[](1);
         a[0] = curator;
@@ -128,14 +135,14 @@ contract Deploy is Script {
     function _deployVaults() internal {
         IMellowSymbioticVaultFactory factory = IMellowSymbioticVaultFactory(MELLOW_VAULT_FACTORY);
         address curator = IBTC_CURATOR;
-        uint48 vaultEpochDuration = 10 days;
-        uint48 vetoDuration = 4 days;
-
+        uint48 vaultEpochDuration = IBTC_VAULT_EPOCH_DURATION;
+        uint48 vetoDuration = IBTC_VETO_DURATION;
         address vaultAdminMultisig = IBTC_VAULT_ADMIN;
         address vaultProxyAdminMultisig = IBTC_VAULT_PROXY_ADMIN;
         address asset = IBTC;
-
-        address globalReceiver = address(0xdead);
+        uint256 vaultLimit = IBTC_VAULT_LIMIT;
+        address globalReceiver = IBTC_GLOBAL_RECEIVER;
+        
         address defaultCollateral = IDefaultCollateralFactory(DEFAULT_COLLATERAL_FACTORY).create(
             asset, 0, vaultAdminMultisig
         );
@@ -143,7 +150,7 @@ contract Deploy is Script {
         IMellowSymbioticVaultFactory.InitParams memory initParams = IMellowSymbioticVaultFactory
             .InitParams({
             proxyAdmin: vaultProxyAdminMultisig,
-            limit: 235e8,
+            limit: vaultLimit,
             symbioticCollateral: defaultCollateral,
             symbioticVault: address(0),
             admin: vaultAdminMultisig,
