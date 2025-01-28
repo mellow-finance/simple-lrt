@@ -83,7 +83,7 @@ contract FullMigrationTest is CompletionMigrationTest {
             Setup(
                 "Chorus One Restaking Vault ETH",
                 "coETH",
-                0x351875e6348120b71281808870435bF6d5F406BD,
+                0x0457ca1581941f7fFa5FbeC48Bd25E6FDFb80C26,
                 0x7154633EdA7569021e5b1cfCbf953715F8775CA8,
                 0xE73C97e07dF948A046505f8c63c4B54D632D4972,
                 0x0375178C4D752b3ae35D806c6bB60D07faECbA5E,
@@ -92,7 +92,7 @@ contract FullMigrationTest is CompletionMigrationTest {
             Setup(
                 "HashKey Cloud Restaked ETH",
                 "hcETH",
-                0x351875e6348120b71281808870435bF6d5F406BD,
+                0xFC6D07202F5B73707AF35Cc546c181363B63bE10,
                 0x108784D6B93A010f62b652b2356697dAEF3D7341,
                 0x398fDbC08D2D01FEF44dDF44FC22F992bd2C320A,
                 0xFFad6500aF7814540C27EA73d45F125F5fBebAE3,
@@ -101,7 +101,7 @@ contract FullMigrationTest is CompletionMigrationTest {
             Setup(
                 "InfStones Restaked ETH",
                 "ifsETH",
-                0x351875e6348120b71281808870435bF6d5F406BD,
+                0x5e4Ef16FB0C1DE57bF204cEb8cA0B154d911142e,
                 0x08144D10f6Aaa152EA88a99072a659E339d6152f,
                 0x20ad4d9bbbBBeE7d3abA91558a02c17c3387b834,
                 0xD09b3193bB71B98027dd0f1a34eeAebd04b2e47c,
@@ -110,7 +110,7 @@ contract FullMigrationTest is CompletionMigrationTest {
             Setup(
                 "LugaETH",
                 "LugaETH",
-                0x351875e6348120b71281808870435bF6d5F406BD,
+                0x7d81A47925ecAC5A8E3cd839bAa14749909442de,
                 0x48bef6aB76E31737d94cF7b3B1dba52EDDEe1cAd,
                 0xa80575b793aabD32EDb39759c975534D75a4A2A4,
                 0x3c1C6A3e94Bc607ac947D4520e2E9161a4183D4D,
@@ -119,7 +119,7 @@ contract FullMigrationTest is CompletionMigrationTest {
             Setup(
                 "unified restaked LRT",
                 "urLRT",
-                0x351875e6348120b71281808870435bF6d5F406BD,
+                0x7fBB995A36C85420E59d0f1B8D4874e89A660FaC,
                 0xf890434A395e3978622Ac0ae1412934bEfeB09Ff,
                 0x65fFC47625200A358f5Cdf7103E6D936EcF1a7D5,
                 0x75a7fB388A38E12747D147fD8d38Bbc5Bb860Cf3,
@@ -128,7 +128,7 @@ contract FullMigrationTest is CompletionMigrationTest {
             Setup(
                 "InfraSingularity Restaked ETH",
                 "isETH",
-                0x351875e6348120b71281808870435bF6d5F406BD,
+                0x5CaA0B278aa5437291dE6F6A742190e680c8e9d8,
                 0xbA91473072EBD125C3cB8D251fd02bf21FDea8Df,
                 0x8e48Cf252Ec9E62AAAD881165674cb7403e7Ce6C,
                 0xCF4E33Ae47fE9C5d6390c1868B6aBB068e1e40Ec,
@@ -136,7 +136,7 @@ contract FullMigrationTest is CompletionMigrationTest {
             )
         ];
 
-        VAULT_INDEX = 5;
+        VAULT_INDEX = 6;
         address vault = VAULTS[VAULT_INDEX];
         string memory name = setups[VAULT_INDEX].name;
         string memory symbol = setups[VAULT_INDEX].symbol;
