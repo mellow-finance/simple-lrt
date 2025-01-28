@@ -33,7 +33,7 @@ contract FullMigrationTest is CompletionMigrationTest {
     }
 
     function testCompletionMigrationTest() external override {
-        Setup[5] memory setups = [
+        Setup[12] memory setups = [
             Setup("Rockmelon ETH", "roETH", address(0), address(0), address(0), address(0), false),
             Setup(
                 "Steakhouse Resteaking Vault",
@@ -70,10 +70,73 @@ contract FullMigrationTest is CompletionMigrationTest {
                 0xE8206Fbf2D9F9E7fbf2F7b997E20a34f9158cC14,
                 0x985E459801d37749C331BBd2673B665b9114fB01,
                 true
+            ),
+            Setup(
+                "Restaking Vault ETH",
+                "rstETH",
+                address(0),
+                0x7b276aAD6D2ebfD7e270C5a2697ac79182D9550E,
+                0xA0ea6d4fe369104eD4cc18951B95C3a43573C0F6,
+                0x17AC6A90eD880F9cE54bB63DAb071F2BD3FE3772,
+                false
+            ),
+            Setup(
+                "Chorus One Restaking Vault ETH",
+                "coETH",
+                address(0),
+                0x7154633EdA7569021e5b1cfCbf953715F8775CA8,
+                0xE73C97e07dF948A046505f8c63c4B54D632D4972,
+                0x0375178C4D752b3ae35D806c6bB60D07faECbA5E,
+                false
+            ),
+            Setup(
+                "HashKey Cloud Restaked ETH",
+                "hcETH",
+                address(0),
+                0x108784D6B93A010f62b652b2356697dAEF3D7341,
+                0x398fDbC08D2D01FEF44dDF44FC22F992bd2C320A,
+                0xFFad6500aF7814540C27EA73d45F125F5fBebAE3,
+                false
+            ),
+            Setup(
+                "InfStones Restaked ETH",
+                "ifsETH",
+                address(0),
+                0x08144D10f6Aaa152EA88a99072a659E339d6152f,
+                0x20ad4d9bbbBBeE7d3abA91558a02c17c3387b834,
+                0xD09b3193bB71B98027dd0f1a34eeAebd04b2e47c,
+                false
+            ),
+            Setup(
+                "LugaETH",
+                "LugaETH",
+                address(0),
+                0x48bef6aB76E31737d94cF7b3B1dba52EDDEe1cAd,
+                0xa80575b793aabD32EDb39759c975534D75a4A2A4,
+                0x3c1C6A3e94Bc607ac947D4520e2E9161a4183D4D,
+                false
+            ),
+            Setup(
+                "unified restaked LRT",
+                "urLRT",
+                address(0),
+                0xf890434A395e3978622Ac0ae1412934bEfeB09Ff,
+                0x65fFC47625200A358f5Cdf7103E6D936EcF1a7D5,
+                0x75a7fB388A38E12747D147fD8d38Bbc5Bb860Cf3,
+                false
+            ),
+            Setup(
+                "InfraSingularity Restaked ETH",
+                "isETH",
+                address(0),
+                0xbA91473072EBD125C3cB8D251fd02bf21FDea8Df,
+                0x8e48Cf252Ec9E62AAAD881165674cb7403e7Ce6C,
+                0xCF4E33Ae47fE9C5d6390c1868B6aBB068e1e40Ec,
+                false
             )
         ];
 
-        VAULT_INDEX = 1;
+        VAULT_INDEX = 5;
         address vault = VAULTS[VAULT_INDEX];
         string memory name = setups[VAULT_INDEX].name;
         string memory symbol = setups[VAULT_INDEX].symbol;
