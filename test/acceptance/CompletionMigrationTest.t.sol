@@ -51,6 +51,8 @@ contract CompletionMigrationTest is Test {
     address constant VAULT_ADMIN_MULTISIG = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
     address constant VAULT_PROXY_ADMIN_MULTISIG = 0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
 
+    address public constant WSTETH_BURNER = 0xdCaC890b14121FD5D925E2589017Be68C2B5B324;
+
     uint256 VAULT_INDEX = 0;
 
     address[18] VAULTS = [
@@ -320,7 +322,7 @@ contract CompletionMigrationTest is Test {
         );
 
         require(
-            router.globalReceiver() == CURATORS[VAULT_INDEX],
+            router.globalReceiver() == (VAULT_INDEX <= 5 ? CURATORS[VAULT_INDEX] : WSTETH_BURNER),
             "unexpected global receiver of the slashed funds"
         );
 
