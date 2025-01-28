@@ -42,8 +42,8 @@ contract Deploy is Script {
     address public constant IBTC = 0x20157DBAbb84e3BBFE68C349d0d44E48AE7B5AD2;
     address public constant IBTC_CURATOR = 0xce4E73137CBb37dB2561d4f85722B4FCa52Eb38e;
 
-    address public constant IBTC_VAULT_ADMIN = address(1);
-    address public constant IBTC_VAULT_PROXY_ADMIN = address(2);
+    address public constant IBTC_VAULT_ADMIN = 0xe92931C82cD709A65a37fF87740Ba6930C54200f;
+    address public constant IBTC_VAULT_PROXY_ADMIN = 0xD0Ad0f374e6312F0700C3C2119e7cd3204236e06;
 
     address public constant DEFAULT_COLLATERAL_FACTORY = 0x1BC8FCFbE6Aa17e4A7610F51B888f34583D202Ec;
 
