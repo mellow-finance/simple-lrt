@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
+import "../adapters/SymbioticAdapter.sol";
 import "../interfaces/vaults/IMellowSymbioticVault.sol";
+import "../vaults/MultiVault.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import "../adapters/SymbioticAdapter.sol";
-import "../vaults/MultiVault.sol";
-
 contract Migrator {
+    mapping(address vault => bool) private _isEntity;
+    address[] private _entities;
+
     struct MigrationData {
         address proxyAdminOwner;
         address vault;
@@ -48,6 +50,9 @@ contract Migrator {
         if (migrations[address(proxyAdmin)].timestamp != 0) {
             revert("Migrator: vault migration already staged");
         }
+        if (_isEntity[vault]) {
+            revert("Migrator: vault already migrated");
+        }
         data = MigrationData({
             proxyAdminOwner: proxyAdminOwner,
             vault: vault,
@@ -77,6 +82,9 @@ contract Migrator {
         if (proxyAdmin.owner() != address(this)) {
             revert("Migrator: ownership not transferred to migrator");
         }
+        if (data.timestamp > block.timestamp) {
+            revert("Migrator: migration not ready");
+        }
         IMellowSymbioticVault vault = IMellowSymbioticVault(data.vault);
         address symbioticVault = vault.symbioticVault();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter{
@@ -86,7 +94,7 @@ contract Migrator {
             ITransparentUpgradeableProxy(address(vault)),
             multiVaultSingleton,
             abi.encodeCall(
-                MultiVault.initialize,
+                IMultiVault.initialize,
                 (
                     IMultiVault.InitParams({
                         admin: address(this),
@@ -116,7 +124,27 @@ contract Migrator {
         multiVault.renounceRole(multiVault.DEFAULT_ADMIN_ROLE(), address(this));
         delete migrations[address(proxyAdmin)];
 
+        // Mark the vault as migrated and store it in the list of entities
+        _isEntity[address(vault)] = true;
+        _entities.push(address(vault));
+
         emit MigrationExecuted(address(proxyAdmin), data);
+    }
+
+    function entities() external view returns (address[] memory) {
+        return _entities;
+    }
+
+    function entitiesLength() external view returns (uint256) {
+        return _entities.length;
+    }
+
+    function isEntity(address entity) public view returns (bool) {
+        return _isEntity[entity];
+    }
+
+    function entityAt(uint256 index) external view returns (address) {
+        return _entities[index];
     }
 
     event MigrationStaged(address indexed proxyAdmin, MigrationData data);
