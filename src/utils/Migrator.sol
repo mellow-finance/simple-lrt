@@ -131,6 +131,7 @@ contract Migrator {
         multiVault.addSubvault(symbioticVault, IMultiVaultStorage.Protocol.SYMBIOTIC);
         multiVault.renounceRole(multiVault.ADD_SUBVAULT_ROLE(), address(this));
         multiVault.renounceRole(multiVault.DEFAULT_ADMIN_ROLE(), address(this));
+        proxyAdmin.transferOwnership(data.proxyAdminOwner);
         delete migrations[address(proxyAdmin)];
 
         _isEntity[address(vault)] = true;
