@@ -65,7 +65,7 @@ contract Migrator {
         data = MigrationData({
             proxyAdminOwner: proxyAdminOwner,
             vault: vault,
-            timestamp: block.timestamp
+            timestamp: block.timestamp + migrationDelay
         });
         migrations[address(proxyAdmin)] = data;
         emit MigrationStaged(address(proxyAdmin), data);
