@@ -74,7 +74,7 @@ contract Migrator {
         emit MigrationCancelled(address(proxyAdmin));
     }
 
-    function migrate(ProxyAdmin proxyAdmin) external {
+    function executeMigration(ProxyAdmin proxyAdmin) external {
         MigrationData memory data = migrations[address(proxyAdmin)];
         if (data.proxyAdminOwner != msg.sender) {
             revert("Migrator: sender not owner");
@@ -124,7 +124,6 @@ contract Migrator {
         multiVault.renounceRole(multiVault.DEFAULT_ADMIN_ROLE(), address(this));
         delete migrations[address(proxyAdmin)];
 
-        // Mark the vault as migrated and store it in the list of entities
         _isEntity[address(vault)] = true;
         _entities.push(address(vault));
 
