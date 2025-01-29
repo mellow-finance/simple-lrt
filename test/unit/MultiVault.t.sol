@@ -13,7 +13,13 @@ contract Unit is BaseTest {
     }
 
     function testInitialize() external {
-        MultiVault c = new MultiVault("test", 1);
+        MultiVault c;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            c = MultiVault(address(c_));
+        }
 
         assertEq(c.getRoleMemberCount(c.DEFAULT_ADMIN_ROLE()), 0);
         assertEq(c.limit(), 0);
@@ -67,16 +73,33 @@ contract Unit is BaseTest {
     }
 
     function testAddSubvault() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
 
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        address wsteth = Constants.WSTETH();
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),
@@ -127,16 +150,34 @@ contract Unit is BaseTest {
     }
 
     function testRemoveSubvault() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
 
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        address wsteth = Constants.WSTETH();
+        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),
@@ -197,16 +238,34 @@ contract Unit is BaseTest {
     }
 
     function testSetDepositStrategy() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
 
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        address wsteth = Constants.WSTETH();
+        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),
@@ -259,16 +318,34 @@ contract Unit is BaseTest {
     }
 
     function testSetWithdrawalStrategy() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
 
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        address wsteth = Constants.WSTETH();
+        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),
@@ -321,16 +398,33 @@ contract Unit is BaseTest {
     }
 
     function testSetRebalanceStrategy() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
-
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        address wsteth = Constants.WSTETH();
+        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),
@@ -383,16 +477,33 @@ contract Unit is BaseTest {
     }
 
     function testSetDefaultCollateral() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
-
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        address wsteth = Constants.WSTETH();
+        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),
@@ -446,16 +557,33 @@ contract Unit is BaseTest {
     }
 
     function testSetSymbioticAdapter() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
-
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        address wsteth = Constants.WSTETH();
+        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),
@@ -508,16 +636,33 @@ contract Unit is BaseTest {
     }
 
     function testSetEigenLayerAdapter() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
-
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        address wsteth = Constants.WSTETH();
+        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),
@@ -568,16 +713,33 @@ contract Unit is BaseTest {
     }
 
     function testSetERC4626Adapter() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
-
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        address wsteth = Constants.WSTETH();
+        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),
@@ -628,16 +790,33 @@ contract Unit is BaseTest {
     }
 
     function testSetRewardsData() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
-
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        address wsteth = Constants.WSTETH();
+        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),
@@ -802,8 +981,8 @@ contract Unit is BaseTest {
         ISignatureUtils.SignatureWithExpiry memory signature;
         (address isolatedVault,) = factory.getOrCreate(
             address(vault),
+            Constants.HOLESKY_EL_STRATEGY,
             0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937,
-            0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3,
             abi.encode(signature, bytes32(0))
         );
 
@@ -849,16 +1028,33 @@ contract Unit is BaseTest {
     }
 
     function testPushRewards() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
-
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        address wsteth = Constants.WSTETH();
+        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),
@@ -942,16 +1138,31 @@ contract Unit is BaseTest {
     }
 
     function testDeposit() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
-
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),
@@ -1021,16 +1232,31 @@ contract Unit is BaseTest {
     }
 
     function testWithdrawal() external {
-        MultiVault vault = new MultiVault("MultiVault", 1);
-
+        MultiVault vault;
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(vault), address(claimer), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
-        IsolatedEigenLayerWstETHVaultFactory factory = new IsolatedEigenLayerWstETHVaultFactory(
-            Constants.HOLESKY_EL_DELEGATION_MANAGER, address(claimer), Constants.WSTETH()
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
+            address(
+                new EigenLayerWstETHWithdrawalQueue(
+                    address(claimer), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
         );
         EigenLayerAdapter eigenLayerAdapter = new EigenLayerAdapter(
             address(factory),

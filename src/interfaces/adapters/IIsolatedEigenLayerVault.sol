@@ -7,6 +7,8 @@ import {IDelegationManager} from "@eigenlayer-interfaces/IDelegationManager.sol"
 import {IRewardsCoordinator} from "@eigenlayer-interfaces/IRewardsCoordinator.sol";
 import {ISignatureUtils} from "@eigenlayer-interfaces/ISignatureUtils.sol";
 import {IStrategy, IStrategyManager} from "@eigenlayer-interfaces/IStrategyManager.sol";
+
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -16,6 +18,10 @@ interface IIsolatedEigenLayerVault {
     function vault() external view returns (address);
 
     function asset() external view returns (address);
+
+    function isDelegated() external view returns (bool);
+
+    function initialize(address vault) external;
 
     function delegateTo(
         address manager,
@@ -43,4 +49,14 @@ interface IIsolatedEigenLayerVault {
         IDelegationManager manager,
         IDelegationManager.QueuedWithdrawalParams[] calldata requests
     ) external;
+
+    function sharesToUnderlyingView(address strategy, uint256 shares)
+        external
+        view
+        returns (uint256 assets);
+
+    function underlyingToSharesView(address strategy, uint256 assets)
+        external
+        view
+        returns (uint256 shares);
 }

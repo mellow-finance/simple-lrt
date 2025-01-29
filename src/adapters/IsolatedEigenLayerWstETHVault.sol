@@ -10,10 +10,19 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
     IWSTETH public immutable wsteth;
     ISTETH public immutable steth;
 
-    constructor(address vault_, address wsteth_) IsolatedEigenLayerVault(vault_) {
-        require(wsteth_ == IERC4626(vault_).asset(), "IsolatedEigenLayerWstETHVault: invalid asset");
+    constructor(address wsteth_) {
         wsteth = IWSTETH(wsteth_);
         steth = wsteth.stETH();
+        _disableInitializers();
+    }
+
+    /// @inheritdoc IIsolatedEigenLayerVault
+    function initialize(address vault_) external override initializer {
+        require(
+            address(wsteth) == IERC4626(vault_).asset(),
+            "IsolatedEigenLayerWstETHVault: invalid asset"
+        );
+        __init_IsolatedEigenLayerVault(vault_);
     }
 
     /// @inheritdoc IIsolatedEigenLayerVault
@@ -22,7 +31,7 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         override
         onlyVault
     {
-        if (assets <= 1) {
+        if (IStrategy(strategy).underlyingToSharesView(wsteth.getStETHByWstETH(assets)) == 0) {
             // insignificant amount
             return;
         }
@@ -30,19 +39,6 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         assets = wsteth.unwrap(assets);
         IERC20(steth).safeIncreaseAllowance(manager, assets);
         IStrategyManager(manager).depositIntoStrategy(IStrategy(strategy), steth, assets);
-    }
-
-    /// @inheritdoc IIsolatedEigenLayerVault
-    function withdraw(address queue, address reciever, uint256 request, bool flag)
-        external
-        override
-        onlyVault
-    {
-        if (request <= 1) {
-            // insignificant amount
-            return;
-        }
-        IEigenLayerWithdrawalQueue(queue).request(reciever, wsteth.getStETHByWstETH(request), flag);
     }
 
     /// @inheritdoc IIsolatedEigenLayerVault
@@ -57,14 +53,28 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         tokens[0] = IERC20(steth);
         manager.completeQueuedWithdrawal(data, tokens, 0, true);
         assets = steth.balanceOf(this_);
-        if (assets == 0) {
-            return 0;
-        }
         IERC20(steth).safeIncreaseAllowance(address(wsteth), assets);
         assets = wsteth.wrap(assets);
-        if (assets == 0) {
-            return 0;
-        }
         IERC20(wsteth).safeTransfer(queue, assets);
+    }
+
+    /// --------------- EXTERNAL VIEW FUNCTIONS ---------------
+
+    function sharesToUnderlyingView(address strategy, uint256 shares)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        return wsteth.getWstETHByStETH(IStrategy(strategy).sharesToUnderlyingView(shares));
+    }
+
+    function underlyingToSharesView(address strategy, uint256 assets)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        return IStrategy(strategy).underlyingToSharesView(wsteth.getStETHByWstETH(assets));
     }
 }

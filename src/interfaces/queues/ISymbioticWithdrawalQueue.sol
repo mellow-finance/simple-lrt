@@ -2,6 +2,8 @@
 pragma solidity 0.8.25;
 
 import {IWithdrawalQueue} from "./IWithdrawalQueue.sol";
+
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IVault as ISymbioticVault} from "@symbiotic/core/interfaces/vault/IVault.sol";

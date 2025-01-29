@@ -14,8 +14,10 @@
     "sizes": "forge build --sizes --force",
     "scc:report": "scc src --sort names --no-cocomo --exclude-dir interfaces --by-file --format wide > scc-report.txt",
     "coverage": "forge coverage --force --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --gas-limit 1000000000000000 --fork-block-number 2686616",
-    "coverage:report": "forge coverage --force --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --gas-limit 1000000000000000 --fork-block-number 2686616 --report lcov && genhtml lcov.info -o report --branch-coverage && rm lcov.info",
+    "coverage:report": "forge coverage --force --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --gas-limit 1000000000000000 --fork-block-number 2686616 --report lcov && genhtml lcov.info -o report --branch-coverage --rc derive_function_end_line=0 && rm lcov.info",
     "deploy:holesky:factory": "forge script --use 0.8.25 scripts/holesky/HoleskyDeploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
+    "deploy:holesky:multi-vault": "forge script --use 0.8.25 scripts/holesky/MultiVaultDeployScript.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
+    "deploy:holesky:prelaunch": "forge script --use 0.8.25 scripts/holesky/PrelaunchDeployScript.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
     "deploy:mainnet": "forge script --use 0.8.25 scripts/mainnet/MainnetDeploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)"
   }
 }

@@ -9,21 +9,21 @@ contract Unit is BaseTest {
     uint48 public constant epochDuration = 1 weeks;
 
     function testConstructor() external {
-        vm.expectRevert();
-        new SymbioticWithdrawalQueue(address(0), address(0), address(0));
+        // vm.expectRevert();
+        // new SymbioticWithdrawalQueue(address(0));
 
         (address symbioticVault,,,) =
             symbioticHelper.createDefaultSymbioticVault(Constants.WSTETH());
-        assertNotEq(
-            address(0),
-            address(new SymbioticWithdrawalQueue(address(0), symbioticVault, address(0)))
-        );
+        assertNotEq(address(0), address(new SymbioticWithdrawalQueue(address(0))));
     }
 
     function testRegularCreationSymbioticWithdrawalQueue() external {
         address vault = rnd.randAddress();
         SymbioticAdapter adapter = new SymbioticAdapter(
-            vault, address(new Claimer()), Constants.symbioticDeployment().vaultFactory
+            address(vault),
+            Constants.symbioticDeployment().vaultFactory,
+            address(new SymbioticWithdrawalQueue(address(new Claimer()))),
+            vm.createWallet("proxyAdmin").addr
         );
         (address symbioticVault,,,) =
             symbioticHelper.createDefaultSymbioticVault(Constants.WSTETH());
