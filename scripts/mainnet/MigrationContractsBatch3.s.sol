@@ -19,10 +19,6 @@ import {IBaseSlasher} from "@symbiotic/core/interfaces/slasher/IBaseSlasher.sol"
 import {IVetoSlasher} from "@symbiotic/core/interfaces/slasher/IVetoSlasher.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 
-interface ISafe {
-    function getOwners() external view returns (address[] memory);
-}
-
 contract Deploy is Script {
     address public constant MELLOW_VAULT_COMPAT_SINGLETON =
         0x09bBa67C316e59840699124a8DC0bBDa6A2A9d59;
@@ -33,7 +29,7 @@ contract Deploy is Script {
 
     uint32 public constant EPOCH_DURATION = 7 days;
     uint32 public constant VETO_DURATION = 3 days;
-    uint32 public constant BURNER_DELAY = 15 days;
+    uint32 public constant BURNER_DELAY = 0;
     uint32 public constant VAULT_VERSION = 1;
 
     address public constant VAULT_CONFIGURATOR = 0x29300b1d3150B4E2b12fE80BE72f365E200441EC;
@@ -122,9 +118,6 @@ contract Deploy is Script {
 
     function run() external {
         vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
-        Migrator migrator =
-            new Migrator(MELLOW_VAULT_COMPAT_SINGLETON, ETHENA_VAULT_PROXY_ADMIN, 1 hours);
-        console2.log("Migrator:", address(migrator));
         _deploySymbioticVaults();
         vm.stopBroadcast();
         // revert("done");
