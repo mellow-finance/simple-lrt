@@ -25,6 +25,8 @@ import "../src/strategies/RatiosStrategy.sol";
 
 import "../src/utils/Claimer.sol";
 import "../src/utils/EthWrapper.sol";
+
+import "../src/utils/Migrator.sol";
 import "../src/utils/WhitelistedEthWrapper.sol";
 
 import "../src/vaults/ERC4626Vault.sol";

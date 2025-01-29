@@ -6,6 +6,6 @@ import "./IVaultControlStorage.sol";
 
 interface IMellowSymbioticVault is IERC4626Vault, IVaultControlStorage {
     function compatTotalSupply() external view returns (uint256);
-    function defaultCollateral() external view returns (address);
+    function symbioticCollateral() external view returns (address);
     function symbioticVault() external view returns (address);
 }

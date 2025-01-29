@@ -151,7 +151,7 @@ abstract contract BaseTest is Test {
         }
     }
 
-    function deployEigenStrategy(address underlyingToken) public returns (address) {
+    function deployEigenStrategy(address /*underlyingToken*/ ) public returns (address) {
         IStrategyManager strategyManager = IStrategyManager(Constants.HOLESKY_EL_STRATEGY_MANAGER);
         MockStrategyBaseTVLLimits strategyBase = new MockStrategyBaseTVLLimits(strategyManager);
         {

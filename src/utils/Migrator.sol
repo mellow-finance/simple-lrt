@@ -17,6 +17,7 @@ contract Migrator {
         uint256 timestamp;
     }
 
+    address public immutable simpleLrtFactory;
     address public immutable multiVaultSingleton;
     address public immutable strategy;
     address public immutable symbioticVaultFactory;
@@ -26,12 +27,14 @@ contract Migrator {
     mapping(address proxyAdmin => MigrationData) public migrations;
 
     constructor(
+        address simpleLrtFactory_,
         address multiVaultSingleton_,
         address strategy_,
         address symbioticVaultFactory_,
         address withdrawalQueueSingleton_,
         uint256 migrationDelay_
     ) {
+        simpleLrtFactory = simpleLrtFactory_;
         multiVaultSingleton = multiVaultSingleton_;
         strategy = strategy_;
         symbioticVaultFactory = symbioticVaultFactory_;
@@ -52,6 +55,12 @@ contract Migrator {
         }
         if (_isEntity[vault]) {
             revert("Migrator: vault already migrated");
+        }
+        if (
+            !Migrator(simpleLrtFactory).isEntity(vault)
+                && IMellowSymbioticVault(vault).compatTotalSupply() != 0
+        ) {
+            revert("Migrator: previous migration is incomplete");
         }
         data = MigrationData({
             proxyAdminOwner: proxyAdminOwner,
@@ -108,7 +117,7 @@ contract Migrator {
                         depositStrategy: address(strategy),
                         withdrawalStrategy: address(strategy),
                         rebalanceStrategy: address(strategy),
-                        defaultCollateral: vault.defaultCollateral(),
+                        defaultCollateral: vault.symbioticCollateral(),
                         symbioticAdapter: address(symbioticAdapter),
                         eigenLayerAdapter: address(0),
                         erc4626Adapter: address(0)
