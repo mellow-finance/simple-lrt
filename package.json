@@ -13,6 +13,7 @@
     "test:migration:acceptance:completion": "forge test -vv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./test/acceptance/CompletionMigrationTest.t.sol",
     "test:migration:acceptance:full": "forge test -vv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./test/acceptance/FullMigrationTest.t.sol --evm-version cancun --fork-block-number 21723473",
     "test:factory:acceptance:batch1": "forge test -vv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./test/acceptance/AcceptanceFactoryTest.t.sol --match-test testAcceptanceFactoryBatch1WstETH --evm-version cancun --fork-block-number 21721500",
+    "test:migration:acceptance:batch3": "forge test -vv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-test testCompletionMigrationTestEthena --evm-version cancun --fork-block-number 21740275",
     "compile": "forge build",
     "sizes": "forge build --sizes --force",
     "scc:report": "scc src --sort names --no-cocomo --exclude-dir interfaces --by-file --format wide > scc-report.txt",
