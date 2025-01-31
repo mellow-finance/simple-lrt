@@ -176,11 +176,20 @@ contract Deploy is Script {
     }
 
     function run() external {
-        vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
+        vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_TEST_DEPLOYER"))));
 
-        _deployCoreContracts();
-        _deploySymbioticVaults();
+        SymbioticModule module = new SymbioticModule(
+            0xC773b1011461e7314CF05f97d95aa8e92C1Fd8aA,
+            0xAd817a6Bc954F678451A71363f04150FDD81Af9F,
+            0xb361894bC06cbBA7Ea8098BF0e32EB1906A5F891,
+            0x7133415b33B438843D581013f98A08704316633c,
+            256
+        );
+        Collector(0xee72bfbda98d002eB7a50b5690EbBB85f69B6Ea1).setSymbioticModule(module);
+
+        // module.getSubnetworkData(0xa88e91cEF50b792f9449e2D4C699b6B3CcE1D19F);
 
         vm.stopBroadcast();
+        // revert("ok");
     }
 }

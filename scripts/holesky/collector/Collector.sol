@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
+import "../../../src/MellowSymbioticVault.sol";
+import "../../../src/interfaces/tokens/IWSTETH.sol";
+import "./Oracle.sol";
+import "./SymbioticModule.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "../../../src/interfaces/tokens/IWSTETH.sol";
+interface IWSTETHExt is IWSTETH {
+    function stETH() external view returns (address);
+}
 
-import "../../../src/MellowSymbioticVault.sol";
-import "./Oracle.sol";
-
-contract Collector {
+contract Collector is Ownable {
     struct WithdrawalData {
         uint256 pendingAssets;
         uint256 claimableAssets;
@@ -41,6 +45,8 @@ contract Collector {
         uint256 lpPriceAssetD18; // LP price in asset weis 1e18 (due to chainlink decimals)
         uint256 lpPriceWSTETHD18; // LP price in WSTETH weis 1e8 (due to chainlink decimals)
         WithdrawalData withdrawalData; // withdrawal queue data
+        address symbioticVault;
+        SymbioticModule.NetworkData[] networks;
     }
 
     uint256 private constant Q96 = 2 ** 96;
@@ -51,13 +57,22 @@ contract Collector {
     address public immutable weth;
     address public immutable steth;
     address public constant eth = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    Oracle public immutable oracle;
 
-    constructor(address wsteth_, address weth_, address steth_, address oracle_) {
+    Oracle public oracle;
+    SymbioticModule public symbioticModule;
+
+    constructor(address wsteth_, address weth_, address owner_) Ownable(owner_) {
         wsteth = wsteth_;
         weth = weth_;
-        steth = steth_;
-        oracle = Oracle(oracle_);
+        steth = address(IWSTETHExt(wsteth_).stETH());
+    }
+
+    function setOracle(Oracle oracle_) external onlyOwner {
+        oracle = oracle_;
+    }
+
+    function setSymbioticModule(SymbioticModule symbioticModule_) external onlyOwner {
+        symbioticModule = symbioticModule_;
     }
 
     function collect(address user, address vault_) public view returns (Response memory response) {
@@ -112,6 +127,9 @@ contract Collector {
             pendingAssets: vault.pendingAssetsOf(user),
             claimableAssets: vault.claimableAssetsOf(user)
         });
+
+        response.symbioticVault = address(vault.symbioticVault());
+        response.networks = calculateNetworkLimits(response.symbioticVault, vault_);
     }
 
     function collect(address user, address[] memory vaults)
@@ -133,6 +151,29 @@ contract Collector {
         responses = new Response[][](users.length);
         for (uint256 i = 0; i < users.length; i++) {
             responses[i] = collect(users[i], vaults);
+        }
+    }
+
+    function calculateNetworkLimits(address symbioticVault, address vault)
+        public
+        view
+        returns (SymbioticModule.NetworkData[] memory networks)
+    {
+        networks = symbioticModule.getLimits(symbioticVault);
+        if (vault == address(0) || networks.length == 0) {
+            return networks;
+        }
+        uint256 activeStake = ISymbioticVault(symbioticVault).activeStake();
+        uint256 vaultBalance = ISymbioticVault(symbioticVault).activeBalanceOf(vault);
+        if (vaultBalance < activeStake) {
+            for (uint256 i = 0; i < networks.length; i++) {
+                networks[i].limit = Math.mulDiv(networks[i].limit, vaultBalance, activeStake);
+                for (uint256 j = 0; j < networks[i].operators.length; j++) {
+                    networks[i].operators[j].slashableStake = Math.mulDiv(
+                        networks[i].operators[j].slashableStake, vaultBalance, activeStake
+                    );
+                }
+            }
         }
     }
 
