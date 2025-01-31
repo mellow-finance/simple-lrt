@@ -4,51 +4,156 @@ pragma solidity 0.8.25;
 import "../../test/Imports.sol";
 
 import "./collector/Collector.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./collector/ConstantOracle.sol";
 import "./collector/Oracle.sol";
 import "forge-std/Script.sol";
 
 contract Deploy is Script {
-    function run() external {
-        uint256 pk = uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER")));
-        vm.startBroadcast(pk);
-        // address deployer = vm.addr(pk);
+    function logVaultData(Collector collector, address vault, address user) public view {
+        {
+            (
+                uint256 accountAssets,
+                uint256 accountInstantAssets,
+                Collector.Withdrawal[] memory withdrawals
+            ) = collector.getVaultAssets(MultiVault(vault), user, MultiVault(vault).balanceOf(user));
+            console2.log(
+                string(
+                    abi.encodePacked(
+                        "logVaultData for vault=",
+                        Strings.toHexString(vault),
+                        ": accountAssets=",
+                        Strings.toString(accountAssets),
+                        ", accountInstantAssets=",
+                        Strings.toString(accountInstantAssets),
+                        ", withdrawals.length=",
+                        Strings.toString(withdrawals.length),
+                        ", user=",
+                        Strings.toHexString(user)
+                    )
+                )
+            );
+            for (uint256 i = 0; i < withdrawals.length; i++) {
+                string memory log__ = "withdrawal [";
+                log__ = string(
+                    abi.encodePacked(
+                        log__,
+                        Strings.toString(i),
+                        "]: subvaultIndex=",
+                        Strings.toString(withdrawals[i].subvaultIndex),
+                        ", assets=",
+                        Strings.toString(withdrawals[i].assets),
+                        ", isTimestamp=",
+                        withdrawals[i].isTimestamp ? "true" : "false",
+                        ", claimingTime=",
+                        Strings.toString(withdrawals[i].claimingTime),
+                        ", withdrawalIndex=",
+                        Strings.toString(withdrawals[i].withdrawalIndex),
+                        ", withdrawalRequestType=",
+                        Strings.toString(withdrawals[i].withdrawalRequestType)
+                    )
+                );
 
-        // Collector collector = new Collector(
-        //     Constants.HOLESKY_WSTETH, Constants.HOLESKY_WETH, Constants.HOLESKY_STETH, deployer
-        // );
-        // Oracle oracle = new Oracle(deployer);
+                console2.log(log__);
+            }
+        }
+        console2.log();
 
-        // collector.setOracle(address(oracle));
+        {
+            Collector.Response memory response = collector.collect(user, IERC4626(vault));
+            string memory log__ = string(
+                abi.encodePacked(
+                    "collect for vault=",
+                    Strings.toHexString(vault),
+                    ", user=",
+                    Strings.toHexString(user),
+                    ", asset=",
+                    Strings.toHexString(response.asset),
+                    ", assetDecimals=",
+                    Strings.toString(response.assetDecimals),
+                    ", assetPriceX96=",
+                    Strings.toString(response.assetPriceX96),
+                    ", totalLP=",
+                    Strings.toString(response.totalLP)
+                )
+            );
 
-        // MultiVault vault = MultiVault(0xc3dA07f12344BE2E9212B2B40D3eB9e9aC2dBe27);
-        // vault.withdraw(vault.balanceOf(deployer) / 4, deployer, deployer);
-        // collector.collect(deployer, IERC4626(0xc3dA07f12344BE2E9212B2B40D3eB9e9aC2dBe27));
+            log__ = string(
+                abi.encodePacked(
+                    log__,
+                    ", totalUSD=",
+                    Strings.toString(response.totalUSD),
+                    ", totalETH=",
+                    Strings.toString(response.totalETH),
+                    ", totalUnderlying=",
+                    Strings.toString(response.totalUnderlying),
+                    ", limitLP=",
+                    Strings.toString(response.limitLP),
+                    ", limitUSD=",
+                    Strings.toString(response.limitUSD)
+                )
+            );
 
-        Collector collector = Collector(0x75bBece1190C927e7f5FAa0D0AF1a39939A2Ae50);
-        Oracle oracle = new Oracle(collector.owner());
-        address[] memory tokens = new address[](5);
-        tokens[0] = Constants.HOLESKY_WSTETH;
-        tokens[1] = Constants.HOLESKY_WETH;
-        tokens[2] = Constants.HOLESKY_STETH;
-        tokens[3] = collector.usd();
-        tokens[4] = collector.eth();
-        uint256 Q96 = 2 ** 96;
-        Oracle.TokenOracle[] memory oracles = new Oracle.TokenOracle[](5);
-        oracles[0] =
-            Oracle.TokenOracle({constValue: (1.181476 ether) * Q96 / 1 ether, oracle: address(0)});
-        oracles[1] = Oracle.TokenOracle({constValue: Q96, oracle: address(0)});
-        oracles[2] = Oracle.TokenOracle({constValue: Q96, oracle: address(0)});
-        oracles[3] = Oracle.TokenOracle({constValue: Q96 * 1e10 / 3354, oracle: address(0)});
-        oracles[4] = Oracle.TokenOracle({constValue: Q96, oracle: address(0)});
-        oracle.setOracles(tokens, oracles);
-        collector.setOracle(address(oracle));
+            log__ = string(
+                abi.encodePacked(
+                    log__,
+                    ", limitETH=",
+                    Strings.toString(response.limitETH),
+                    ", limitUnderlying=",
+                    Strings.toString(response.limitUnderlying),
+                    ", userLP=",
+                    Strings.toString(response.userLP),
+                    ", userETH=",
+                    Strings.toString(response.userETH),
+                    ", userUSD=",
+                    Strings.toString(response.userUSD),
+                    ", userUnderlying=",
+                    Strings.toString(response.userUnderlying)
+                )
+            );
 
-        // address vault = 0xD1d9c7cd66721e43579Be95BC6D13b56817Dd54D;
-        // address user = 0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+            log__ = string(
+                abi.encodePacked(
+                    log__,
+                    ", lpPriceUSD=",
+                    Strings.toString(response.lpPriceUSD),
+                    ", lpPriceETH=",
+                    Strings.toString(response.lpPriceETH),
+                    ", lpPriceUnderlying=",
+                    Strings.toString(response.lpPriceUnderlying),
+                    ", blockNumber=",
+                    Strings.toString(response.blockNumber),
+                    ", timestamp=",
+                    Strings.toString(response.timestamp)
+                )
+            );
 
-        // collector.collect(user, IERC4626(vault));
+            console2.log(log__);
+
+            for (uint256 i = 0; i < response.withdrawals.length; i++) {
+                console2.log(
+                    string(
+                        abi.encodePacked(
+                            "withdrawal [",
+                            Strings.toString(i),
+                            "]: subvaultIndex=",
+                            Strings.toString(response.withdrawals[i].subvaultIndex),
+                            ", assets=",
+                            Strings.toString(response.withdrawals[i].assets),
+                            ", isTimestamp=",
+                            response.withdrawals[i].isTimestamp ? "true" : "false",
+                            ", claimingTime=",
+                            Strings.toString(response.withdrawals[i].claimingTime),
+                            ", withdrawalIndex=",
+                            Strings.toString(response.withdrawals[i].withdrawalIndex),
+                            ", withdrawalRequestType=",
+                            Strings.toString(response.withdrawals[i].withdrawalRequestType)
+                        )
+                    )
+                );
+            }
+        }
 
         // uint256[] memory amounts = new uint256[](1);
         // amounts[0] = 1 ether;
@@ -58,6 +163,18 @@ contract Deploy is Script {
         // collector.fetchDepositWrapperParams(vault, user, collector.weth(), 1 ether);
         // collector.fetchDepositWrapperParams(vault, user, collector.eth(), 1 ether);
         // collector.fetchWithdrawalAmounts(IERC4626(vault).balanceOf(user), vault);
+
+        console2.log("--------------------");
+    }
+
+    function run() external {
+        uint256 pk = uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER")));
+        vm.startBroadcast(pk);
+
+        Collector prevCollector = Collector(0xB23a6fac33d5198b90db6d2D8344A7B9a5B56890);
+        Collector collector =
+            new Collector(prevCollector.wsteth(), prevCollector.weth(), prevCollector.owner());
+        collector.setOracle(address(prevCollector.oracle()));
 
         vm.stopBroadcast();
         // revert("ok");
