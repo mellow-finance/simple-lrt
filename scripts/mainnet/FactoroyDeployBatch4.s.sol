@@ -40,7 +40,7 @@ contract Deploy is Script {
     address public constant MELLOW_VAULT_FACTORY = 0x6EA5a344d116Db8949348648713760836D60fC5a;
 
     address public constant POND = 0x57B946008913B82E4dF85f501cbAeD910e58D26C;
-    address public constant POND_CURATOR = 0x83F3fe05243FAfDAD241855A7Ba09F95CAca0311;
+    address public constant POND_CURATOR = 0xD1f59ba974E828dF68cB2592C16b967B637cB4e4;
 
     address public constant POND_VAULT_ADMIN = 0xE75A4e3209D3EDDAb11841A9E51Ed899546a1ae9;
     address public constant POND_VAULT_PROXY_ADMIN = 0xfD87f894b30aE1e079fD58F0EDd1b2c9DeaEDc14;
@@ -48,7 +48,7 @@ contract Deploy is Script {
     address public constant DEFAULT_COLLATERAL_FACTORY = 0x1BC8FCFbE6Aa17e4A7610F51B888f34583D202Ec;
 
     uint48 public constant POND_VAULT_EPOCH_DURATION = 7 days;
-    uint48 public constant POND_VETO_DURATION = 3 days;
+    uint48 public constant POND_VETO_DURATION = 1 days;
 
     address public constant POND_GLOBAL_RECEIVER = address(0xdead);
 
