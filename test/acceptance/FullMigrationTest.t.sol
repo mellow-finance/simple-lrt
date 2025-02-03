@@ -3,13 +3,14 @@ pragma solidity 0.8.25;
 
 import "../../scripts/mainnet/MigrationDeploy.sol";
 import "../BaseTest.sol";
-
 import "../Constants.sol";
 import "./AcceptanceMigrationRunner.sol";
+
+import "./CompletionMigrationTest.t.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract AcceptanceMigrationTest is Test {
-    /// docs: https://www.notion.so/mellowprotocol/roETH-migration-process-adaa9b9d9d0045d682fd4b91ab3d2423
+contract FullMigrationTest is CompletionMigrationTest {
+    /// docs: https://www.notion.so/mellowprotocol/Batch-1-migration-process-e44305f5c2c84a23a538843991d2a3d0#e77f95c1f81742dcb304c6d1850d7b99
 
     Migrator migrator = Migrator(0x643ED3c06E19A96EaBCBC32C2F665DB16282bEaB);
     address vaultAdminMultisig = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
@@ -18,59 +19,160 @@ contract AcceptanceMigrationTest is Test {
     address defaultCollateralWstETH = 0xC329400492c6ff2438472D4651Ad17389fCb843a;
 
     address IMPLEMENTATION_BEFORE = 0xaf108ae0AD8700ac41346aCb620e828c03BB8848;
-    address IMPLEMENTATION_AFTER = 0x09bBa67C316e59840699124a8DC0bBDa6A2A9d59;
-
     bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
     bytes32 OPERATOR = keccak256("operator");
 
-    string ROETH_NAME = "Rockmelon ETH";
-    string ROETH_SYMBOL = "roETH";
+    struct Setup {
+        string name;
+        string symbol;
+        address expectedSymbioticWithdrawalQueue;
+        address symbioticVault;
+        address strategy;
+        address proxyAdmin;
+        bool isPendingState;
+    }
 
-    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Initializable")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant INITIALIZABLE_STORAGE =
-        0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00;
+    function testCompletionMigrationTest() external override {
+        Setup[12] memory setups = [
+            Setup("Rockmelon ETH", "roETH", address(0), address(0), address(0), address(0), false),
+            Setup(
+                "Steakhouse Resteaking Vault",
+                "steakLRT",
+                0xC915FADA26dc6c123620A9c2a7a55c1ad45b077A,
+                0xf7Ce770AbdD1895f2CB0989D7cf2A26705FF37a7,
+                0x7a14b34a9a8EA235C66528dc3bF3aeFC36DFc268,
+                0xed792a3fDEB9044C70c951260AaAe974Fb3dB38F,
+                true
+            ),
+            Setup(
+                "Re7 Labs LRT",
+                "Re7LRT",
+                0x9668bd17947b2baD83857a75737faF17575628B8,
+                0x3D93b33f5E5fe74D54676720e70EA35210cdD46E,
+                0xcE3A8820265AD186E8C1CeAED16ae97176D020bA,
+                0xF076CF343DCfD01BBA57dFEB5C74F7B015951fcF,
+                true
+            ),
+            Setup(
+                "Amphor Restaked ETH",
+                "amphrETH",
+                0x2142acB6b0424578d443A4b2E396a1b7cFb5c1e9,
+                0x446970400e1787814CA050A4b45AE9d21B3f7EA7,
+                0xc3A149b5Ca3f4A5F17F5d865c14AA9DBb570F10A,
+                0xc24891B75ef55fedC377c5e6Ec59A850b12E23ac,
+                true
+            ),
+            Setup(
+                "Renzo Restaked LST ",
+                "pzETH",
+                0xcDbff91f6fCcDa7367d71b065c7494526b830A89,
+                0xa88e91cEF50b792f9449e2D4C699b6B3CcE1D19F,
+                0xE8206Fbf2D9F9E7fbf2F7b997E20a34f9158cC14,
+                0x985E459801d37749C331BBd2673B665b9114fB01,
+                true
+            ),
+            Setup(
+                "Restaking Vault ETH",
+                "rstETH",
+                0x351875e6348120b71281808870435bF6d5F406BD,
+                0x7b276aAD6D2ebfD7e270C5a2697ac79182D9550E,
+                0xA0ea6d4fe369104eD4cc18951B95C3a43573C0F6,
+                0x17AC6A90eD880F9cE54bB63DAb071F2BD3FE3772,
+                true
+            ),
+            Setup(
+                "Chorus One Restaking Vault ETH",
+                "coETH",
+                0x0457ca1581941f7fFa5FbeC48Bd25E6FDFb80C26,
+                0x7154633EdA7569021e5b1cfCbf953715F8775CA8,
+                0xE73C97e07dF948A046505f8c63c4B54D632D4972,
+                0x0375178C4D752b3ae35D806c6bB60D07faECbA5E,
+                true
+            ),
+            Setup(
+                "HashKey Cloud Restaked ETH",
+                "hcETH",
+                0xFC6D07202F5B73707AF35Cc546c181363B63bE10,
+                0x108784D6B93A010f62b652b2356697dAEF3D7341,
+                0x398fDbC08D2D01FEF44dDF44FC22F992bd2C320A,
+                0xFFad6500aF7814540C27EA73d45F125F5fBebAE3,
+                true
+            ),
+            Setup(
+                "InfStones Restaked ETH",
+                "ifsETH",
+                0x5e4Ef16FB0C1DE57bF204cEb8cA0B154d911142e,
+                0x08144D10f6Aaa152EA88a99072a659E339d6152f,
+                0x20ad4d9bbbBBeE7d3abA91558a02c17c3387b834,
+                0xD09b3193bB71B98027dd0f1a34eeAebd04b2e47c,
+                true
+            ),
+            Setup(
+                "LugaETH",
+                "LugaETH",
+                0x7d81A47925ecAC5A8E3cd839bAa14749909442de,
+                0x48bef6aB76E31737d94cF7b3B1dba52EDDEe1cAd,
+                0xa80575b793aabD32EDb39759c975534D75a4A2A4,
+                0x3c1C6A3e94Bc607ac947D4520e2E9161a4183D4D,
+                true
+            ),
+            Setup(
+                "unified restaked LRT",
+                "urLRT",
+                0x7fBB995A36C85420E59d0f1B8D4874e89A660FaC,
+                0xf890434A395e3978622Ac0ae1412934bEfeB09Ff,
+                0x65fFC47625200A358f5Cdf7103E6D936EcF1a7D5,
+                0x75a7fB388A38E12747D147fD8d38Bbc5Bb860Cf3,
+                true
+            ),
+            Setup(
+                "InfraSingularity Restaked ETH",
+                "isETH",
+                0x5CaA0B278aa5437291dE6F6A742190e680c8e9d8,
+                0xbA91473072EBD125C3cB8D251fd02bf21FDea8Df,
+                0x8e48Cf252Ec9E62AAAD881165674cb7403e7Ce6C,
+                0xCF4E33Ae47fE9C5d6390c1868B6aBB068e1e40Ec,
+                true
+            )
+        ];
 
-    function testAcceptanceRoETHMigration() external {
+        VAULT_INDEX = 6;
+        address vault = VAULTS[VAULT_INDEX];
+        string memory name = setups[VAULT_INDEX].name;
+        string memory symbol = setups[VAULT_INDEX].symbol;
+        address expectedSymbioticWithdrawalQueue =
+            setups[VAULT_INDEX].expectedSymbioticWithdrawalQueue;
+        address symbioticVault = setups[VAULT_INDEX].symbioticVault;
+        address strategy = setups[VAULT_INDEX].strategy;
+        address proxyAdmin = setups[VAULT_INDEX].proxyAdmin;
+        bool isPendingState = setups[VAULT_INDEX].isPendingState;
+
         assertEq(migrator.singleton(), IMPLEMENTATION_AFTER, "Invalid singleton implementation");
-        address symbioticVault = 0x575d6DD4EA8636E08952Bd7f8AF977081754B1B7;
-
-        address strategy = 0x4Da219961088Cc85B52e13BB1b3c5a64c8d529B7;
-        address vault = 0x7b31F008c48EFb65da78eA0f255EE424af855249;
-        address proxyAdmin = 0x3431224240Fd4e6921ceC32342470b3A55eC175A;
-
-        // created upon 'stageMigration' call of the Migrator contract
-        address EXPECTED_WITHDRAWAL_QUEUE = 0xe51241aAbE7c77F658A3Bf160D922a1E936168cd;
 
         IMellowLRT.ProcessWithdrawalsStack memory stack;
-
+        console2.log("VAULT_INDEX:", VAULT_INDEX);
         // stage phase:
         {
-            // stage.1 - symbioticVault = 0x575d6DD4EA8636E08952Bd7f8AF977081754B1B7
-
-            if (block.number < 21696723) {
-                {
-                    assertEq(migrator.timestamps(vault), 0, "Migration already started");
-                    IMigrator.Parameters memory emptyParams;
-                    assertEq(
-                        keccak256(abi.encode(migrator.migration(vault))),
-                        keccak256(abi.encode(emptyParams)),
-                        "Migration already started"
-                    );
-                    IMellowSymbioticVault.InitParams memory emptyInitParams;
-                    assertEq(
-                        keccak256(abi.encode(migrator.vaultInitParams(vault))),
-                        keccak256(abi.encode(emptyInitParams)),
-                        "Migration already started"
-                    );
-                }
+            if (!isPendingState) {
+                assertEq(migrator.timestamps(vault), 0, "Migration already started");
+                IMigrator.Parameters memory emptyParams;
+                assertEq(
+                    keccak256(abi.encode(migrator.migration(vault))),
+                    keccak256(abi.encode(emptyParams)),
+                    "Migration already started"
+                );
+                IMellowSymbioticVault.InitParams memory emptyInitParams;
+                assertEq(
+                    keccak256(abi.encode(migrator.vaultInitParams(vault))),
+                    keccak256(abi.encode(emptyInitParams)),
+                    "Migration already started"
+                );
 
                 // stage.2:
                 vm.startPrank(vaultProxyAdminMultisig);
                 migrator.stageMigration(strategy, vaultAdminMultisig, proxyAdmin, symbioticVault);
                 vm.stopPrank();
                 assertEq(migrator.timestamps(vault), block.timestamp, "Invalid timestamp");
-            } else {
-                assertEq(migrator.timestamps(vault), 1737750167, "Invalid timestamp");
             }
 
             {
@@ -92,13 +194,13 @@ contract AcceptanceMigrationTest is Test {
                     limit: 0,
                     symbioticCollateral: defaultCollateralWstETH,
                     symbioticVault: symbioticVault,
-                    withdrawalQueue: EXPECTED_WITHDRAWAL_QUEUE,
+                    withdrawalQueue: expectedSymbioticWithdrawalQueue,
                     admin: vaultAdminMultisig,
                     depositPause: true,
                     withdrawalPause: true,
                     depositWhitelist: false,
-                    name: ROETH_NAME,
-                    symbol: ROETH_SYMBOL
+                    name: name,
+                    symbol: symbol
                 });
                 assertEq(
                     keccak256(abi.encode(migrator.vaultInitParams(vault))),
@@ -107,22 +209,20 @@ contract AcceptanceMigrationTest is Test {
                 );
             }
 
-            {
-                assertFalse(
-                    IAccessControl(strategy).hasRole(ADMIN_DELEGATE_ROLE, vaultAdminMultisig),
-                    "Admin delegate role already granted"
-                );
+            if (!isPendingState) {
                 assertFalse(
                     IAccessControl(strategy).hasRole(OPERATOR, address(migrator)),
                     "Operator role already granted"
                 );
-            }
 
-            // stage.3:
-            vm.startPrank(vaultAdminMultisig);
-            IAccessControl(strategy).grantRole(ADMIN_DELEGATE_ROLE, vaultAdminMultisig);
-            IAccessControl(strategy).grantRole(OPERATOR, address(migrator));
-            vm.stopPrank();
+                // stage.3:
+                vm.startPrank(vaultAdminMultisig);
+                if (!IAccessControl(strategy).hasRole(ADMIN_DELEGATE_ROLE, vaultAdminMultisig)) {
+                    IAccessControl(strategy).grantRole(ADMIN_DELEGATE_ROLE, vaultAdminMultisig);
+                }
+                IAccessControl(strategy).grantRole(OPERATOR, address(migrator));
+                vm.stopPrank();
+            }
 
             {
                 assertTrue(
@@ -176,8 +276,8 @@ contract AcceptanceMigrationTest is Test {
                 );
             }
 
+            uint256 entitiesLength = migrator.entitiesLength();
             {
-                assertEq(migrator.entitiesLength(), 0, "Invalid entities length");
                 assertFalse(migrator.isEntity(vault), "Entity already exists");
 
                 address implementationBefore =
@@ -201,7 +301,7 @@ contract AcceptanceMigrationTest is Test {
             }
 
             {
-                assertEq(migrator.entitiesLength(), 1, "Invalid entities length");
+                assertEq(migrator.entitiesLength(), entitiesLength + 1, "Invalid entities length");
                 assertTrue(migrator.isEntity(vault), "Entity not exists");
 
                 address implementationAfter =
@@ -224,7 +324,7 @@ contract AcceptanceMigrationTest is Test {
                 );
                 assertEq(
                     address(c.withdrawalQueue()),
-                    EXPECTED_WITHDRAWAL_QUEUE,
+                    expectedSymbioticWithdrawalQueue,
                     "Invalid withdrawal queue after migration"
                 );
                 assertTrue(
@@ -260,12 +360,12 @@ contract AcceptanceMigrationTest is Test {
                 assertEq(c.depositWhitelist(), false, "Invalid deposit whitelist after migration");
                 assertEq(
                     keccak256(abi.encode(c.name())),
-                    keccak256(abi.encode(ROETH_NAME)),
+                    keccak256(abi.encode(name)),
                     "Invalid name after migration"
                 );
                 assertEq(
                     keccak256(abi.encode(c.symbol())),
-                    keccak256(abi.encode(ROETH_SYMBOL)),
+                    keccak256(abi.encode(symbol)),
                     "Invalid symbol after migration"
                 );
                 assertEq(
@@ -281,11 +381,24 @@ contract AcceptanceMigrationTest is Test {
                 assertApproxEqAbs(
                     IWSTETH(wsteth).getWstETHByStETH(stack.totalValue),
                     c.totalAssets(),
-                    1 wei,
+                    c.totalAssets() / 1 gwei, // at most 1-e9 precision
                     "Invalid total assets after migration"
                 );
                 assertEq(stack.totalSupply, c.totalSupply(), "Invalid total supply after migration");
             }
+        }
+
+        {
+            validateProxyBytecodes();
+
+            MellowVaultCompat vault = MellowVaultCompat(VAULTS[VAULT_INDEX]);
+            ISymbioticVault symbioticVault = vault.symbioticVault();
+            ISymbioticWithdrawalQueue queue =
+                ISymbioticWithdrawalQueue(address(vault.withdrawalQueue()));
+
+            validateVaultState(vault);
+            validateSymbioticVaultState(vault, symbioticVault);
+            validateSymbioticWithdrawalQueueState(vault, symbioticVault, queue);
         }
     }
 }

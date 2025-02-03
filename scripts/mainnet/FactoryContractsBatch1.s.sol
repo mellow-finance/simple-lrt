@@ -26,22 +26,18 @@ interface ISafe {
 contract Deploy is Script {
     address public constant MELLOW_LIDO_MULTISIG = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
 
-    address public constant ROETH_CURATOR_MULTISIG = 0xf9d20f02aB533ac6F990C9D96B595651d83b4b92;
-    address public constant AMPHRETH_CURATOR_MULTISIG = 0xA1E38210B06A05882a7e7Bfe167Cd67F07FA234A;
-    address public constant PZETH_CURATOR_MULTISIG = 0x6e5CaD73D00Bc8340f38afb61Fc5E34f7193F599;
-    address public constant STEAKLRT_CURATOR_MULTISIG = 0x2E93913A796a6C6b2bB76F41690E78a2E206Be54;
-    address public constant RE7LRT_CURATOR_MULTISIG = 0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433;
-
-    address public constant MIGRATOR_ADMIN = 0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
-    uint256 public constant MIGRATOR_DELAY = 6 hours;
+    address public constant CP0X_CURATOR_MULTISIG = 0xD1f59ba974E828dF68cB2592C16b967B637cB4e4;
+    address public constant HYVEX_CURATOR_MULTISIG = 0xE3a148b25Cca54ECCBD3A4aB01e235D154f03eFa;
 
     uint32 public constant EPOCH_DURATION = 7 days;
     uint32 public constant VETO_DURATION = 3 days;
-    uint32 public constant BURNER_DELAY = 1 hours; // NOTE: MUST BE CHANGED TO AT LEAST 7 DAYS AFTER COMPLETING THE SETUP
+    uint32 public constant BURNER_DELAY = 1 hours;
     uint32 public constant VAULT_VERSION = 1;
 
     address public constant VAULT_CONFIGURATOR = 0x29300b1d3150B4E2b12fE80BE72f365E200441EC;
     address public constant BURNER_ROUTER_FACTORY = 0x99F2B89fB3C363fBafD8d826E5AA77b28bAB70a0;
+
+    address public constant WSTETH_BURNER = 0xdCaC890b14121FD5D925E2589017Be68C2B5B324;
 
     uint32 public constant VETO_SLASHER_INDEX = 1;
     uint32 public constant NETWORK_RESTAKE_DELEGATOR_INDEX = 0;
@@ -50,36 +46,9 @@ contract Deploy is Script {
     address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public constant STETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
 
-    bytes32 public constant MELLOW_VAULT_COMPAT_SINGLETON_SALT = bytes32(uint256(31925074));
-    bytes32 public constant MIGRATOR_SALT = bytes32(uint256(1037221950));
-    bytes32 public constant ETH_WRAPPER_SALT = bytes32(uint256(2035485209));
-    bytes32 public constant MELLOW_SYMBIOTIC_VAULT_SINGLETON_SALT = bytes32(uint256(130700478));
-    bytes32 public constant MELLOW_SYMBIOTIC_VAULT_FACTORY_SALT = bytes32(uint256(655157589));
+    address public constant VAULT_PROXY_ADMIN = 0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
 
-    function _deployCoreContracts() internal {
-        MellowVaultCompat mellowVaultCompatSingleton = new MellowVaultCompat{
-            salt: MELLOW_VAULT_COMPAT_SINGLETON_SALT
-        }("MellowSymbioticVault", 1);
-
-        Migrator migrator = new Migrator{salt: MIGRATOR_SALT}(
-            address(mellowVaultCompatSingleton), MIGRATOR_ADMIN, MIGRATOR_DELAY
-        );
-
-        EthWrapper ethWrapper = new EthWrapper{salt: ETH_WRAPPER_SALT}(WETH, WSTETH, STETH);
-
-        MellowSymbioticVault mellowSymbioticVaultSingleton = new MellowSymbioticVault{
-            salt: MELLOW_SYMBIOTIC_VAULT_SINGLETON_SALT
-        }("MellowSymbioticVault", 1);
-        MellowSymbioticVaultFactory mellowSymbioticVaultFactory = new MellowSymbioticVaultFactory{
-            salt: MELLOW_SYMBIOTIC_VAULT_FACTORY_SALT
-        }(address(mellowSymbioticVaultSingleton));
-
-        console2.log("MellowVaultCompat", address(mellowVaultCompatSingleton));
-        console2.log("Migrator", address(migrator));
-        console2.log("EthWrapper", address(ethWrapper));
-        console2.log("MellowSymbioticVault", address(mellowSymbioticVaultSingleton));
-        console2.log("MellowSymbioticVaultFactory", address(mellowSymbioticVaultFactory));
-    }
+    address public constant MELLOW_VAULT_FACTORY = 0x6EA5a344d116Db8949348648713760836D60fC5a;
 
     function _createArray(address curator) internal pure returns (address[] memory a) {
         a = new address[](1);
@@ -89,36 +58,16 @@ contract Deploy is Script {
     function _deploySymbioticVaults() internal {
         IVaultConfigurator vaultConfigurator = IVaultConfigurator(VAULT_CONFIGURATOR);
         IBurnerRouterFactory burnerRouterFactory = IBurnerRouterFactory(BURNER_ROUTER_FACTORY);
-        address[6] memory curators = [
-            ROETH_CURATOR_MULTISIG,
-            AMPHRETH_CURATOR_MULTISIG,
-            PZETH_CURATOR_MULTISIG,
-            STEAKLRT_CURATOR_MULTISIG,
-            RE7LRT_CURATOR_MULTISIG, // NOTE: This is the curator of the rstETH and Re7LRT mellow/symbiotic vaults
-            RE7LRT_CURATOR_MULTISIG
-        ];
-        string[6] memory names = ["roETH", "amphrETH", "pzETH", "steakLRT", "rstETH", "Re7LRT"];
-        address[6] memory owners = [
-            0x4f9d7fa0D9101721b58889C0746424860086302A,
-            0xbD5919a0Bd6dE1Dc47E8597892FD25aa13A19599,
-            0xB4eB4DC7b6361594BcB8F7B40c6ac1ef9672f6AF,
-            0xe5a1ACe46E10B02961556F352cF151ad3b45d39C,
-            0xFEf39127235C265C4b58bd7638EF1EDeA815F128,
-            0x868419dBd5120E31BC7cCc9Fa90f73C4c7653089
-        ];
-        for (uint256 i = 0; i < 6; i++) {
-            {
-                address[] memory safeOwners = ISafe(owners[i]).getOwners();
-                require(safeOwners.length == 1 && safeOwners[0] == MIGRATOR_ADMIN, "owner mismatch");
-            }
-
+        address[2] memory curators = [CP0X_CURATOR_MULTISIG, HYVEX_CURATOR_MULTISIG];
+        string[2] memory names = ["cp0xLRT", "HYVEX"];
+        for (uint256 i = 0; i < names.length; i++) {
             address curator = curators[i];
             address burner = burnerRouterFactory.create(
                 IBurnerRouter.InitParams({
                     owner: MELLOW_LIDO_MULTISIG,
                     collateral: WSTETH,
                     delay: BURNER_DELAY,
-                    globalReceiver: curator,
+                    globalReceiver: WSTETH_BURNER,
                     networkReceivers: new IBurnerRouter.NetworkReceiver[](0),
                     operatorNetworkReceivers: new IBurnerRouter.OperatorNetworkReceiver[](0)
                 })
@@ -126,7 +75,7 @@ contract Deploy is Script {
             (address vault, address delegator, address slasher) = vaultConfigurator.create(
                 IVaultConfigurator.InitParams({
                     version: VAULT_VERSION,
-                    owner: owners[i],
+                    owner: VAULT_PROXY_ADMIN,
                     vaultParams: abi.encode(
                         IVault.InitParams({
                             collateral: WSTETH,
@@ -139,7 +88,7 @@ contract Deploy is Script {
                             depositWhitelistSetRoleHolder: MELLOW_LIDO_MULTISIG,
                             depositorWhitelistRoleHolder: MELLOW_LIDO_MULTISIG,
                             isDepositLimitSetRoleHolder: MELLOW_LIDO_MULTISIG,
-                            depositLimitSetRoleHolder: MELLOW_LIDO_MULTISIG
+                            depositLimitSetRoleHolder: curator
                         })
                     ),
                     delegatorIndex: NETWORK_RESTAKE_DELEGATOR_INDEX,
@@ -176,20 +125,8 @@ contract Deploy is Script {
     }
 
     function run() external {
-        vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_TEST_DEPLOYER"))));
-
-        SymbioticModule module = new SymbioticModule(
-            0xC773b1011461e7314CF05f97d95aa8e92C1Fd8aA,
-            0xAd817a6Bc954F678451A71363f04150FDD81Af9F,
-            0xb361894bC06cbBA7Ea8098BF0e32EB1906A5F891,
-            0x7133415b33B438843D581013f98A08704316633c,
-            256
-        );
-        Collector(0xee72bfbda98d002eB7a50b5690EbBB85f69B6Ea1).setSymbioticModule(module);
-
-        // module.getSubnetworkData(0xa88e91cEF50b792f9449e2D4C699b6B3CcE1D19F);
-
+        vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
+        _deploySymbioticVaults();
         vm.stopBroadcast();
-        // revert("ok");
     }
 }
