@@ -42,8 +42,8 @@ contract Deploy is Script {
     address public constant POND = 0x57B946008913B82E4dF85f501cbAeD910e58D26C;
     address public constant POND_CURATOR = 0xD1f59ba974E828dF68cB2592C16b967B637cB4e4;
 
-    address public constant POND_VAULT_ADMIN = 0xE75A4e3209D3EDDAb11841A9E51Ed899546a1ae9;
-    address public constant POND_VAULT_PROXY_ADMIN = 0xfD87f894b30aE1e079fD58F0EDd1b2c9DeaEDc14;
+    address public constant POND_VAULT_ADMIN = 0x1B7C5FfAe79b456fe1eEE47503253cbaC55bA287;
+    address public constant POND_VAULT_PROXY_ADMIN = 0xa4E41e38FbBC176BB4f79aB9d4528CA8335950a6;
 
     address public constant DEFAULT_COLLATERAL_FACTORY = 0x1BC8FCFbE6Aa17e4A7610F51B888f34583D202Ec;
 
