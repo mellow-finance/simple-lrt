@@ -83,7 +83,7 @@ contract Migrator {
         emit MigrationCancelled(address(proxyAdmin));
     }
 
-    function executeMigration(ProxyAdmin proxyAdmin) external {
+    function executeMigration(ProxyAdmin proxyAdmin, address vaultAdmin) external {
         MigrationData memory data = migrations[address(proxyAdmin)];
         if (data.proxyAdminOwner != msg.sender) {
             revert("Migrator: sender not owner");
@@ -127,10 +127,20 @@ contract Migrator {
         );
 
         MultiVault multiVault = MultiVault(address(vault));
-        multiVault.grantRole(multiVault.ADD_SUBVAULT_ROLE(), address(this));
-        multiVault.addSubvault(symbioticVault, IMultiVaultStorage.Protocol.SYMBIOTIC);
-        multiVault.renounceRole(multiVault.ADD_SUBVAULT_ROLE(), address(this));
-        multiVault.renounceRole(multiVault.DEFAULT_ADMIN_ROLE(), address(this));
+        {
+            multiVault.grantRole(multiVault.ADD_SUBVAULT_ROLE(), address(this));
+            multiVault.addSubvault(symbioticVault, IMultiVaultStorage.Protocol.SYMBIOTIC);
+            multiVault.renounceRole(multiVault.ADD_SUBVAULT_ROLE(), address(this));
+
+            bytes32 DEFAULT_ADMIN_ROLE = multiVault.DEFAULT_ADMIN_ROLE();
+            multiVault.renounceRole(DEFAULT_ADMIN_ROLE, address(this));
+            if (
+                !multiVault.hasRole(DEFAULT_ADMIN_ROLE, vaultAdmin)
+                    || multiVault.getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 1
+            ) {
+                revert("Migrator: invalid vault admin");
+            }
+        }
         proxyAdmin.transferOwnership(data.proxyAdminOwner);
         delete migrations[address(proxyAdmin)];
 

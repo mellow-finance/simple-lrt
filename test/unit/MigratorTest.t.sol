@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
+import "@openzeppelin/contracts/access/extensions/IAccessControlEnumerable.sol";
 
 contract Unit is Test {
     function testMigrator() external {
@@ -21,9 +22,10 @@ contract Unit is Test {
         vm.startPrank(proxyAdmin.owner());
         migrator.stageMigration(proxyAdmin, vault);
 
+        address vaultAdmin = IAccessControlEnumerable(vault).getRoleMember(0x00, 0);
         skip(1 hours);
         proxyAdmin.transferOwnership(address(migrator));
-        migrator.executeMigration(proxyAdmin);
+        migrator.executeMigration(proxyAdmin, vaultAdmin);
 
         vm.stopPrank();
     }
@@ -42,6 +44,8 @@ contract Unit is Test {
         ProxyAdmin proxyAdmin =
             ProxyAdmin(address(uint160(uint256(vm.load(vault, ERC1967Utils.ADMIN_SLOT)))));
 
+        address vaultAdmin = IAccessControlEnumerable(vault).getRoleMember(0x00, 0);
+
         vm.startPrank(proxyAdmin.owner());
         migrator.stageMigration(proxyAdmin, vault);
 
@@ -51,14 +55,14 @@ contract Unit is Test {
         migrator.stageMigration(proxyAdmin, vault);
 
         vm.expectRevert();
-        migrator.executeMigration(proxyAdmin);
+        migrator.executeMigration(proxyAdmin, vaultAdmin);
 
         skip(1 hours);
         vm.expectRevert();
-        migrator.executeMigration(proxyAdmin);
+        migrator.executeMigration(proxyAdmin, vaultAdmin);
 
         proxyAdmin.transferOwnership(address(migrator));
-        migrator.executeMigration(proxyAdmin);
+        migrator.executeMigration(proxyAdmin, vaultAdmin);
 
         vm.stopPrank();
     }
@@ -130,15 +134,16 @@ contract Unit is Test {
         migrator.cancelMigration(proxyAdmin);
         migrator.stageMigration(proxyAdmin, vault);
 
+        address vaultAdmin = IAccessControlEnumerable(vault).getRoleMember(0x00, 0);
         vm.expectRevert();
-        migrator.executeMigration(proxyAdmin);
+        migrator.executeMigration(proxyAdmin, vaultAdmin);
 
         skip(1 hours);
         vm.expectRevert();
-        migrator.executeMigration(proxyAdmin);
+        migrator.executeMigration(proxyAdmin, vaultAdmin);
 
         proxyAdmin.transferOwnership(address(migrator));
-        migrator.executeMigration(proxyAdmin);
+        migrator.executeMigration(proxyAdmin, vaultAdmin);
 
         vm.stopPrank();
     }
