@@ -8,6 +8,7 @@ contract Unit is Test {
     function testMigrator() external {
         Migrator migrator = new Migrator(
             0x6EA5a344d116Db8949348648713760836D60fC5a,
+            0x643ED3c06E19A96EaBCBC32C2F665DB16282bEaB,
             address(new MultiVault("MultiVault", 1)),
             address(new RatiosStrategy()),
             0xAEb6bdd95c502390db8f52c8909F703E9Af6a346,
@@ -33,6 +34,7 @@ contract Unit is Test {
     function testMigrator2() external {
         Migrator migrator = new Migrator(
             0x6EA5a344d116Db8949348648713760836D60fC5a,
+            0x643ED3c06E19A96EaBCBC32C2F665DB16282bEaB,
             address(new MultiVault("MultiVault", 1)),
             address(new RatiosStrategy()),
             0xAEb6bdd95c502390db8f52c8909F703E9Af6a346,
@@ -70,6 +72,7 @@ contract Unit is Test {
     function testMigrator3() external {
         Migrator migrator = new Migrator(
             0x6EA5a344d116Db8949348648713760836D60fC5a,
+            0x643ED3c06E19A96EaBCBC32C2F665DB16282bEaB,
             address(new MultiVault("MultiVault", 1)),
             address(new RatiosStrategy()),
             0xAEb6bdd95c502390db8f52c8909F703E9Af6a346,

@@ -18,6 +18,7 @@ contract Migrator {
     }
 
     address public immutable simpleLrtFactory;
+    address public immutable previousMigrator;
     address public immutable multiVaultSingleton;
     address public immutable strategy;
     address public immutable symbioticVaultFactory;
@@ -28,6 +29,7 @@ contract Migrator {
 
     constructor(
         address simpleLrtFactory_,
+        address previousMigrator_,
         address multiVaultSingleton_,
         address strategy_,
         address symbioticVaultFactory_,
@@ -35,6 +37,7 @@ contract Migrator {
         uint256 migrationDelay_
     ) {
         simpleLrtFactory = simpleLrtFactory_;
+        previousMigrator = previousMigrator_;
         multiVaultSingleton = multiVaultSingleton_;
         strategy = strategy_;
         symbioticVaultFactory = symbioticVaultFactory_;
@@ -56,11 +59,13 @@ contract Migrator {
         if (_isEntity[vault]) {
             revert("Migrator: vault already migrated");
         }
-        if (
-            !Migrator(simpleLrtFactory).isEntity(vault)
-                && IMellowSymbioticVault(vault).compatTotalSupply() != 0
-        ) {
-            revert("Migrator: previous migration is incomplete");
+        if (Migrator(previousMigrator).isEntity(vault)) {
+            require(
+                IMellowSymbioticVault(vault).compatTotalSupply() == 0,
+                "Migrator: previous migration is incomplete"
+            );
+        } else {
+            require(Migrator(simpleLrtFactory).isEntity(vault), "Migrator: vault not supported");
         }
         data = MigrationData({
             proxyAdminOwner: proxyAdminOwner,
