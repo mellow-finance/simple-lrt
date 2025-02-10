@@ -16,3 +16,4 @@
 [submodule "lib/eigenlayer-contracts"]
 	path = lib/eigenlayer-contracts
 	url = https://github.com/layr-labs/eigenlayer-contracts
+	branch = mainnet
