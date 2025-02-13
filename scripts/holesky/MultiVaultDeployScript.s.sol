@@ -37,8 +37,9 @@ contract Deploy is Script {
             new WhitelistedEthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
         deployParams.ethWrapper = address(ethWrapper);
         deployParams.ratio = IRatiosStrategy.Ratio({minRatioD18: 0.5 ether, maxRatioD18: 0.9 ether});
+        deployParams.salt = bytes32(uint256(1));
 
-        for (uint256 i = 0; i < 5; i++) {
+        for (uint256 i = 0; i < 3; i++) {
             deployParams.initParams = IMultiVault.InitParams({
                 admin: deployer,
                 limit: 100 ether,
