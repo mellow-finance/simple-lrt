@@ -6,90 +6,70 @@ import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "forge-std/Script.sol";
 
+import "../mainnet/MultiVaultDeployScript.sol";
+
 contract Deploy is Script {
     address private immutable DVstETH = 0x7F31eb85aBE328EBe6DD07f9cA651a6FE623E69B;
     address private immutable holeskyVaultAdmin = 0x2C5f98743e4Cb30d8d65e30B8cd748967D7A051e;
     address private immutable symbioticVault = 0x7F9dEaA3A26AEA587f8A41C6063D4f93F5a5ee7A;
 
     function run() external {
-        uint256 holeskyDeployerPk = uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER")));
-        vm.startBroadcast(holeskyDeployerPk);
+        //     uint256 holeskyDeployerPk = uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER")));
+        //     vm.startBroadcast(holeskyDeployerPk);
 
-        MultiVault singleton = new MultiVault("MultiVault", 1);
-        address deployer = vm.addr(holeskyDeployerPk);
+        //     address deployer = vm.addr(holeskyDeployerPk);
 
-        TransparentUpgradeableProxy proxy =
-            new TransparentUpgradeableProxy(address(singleton), deployer, new bytes(0));
+        //     MultiVaultDeployScript deployScript =
+        //         new MultiVaultDeployScript(0x407A039D94948484D356eFB765b3c74382A050B4);
 
-        EthWrapper ethWrapper = new EthWrapper(
-            Constants.HOLESKY_WETH, Constants.HOLESKY_WSTETH, Constants.HOLESKY_STETH
-        );
-        RatiosStrategy strategy = new RatiosStrategy();
-        Claimer claimer = new Claimer();
+        //     MultiVaultDeployScript.DeployParams memory deployParams;
+        //     deployParams.singleton = address(new MultiVault("MultiVault", 1));
+        //     address claimer = address(new Claimer());
+        //     address ratiosStrategy = address(new RatiosStrategy());
+        //     deployParams.symbioticWithdrawalQueueSingleton =
+        //         address(new SymbioticWithdrawalQueue(claimer));
+        //     deployParams.symbioticVault = symbioticVault;
+        //     deployParams.admin = deployer;
+        //     deployParams.proxyAdmin = deployer;
+        //     deployParams.curator = deployer;
+        //     WhitelistedEthWrapper ethWrapper =
+        //         new WhitelistedEthWrapper(Constants.WETH(), Constants.WSTETH(), Constants.STETH());
+        //     deployParams.depositWrapper = address(ethWrapper);
+        //     deployParams.ratio = IRatiosStrategy.Ratio({minRatioD18: 0.5 ether, maxRatioD18: 0.9 ether});
+        //     deployParams.salt = bytes32(uint256(1));
 
-        address proxyAdmin = address(
-            uint160(
-                uint256(
-                    vm.load(
-                        address(proxy),
-                        0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103
-                    )
-                )
-            )
-        );
+        //     for (uint256 i = 0; i < 3; i++) {
+        //         deployParams.initParams = IMultiVault.InitParams({
+        //             admin: deployer,
+        //             limit: 100 ether,
+        //             depositPause: false,
+        //             withdrawalPause: false,
+        //             depositWhitelist: true,
+        //             asset: Constants.WSTETH(),
+        //             name: string.concat("Mellow Pre-deposit Vault ", vm.toString(i + 1)),
+        //             symbol: string.concat("MPV-", vm.toString(i + 1)),
+        //             depositStrategy: address(ratiosStrategy),
+        //             withdrawalStrategy: address(ratiosStrategy),
+        //             rebalanceStrategy: address(ratiosStrategy),
+        //             defaultCollateral: Constants.HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL,
+        //             symbioticAdapter: address(0),
+        //             eigenLayerAdapter: address(0),
+        //             erc4626Adapter: address(0)
+        //         });
+        //         (MultiVault multiVault, address symbioticAdapter) = deployScript.deploy(deployParams);
+        //         console2.log(
+        //             "Vault name %s, address %s, symbioticAdapter %s",
+        //             multiVault.name(),
+        //             address(multiVault),
+        //             address(symbioticAdapter)
+        //         );
 
-        console2.log("proxy admin:", proxyAdmin);
+        //         ethWrapper.deposit{value: 0.001 ether}(
+        //             ethWrapper.ETH(), 0.001 ether, address(multiVault), deployer, deployer
+        //         );
+        //     }
+        //     vm.stopBroadcast();
 
-        MultiVault multiVault = MultiVault(address(proxy));
-
-        SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
-            address(proxy), address(claimer), Constants.symbioticDeployment().vaultFactory
-        );
-
-        multiVault.initialize(
-            IMultiVault.InitParams({
-                admin: deployer,
-                limit: type(uint256).max,
-                depositPause: false,
-                withdrawalPause: false,
-                depositWhitelist: false,
-                asset: Constants.HOLESKY_WSTETH,
-                name: "MultiVault-test-1",
-                symbol: "MV-1",
-                depositStrategy: address(strategy),
-                withdrawalStrategy: address(strategy),
-                rebalanceStrategy: address(strategy),
-                defaultCollateral: Constants.HOLESKY_WSTETH_SYMBIOTIC_COLLATERAL,
-                symbioticAdapter: address(symbioticAdapter),
-                eigenLayerAdapter: address(0),
-                erc4626Adapter: address(0)
-            })
-        );
-
-        multiVault.grantRole(multiVault.ADD_SUBVAULT_ROLE(), deployer);
-        multiVault.grantRole(RatiosStrategy(strategy).RATIOS_STRATEGY_SET_RATIOS_ROLE(), deployer);
-        multiVault.grantRole(multiVault.REBALANCE_ROLE(), deployer);
-
-        multiVault.addSubvault(symbioticVault, IMultiVaultStorage.Protocol.SYMBIOTIC);
-
-        require(multiVault.subvaultAt(0).vault == symbioticVault, "subvault not added");
-
-        {
-            address[] memory subvaults = new address[](1);
-            subvaults[0] = address(symbioticVault);
-            IRatiosStrategy.Ratio[] memory ratios_ = new IRatiosStrategy.Ratio[](1);
-            ratios_[0] = IRatiosStrategy.Ratio({minRatioD18: 0.45 ether, maxRatioD18: 0.5 ether});
-            RatiosStrategy(strategy).setRatios(address(multiVault), subvaults, ratios_);
-        }
-
-        ethWrapper.deposit{value: 0.1 ether}(
-            ethWrapper.ETH(), 0.1 ether, address(multiVault), address(deployer), address(deployer)
-        );
-
-        multiVault.rebalance();
-
-        vm.stopBroadcast();
-
-        revert("ok");
+        //     // revert("ok");
     }
 }
