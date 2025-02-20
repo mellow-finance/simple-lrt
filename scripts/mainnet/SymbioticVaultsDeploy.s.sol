@@ -3,12 +3,6 @@ pragma solidity 0.8.25;
 
 import "forge-std/Script.sol";
 
-import {EthWrapper} from "../../src/EthWrapper.sol";
-import {MellowSymbioticVault} from "../../src/MellowSymbioticVault.sol";
-import {MellowSymbioticVaultFactory} from "../../src/MellowSymbioticVaultFactory.sol";
-import {MellowVaultCompat} from "../../src/MellowVaultCompat.sol";
-import {Migrator} from "../../src/Migrator.sol";
-
 import {IBurnerRouter} from "@symbiotic/burners/interfaces/router/IBurnerRouter.sol";
 import {IBurnerRouterFactory} from "@symbiotic/burners/interfaces/router/IBurnerRouterFactory.sol";
 import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
@@ -18,10 +12,6 @@ import {INetworkRestakeDelegator} from
 import {IBaseSlasher} from "@symbiotic/core/interfaces/slasher/IBaseSlasher.sol";
 import {IVetoSlasher} from "@symbiotic/core/interfaces/slasher/IVetoSlasher.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
-
-interface ISafe {
-    function getOwners() external view returns (address[] memory);
-}
 
 contract Deploy is Script {
     address public constant VAULT_ADMIN_MULTISIG = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
@@ -80,10 +70,10 @@ contract Deploy is Script {
                             depositWhitelist: true,
                             isDepositLimit: true,
                             depositLimit: 0,
-                            defaultAdminRoleHolder: MELLOW_LIDO_MULTISIG,
-                            depositWhitelistSetRoleHolder: MELLOW_LIDO_MULTISIG,
-                            depositorWhitelistRoleHolder: MELLOW_LIDO_MULTISIG,
-                            isDepositLimitSetRoleHolder: MELLOW_LIDO_MULTISIG,
+                            defaultAdminRoleHolder: VAULT_ADMIN_MULTISIG,
+                            depositWhitelistSetRoleHolder: VAULT_ADMIN_MULTISIG,
+                            depositorWhitelistRoleHolder: VAULT_ADMIN_MULTISIG,
+                            isDepositLimitSetRoleHolder: VAULT_ADMIN_MULTISIG,
                             depositLimitSetRoleHolder: curator
                         })
                     ),
@@ -91,9 +81,9 @@ contract Deploy is Script {
                     delegatorParams: abi.encode(
                         INetworkRestakeDelegator.InitParams({
                             baseParams: IBaseDelegator.BaseParams({
-                                defaultAdminRoleHolder: MELLOW_LIDO_MULTISIG,
+                                defaultAdminRoleHolder: VAULT_ADMIN_MULTISIG,
                                 hook: address(0),
-                                hookSetRoleHolder: MELLOW_LIDO_MULTISIG
+                                hookSetRoleHolder: VAULT_ADMIN_MULTISIG
                             }),
                             networkLimitSetRoleHolders: _createArray(curator),
                             operatorNetworkSharesSetRoleHolders: _createArray(curator)
