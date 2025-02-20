@@ -296,8 +296,9 @@ contract AcceptanceTestRunner {
             RATIOS_STRATEGY_SET_RATIOS_ROLE
         ];
 
-        PairAddressBytes32[5] memory expectedRoles = [
+        PairAddressBytes32[6] memory expectedRoles = [
             PairAddressBytes32(deployParams.params.admin, DEFAULT_ADMIN_ROLE),
+            PairAddressBytes32(deployParams.params.curator, SET_LIMIT_ROLE),
             PairAddressBytes32(deployParams.params.curator, ADD_SUBVAULT_ROLE),
             PairAddressBytes32(deployParams.params.admin, SET_FARM_ROLE),
             PairAddressBytes32(deployParams.params.curator, REBALANCE_ROLE),

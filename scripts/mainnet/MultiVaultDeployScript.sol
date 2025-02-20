@@ -120,6 +120,7 @@ contract MultiVaultDeployScript {
         // curator roles
         multiVault.grantRole(multiVault.REBALANCE_ROLE(), params.curator);
         multiVault.grantRole(multiVault.ADD_SUBVAULT_ROLE(), params.curator);
+        multiVault.grantRole(keccak256("SET_LIMIT_ROLE"), params.curator);
         multiVault.grantRole(strategy.RATIOS_STRATEGY_SET_RATIOS_ROLE(), params.curator);
 
         if (params.symbioticVault != address(0)) {
