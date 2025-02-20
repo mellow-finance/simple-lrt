@@ -79,7 +79,7 @@ contract Deploy is Script {
             address(0x308781da38Be867Ec435D32b3156E0Dc5348Db51),
             address(0xC1f35a2FA20499064c635893C39aa56aa72146C9),
             address(0)
-        ]; // TODO: replace with actual symbiotic vaults
+        ];
 
         MultiVaultDeployScript.DeployParams memory deployParams = MultiVaultDeployScript
             .DeployParams({
