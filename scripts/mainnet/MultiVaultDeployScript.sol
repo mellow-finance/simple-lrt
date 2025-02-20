@@ -141,11 +141,10 @@ contract MultiVaultDeployScript {
             ratios_[0] = IRatiosStrategy.Ratio(params.minRatioD18, params.maxRatioD18);
 
             strategy.setRatios(address(multiVault), subvaults, ratios_);
-
             multiVault.renounceRole(strategy.RATIOS_STRATEGY_SET_RATIOS_ROLE(), address(this));
             multiVault.renounceRole(multiVault.ADD_SUBVAULT_ROLE(), address(this));
-            multiVault.renounceRole(multiVault.DEFAULT_ADMIN_ROLE(), address(this));
         }
+        multiVault.renounceRole(multiVault.DEFAULT_ADMIN_ROLE(), address(this));
 
         emit Deployed(address(multiVault), symbioticAdapter, salt, params);
         _deployments[salt] = Deployment(address(multiVault), symbioticAdapter, params);
