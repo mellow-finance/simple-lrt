@@ -236,6 +236,11 @@ contract AcceptanceTestRunner {
         MultiVaultDeployScript deployScript,
         MultiVaultDeployScript.Deployment memory deployParams
     ) internal {
+        {
+            bytes memory a = address(deployScript.multiVaultImplementation()).code;
+            bytes memory b = address(new MultiVault("MultiVault", 1)).code;
+            require(a.length == b.length, "Invalid MultiVault bytecode length");
+        }
         require(
             address(deployScript.multiVaultImplementation()).codehash
                 == address(new MultiVault("MultiVault", 1)).codehash,
