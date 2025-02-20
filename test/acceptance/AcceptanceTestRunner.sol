@@ -49,6 +49,35 @@ contract AcceptanceTestRunner {
         validateVaultState(deployScript, deployParams);
     }
 
+    function getCleanBytecode(bytes memory contractCode) internal pure returns (bytes memory) {
+        uint256 metadataIndex = contractCode.length;
+        // src: https://docs.soliditylang.org/en/v0.8.25/metadata.html#encoding-of-the-metadata-hash-in-the-bytecode
+        bytes1 b1 = 0xa2;
+        bytes1 b2 = 0x64;
+        for (uint256 i = contractCode.length - 2; i >= 0; i--) {
+            if (contractCode[i] == b1 && contractCode[i + 1] == b2) {
+                metadataIndex = i;
+                break;
+            }
+        }
+        assembly {
+            mstore(contractCode, metadataIndex)
+        }
+        return contractCode;
+    }
+
+    function validateBytecode(bytes memory a, bytes memory b, string memory name) internal pure {
+        a = getCleanBytecode(a);
+        b = getCleanBytecode(b);
+        if (keccak256(a) != keccak256(b)) {
+            if (a.length != b.length) {
+                revert(string.concat("Bytecode length mismatch for ", name));
+            } else {
+                revert(string.concat("Bytecode mismatch for ", name));
+            }
+        }
+    }
+
     function validateVaultState(
         MultiVaultDeployScript deployScript,
         MultiVaultDeployScript.Deployment memory deployParams
@@ -66,7 +95,8 @@ contract AcceptanceTestRunner {
                     new bytes(0)
                 )
             ).code;
-
+            a = getCleanBytecode(a);
+            b = getCleanBytecode(b);
             require(a.length == b.length, "Invalid TransparentUpgradeableProxy bytecode length");
             uint160 proxyAdmin;
             for (uint256 i = 0; i < a.length; i++) {
@@ -126,6 +156,9 @@ contract AcceptanceTestRunner {
                         )
                     )
                 ).code;
+
+                a = getCleanBytecode(a);
+                b = getCleanBytecode(b);
 
                 require(a.length == b.length, "Invalid TransparentUpgradeableProxy bytecode length");
                 uint160 proxyAdmin;
@@ -236,20 +269,16 @@ contract AcceptanceTestRunner {
         MultiVaultDeployScript deployScript,
         MultiVaultDeployScript.Deployment memory deployParams
     ) internal {
-        {
-            bytes memory a = address(deployScript.multiVaultImplementation()).code;
-            bytes memory b = address(new MultiVault("MultiVault", 1)).code;
-            require(a.length == b.length, "Invalid MultiVault bytecode length");
-        }
-        require(
-            address(deployScript.multiVaultImplementation()).codehash
-                == address(new MultiVault("MultiVault", 1)).codehash,
-            "Invalid MultiVault contract"
+        validateBytecode(
+            address(deployScript.multiVaultImplementation()).code,
+            address(new MultiVault("MultiVault", 1)).code,
+            "MultiVault"
         );
 
-        require(
-            address(deployScript.strategy()).codehash == address(new RatiosStrategy()).codehash,
-            "Invalid strategy contract"
+        validateBytecode(
+            address(deployScript.strategy()).code,
+            address(new RatiosStrategy()).code,
+            "RatiosStrategy"
         );
 
         require(
@@ -261,12 +290,12 @@ contract AcceptanceTestRunner {
             address claimer = SymbioticWithdrawalQueue(
                 deployScript.symbioticWithdrawalQueueImplementation()
             ).claimer();
-            require(claimer.codehash == address(new Claimer()).codehash, "Invalid claimer contract");
+            validateBytecode(claimer.code, address(new Claimer()).code, "Claimer");
 
-            require(
-                address(deployScript.symbioticWithdrawalQueueImplementation()).codehash
-                    == address(new SymbioticWithdrawalQueue(claimer)).codehash,
-                "Invalid SymbioticWithdrawalQueue contract"
+            validateBytecode(
+                address(deployScript.symbioticWithdrawalQueueImplementation()).code,
+                address(new SymbioticWithdrawalQueue(claimer)).code,
+                "SymbioticWithdrawalQueue"
             );
         }
 
