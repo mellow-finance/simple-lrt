@@ -76,12 +76,18 @@ contract MultiVaultDeployScript {
             )
         );
 
-        symbioticAdapter = address(
+        address symbioticAdapterImplementation = address(
             new SymbioticAdapter{salt: salt}(
                 address(multiVault),
                 symbioticVaultFactory,
                 symbioticWithdrawalQueueImplementation,
                 params.proxyAdmin
+            )
+        );
+
+        symbioticAdapter = address(
+            new TransparentUpgradeableProxy{salt: salt}(
+                symbioticAdapterImplementation, params.proxyAdmin, new bytes(0)
             )
         );
 

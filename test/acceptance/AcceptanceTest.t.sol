@@ -11,7 +11,7 @@ contract AcceptanceTest is Test, AcceptanceTestRunner {
         Claimer claimer = new Claimer();
         MultiVaultDeployScript deployScript = new MultiVaultDeployScript(
             0x407A039D94948484D356eFB765b3c74382A050B4,
-            0x33d02086eC87DdC57918Ff868f5eee4c27A739f3,
+            address(new RatiosStrategy()),
             address(new MultiVault("MultiVault", 1)),
             address(new SymbioticWithdrawalQueue(address(claimer)))
         );

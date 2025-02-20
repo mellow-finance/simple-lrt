@@ -111,11 +111,11 @@ contract Deploy is Script {
     }
 
     function run() external {
-        vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_TEST_DEPLOYER"))));
+        vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
 
         _deploySymbioticVaults();
 
         vm.stopBroadcast();
-        revert("success");
+        // revert("success");
     }
 }

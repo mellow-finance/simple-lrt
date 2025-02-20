@@ -27,16 +27,25 @@ contract Deploy is Script {
     function _deployCommonContracts() internal {
         if (address(deployScript) == address(0)) {
             depositWrapper = new WhitelistedEthWrapper(WETH, WSTETH, STETH);
+            console2.log("Deposit wrapper:", address(depositWrapper));
             strategy = new RatiosStrategy();
+            console2.log("RatiosStrategy:", address(strategy));
             multiVaultImplementation = new MultiVault("MultiVault", 1);
+            console2.log("MultiVault implementation:", address(multiVaultImplementation));
             claimer = new Claimer();
+            console2.log("Claimer:", address(claimer));
             symbioticWithdrawalQueueImplementation = new SymbioticWithdrawalQueue(address(claimer));
+            console2.log(
+                "SymbioticWithdrawalQueue implementation:",
+                address(symbioticWithdrawalQueueImplementation)
+            );
             deployScript = new MultiVaultDeployScript(
                 SYMBIOTIC_VAULT_FACTORY,
                 address(strategy),
                 address(multiVaultImplementation),
                 address(symbioticWithdrawalQueueImplementation)
             );
+            console2.log("Deploy script:", address(deployScript));
         }
     }
 
@@ -63,8 +72,14 @@ contract Deploy is Script {
             ["a41ETH", "mevnoETH", "ALstETH", "mevkstETH", "mevblETH", "sfETH"];
         uint256[6] memory limits =
             [5000 ether, uint256(100 ether), 50 ether, 1500 ether, 75 ether, 100 ether];
-        address[6] memory symbioticVaults =
-            [address(0), address(1), address(1), address(1), address(1), address(0)]; // TODO: replace with actual symbiotic vaults
+        address[6] memory symbioticVaults = [
+            address(0),
+            address(0xA3E1Ab575Eb40B1Aa5F2CC9A1B276C2Ee0fDffA5),
+            address(0xfBACB2e046BA5bee318237A9D0FF8E50Cb0ba82B),
+            address(0x308781da38Be867Ec435D32b3156E0Dc5348Db51),
+            address(0xC1f35a2FA20499064c635893C39aa56aa72146C9),
+            address(0)
+        ]; // TODO: replace with actual symbiotic vaults
 
         MultiVaultDeployScript.DeployParams memory deployParams = MultiVaultDeployScript
             .DeployParams({
@@ -104,16 +119,12 @@ contract Deploy is Script {
 
     function run() external {
         vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
-        uint256 gas = gasleft();
 
         _deployCommonContracts();
-        console2.log("Common deploy:", gas - gasleft());
-        gas = gasleft();
         _deployVaults();
-        console2.log("4 vaults deploy:", gas - gasleft());
 
         vm.stopBroadcast();
 
-        revert("success");
+        // revert("success");
     }
 }
