@@ -9,6 +9,7 @@
     "test:solvency": "forge test -vv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2686616 --match-path test/solvency\\**.sol",
     "test:migrations:mainnet": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20760000 --contracts ./migration-test",
     "test:acceptance:migration:holesky": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 2686616 --match-test testAcceptanceMigrationOnlyDeployment",
+    "test:holesky:multi-vault:acceptance": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --evm-version shanghai --fork-block-number 3370000 --match-path test/acceptance/\\**.sol",
     "test:migrations": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 21731211  --match-path test/unit/MigratorTest.t.sol --evm-version cancun",
     "compile": "forge build --use 0.8.25 --cache-path cache",
     "sizes": "forge build --sizes --force",
@@ -18,6 +19,7 @@
     "deploy:holesky:factory": "forge script --use 0.8.25 scripts/holesky/HoleskyDeploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
     "deploy:holesky:multi-vault": "forge script --use 0.8.25 scripts/holesky/MultiVaultDeployScript.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
     "deploy:holesky:prelaunch": "forge script --use 0.8.25 scripts/holesky/PrelaunchDeployScript.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
-    "deploy:mainnet": "forge script --use 0.8.25 scripts/mainnet/MainnetDeploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)"
+    "deploy:mainnet:multi-vaults": "forge script --use 0.8.25 scripts/mainnet/MainnetDeploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
+    "deploy:mainnet:symbiotic-vaults": "forge script --use 0.8.25 scripts/mainnet/SymbioticVaultsDeploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)"
   }
 }
