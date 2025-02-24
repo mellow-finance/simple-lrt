@@ -35,7 +35,7 @@ contract Deploy is Script {
             address(strategy),
             SYMBIOTIC_VAULT_FACTORY,
             address(symbioticWithdrawalQueueImplementation),
-            1 hours
+            4 hours
         );
 
         console2.log("Migrator:", address(migrator));
