@@ -7,7 +7,7 @@ import "./AcceptanceTestRunner.sol";
 import "forge-std/Test.sol";
 
 contract AcceptanceTest is Test, AcceptanceTestRunner {
-    function testDeployScriptMainnetDeployment() external {
+    function testDeployScriptMainnetDeploymentBatch1() external {
         MultiVaultDeployScript deployScript =
             MultiVaultDeployScript(0xffAC02252657ED228e155eE06E60f8b62dC59845);
         bytes32[6] memory salts = [
@@ -17,6 +17,23 @@ contract AcceptanceTest is Test, AcceptanceTestRunner {
             bytes32(0xE6CF73F471B572FBB53769A3CBFE17ECA0CAB04753B01229119D1515F40E9C5D),
             bytes32(0x8852FADAB8E4C372E37AF700B9A85D0A844F48810D9A84B25C6D94BEF9DD2E29),
             bytes32(0x48E6A64BBFBFB462365928967141846E51C73B5B053A8B7118E991499C02DB7A)
+        ];
+        for (uint256 i = 0; i < salts.length; i++) {
+            validateState(deployScript, deployScript.deployments(salts[i]));
+        }
+    }
+
+    function testDeployScriptMainnetDeploymentBatch2() external {
+        MultiVaultDeployScript deployScript =
+            MultiVaultDeployScript(0xffAC02252657ED228e155eE06E60f8b62dC59845);
+        bytes32[7] memory salts = [
+            bytes32(0x247D093390D65DF91BBFA42663979A38E7E0F49451183D084936FFA591E90F25),
+            bytes32(0xA01E4B8FF69BF320D7206AE4409DFFCD9839E206C79E0715F6271D7F2ED79A43),
+            bytes32(0x58F59437317AD93DEFBB240AFE2BCA9205CA69451C7C794BDFC3FAE92F1F8E0D),
+            bytes32(0xFF0B57973F6FF2894D473816BE2A85C38BFF36A3698BC582F26DB43F08938DA3),
+            bytes32(0x1A3008E6F5A1AD12EDFFB4DC66C31062BF43459FC384BFDDB7ABD145C31FD434),
+            bytes32(0xF06539F113EF78D1431B6EDE344F80658F21E6EA7921BA076068ADE120E9298A),
+            bytes32(0xB8F037CBB086E32A6CD7C828FB495DA8F9229B8E45C930F56B7891A16564908F)
         ];
         for (uint256 i = 0; i < salts.length; i++) {
             validateState(deployScript, deployScript.deployments(salts[i]));
