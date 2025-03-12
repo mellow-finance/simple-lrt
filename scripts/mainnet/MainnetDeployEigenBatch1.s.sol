@@ -61,19 +61,28 @@ contract Deploy is Script {
             DEPLOYER
         );
 
-        EigenLayerWstETHAdapter eigenLayerAdapter = new EigenLayerWstETHAdapter(
+        EigenLayerWstETHAdapter eigenLayerAdapterSingleton = new EigenLayerWstETHAdapter(
             address(factory),
             address(multiVault),
             IStrategyManager(STRATEGY_MANAGER),
             IRewardsCoordinator(REWARDS_COORDINATOR),
             WSTETH
         );
+
+        EigenLayerWstETHAdapter eigenLayerAdapter = EigenLayerWstETHAdapter(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(eigenLayerAdapterSingleton), DEPLOYER, new bytes(0)
+                )
+            )
+        );
+
         multiVault.grantRole(multiVault.SET_ADAPTER_ROLE(), DEPLOYER);
         multiVault.setEigenLayerAdapter(address(eigenLayerAdapter));
 
         ISignatureUtils.SignatureWithExpiry memory signature;
         bytes32 salt = bytes32(0);
-        (address isolatedVault,) = factory.getOrCreate(
+        (address isolatedVault, address withdrawalQueue) = factory.getOrCreate(
             address(multiVault),
             0x93c4b944D05dfe6df7645A86cd2206016c51564D,
             0xDbEd88D83176316fc46797B43aDeE927Dc2ff2F5, // P2P.org [all AVS], link: https://app.eigenlayer.xyz/operator/0xdbed88d83176316fc46797b43adee927dc2ff2f5
@@ -84,6 +93,7 @@ contract Deploy is Script {
         depositWrapper.deposit{value: 1 gwei}(
             depositWrapper.ETH(), 1 gwei, address(multiVault), DEPLOYER, DEPLOYER
         );
+        console2.log(address(multiVault), isolatedVault, withdrawalQueue);
     }
 
     function run() external {
