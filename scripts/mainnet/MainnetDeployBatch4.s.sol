@@ -13,7 +13,7 @@ contract Deploy is Script {
     MultiVaultDeployScript public deployScript =
         MultiVaultDeployScript(0x0159AEA190C7bEa09873B9b42Fe8fD836DB8a254);
 
-    address public constant WSTUSR = 0x1202F5C7b4B9E47a1A484E8B270be34dbbC75055;   
+    address public constant WSTUSR = 0x1202F5C7b4B9E47a1A484E8B270be34dbbC75055;
     address public constant WSTUSR_DEFAULT_COLLATERAL = 0x950fdF40608800535137c61eDf3972C436d680e8;
 
     uint256 public constant N = 1;
@@ -22,23 +22,15 @@ contract Deploy is Script {
     address public constant WSTUSR_MULTISIG = 0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433;
 
     function _deployVaults() internal {
-        address[N] memory curators = [
-            WSTUSR_MULTISIG
-        ];
+        address[N] memory curators = [WSTUSR_MULTISIG];
 
-        string[N] memory names = [
-            "Re7 Resolv Restaked wstUSR"
-        ];
+        string[N] memory names = ["Re7 Resolv Restaked wstUSR"];
 
-        string[N] memory symbols =
-            ["rstUSR"];
+        string[N] memory symbols = ["rstUSR"];
 
-        uint256[N] memory limits =
-            [uint256(50e6 ether)];
+        uint256[N] memory limits = [uint256(50e6 ether)];
 
-        address[N] memory symbioticVaults = [
-            address(0x821C65F4BDaC61F4938d2cf0476F85614178fb72)
-        ];
+        address[N] memory symbioticVaults = [address(0x821C65F4BDaC61F4938d2cf0476F85614178fb72)];
 
         MultiVaultDeployScript.DeployParams memory deployParams = MultiVaultDeployScript
             .DeployParams({
