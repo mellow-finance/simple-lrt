@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.12;
 
-import {IPauserRegistry} from "@eigenlayer-interfaces/IPauserRegistry.sol";
-
 import {IPausable} from "@eigenlayer-interfaces/IPausable.sol";
-import "@eigenlayer-interfaces/ISemVerMixin.sol";
+import {IPauserRegistry} from "@eigenlayer-interfaces/IPauserRegistry.sol";
 import {IStrategy} from "@eigenlayer-interfaces/IStrategy.sol";
 import {IStrategyManager} from "@eigenlayer-interfaces/IStrategyManager.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -16,7 +14,7 @@ import "@openzeppelin/contracts/utils/ShortStrings.sol";
 /// @title SemVerMixin
 /// @notice A mixin contract that provides semantic versioning functionality.
 /// @dev Follows SemVer 2.0.0 specification (https://semver.org/).
-abstract contract SemVerMixin is ISemVerMixin {
+abstract contract SemVerMixin {
     using ShortStrings for *;
 
     /// @notice The semantic version string for this contract, stored as a ShortString for gas efficiency.
@@ -30,7 +28,6 @@ abstract contract SemVerMixin is ISemVerMixin {
         _VERSION = _version.toShortString();
     }
 
-    /// @inheritdoc ISemVerMixin
     function version() public view virtual returns (string memory) {
         return _VERSION.toString();
     }
@@ -114,7 +111,7 @@ abstract contract Pausable is IPausable {
             "InvalidNewPausedStatus()"
         );
         _paused = newPausedStatus;
-        emit Unpaused(msg.sender, newPausedStatus);
+        // emit Unpaused(msg.sender, newPausedStatus);
     }
 
     function paused() public view virtual returns (uint256) {
@@ -129,7 +126,7 @@ abstract contract Pausable is IPausable {
     /// @dev Internal helper for setting the paused status, and emitting the corresponding event.
     function _setPausedStatus(uint256 pausedStatus) internal {
         _paused = pausedStatus;
-        emit Paused(msg.sender, pausedStatus);
+        // emit Paused(msg.sender, pausedStatus);
     }
 
     /**
@@ -198,7 +195,7 @@ contract StrategyBase is Initializable, Pausable, IStrategy, SemVerMixin {
     function _initializeStrategyBase(IERC20 _underlyingToken) internal onlyInitializing {
         underlyingToken = _underlyingToken;
         _setPausedStatus(_UNPAUSE_ALL);
-        emit StrategyTokenSet(underlyingToken, IERC20Metadata(address(_underlyingToken)).decimals());
+        // emit StrategyTokenSet(underlyingToken, IERC20Metadata(address(_underlyingToken)).decimals());
     }
 
     /**
@@ -406,7 +403,7 @@ contract StrategyBase is Initializable, Pausable, IStrategy, SemVerMixin {
     /// @dev Tokens that do not have 18 decimals must have offchain services scale the exchange rate down to proper magnitude
     function _emitExchangeRate(uint256 virtualTokenBalance, uint256 virtualTotalShares) internal {
         // Emit asset over shares ratio.
-        emit ExchangeRateEmitted((1e18 * virtualTokenBalance) / virtualTotalShares);
+        // emit ExchangeRateEmitted((1e18 * virtualTokenBalance) / virtualTotalShares);
     }
 
     /**
