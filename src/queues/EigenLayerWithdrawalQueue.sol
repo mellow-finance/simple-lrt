@@ -49,7 +49,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     function latestWithdrawableBlock() public view returns (uint256) {
         IStrategy[] memory strategies = new IStrategy[](1);
         strategies[0] = IStrategy(strategy);
-        return block.number - IDelegationManager(delegation).minWithdrawalDelayBlocks();
+        return block.number - IDelegationManager(delegation).minWithdrawalDelayBlocks() - 1;
     }
 
     /// @inheritdoc IWithdrawalQueue
@@ -257,11 +257,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         if (withdrawal.isClaimed) {
             return;
         }
-        IDelegationManager.Withdrawal memory data = withdrawal.data;
-        if (
-            data.startBlock + IDelegationManager(delegation).minWithdrawalDelayBlocks()
-                <= block.number
-        ) {
+        if (latestWithdrawableBlock() >= withdrawal.data.startBlock) {
             _pull(withdrawal, withdrawalIndex);
         }
     }

@@ -30,7 +30,7 @@ contract Unit is BaseTest {
         require(
             latestWithdrawableBlock
                 == block.number
-                    - IDelegationManager(withdrawalQueue.delegation()).minWithdrawalDelayBlocks()
+                    - IDelegationManager(withdrawalQueue.delegation()).minWithdrawalDelayBlocks() - 1
         );
     }
 
