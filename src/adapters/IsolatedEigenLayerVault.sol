@@ -103,10 +103,10 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
     function queueWithdrawals(
         IDelegationManager manager,
         IDelegationManager.QueuedWithdrawalParams[] calldata requests
-    ) external {
+    ) external returns (bytes32[] memory withdrawalRoots) {
         (,,, address queue) = IIsolatedEigenLayerVaultFactory(factory).instances(address(this));
         require(msg.sender == queue, "IsolatedEigenLayerVault: forbidden");
-        manager.queueWithdrawals(requests);
+        return manager.queueWithdrawals(requests);
     }
 
     /// --------------- EXTERNAL VIEW FUNCTIONS ---------------

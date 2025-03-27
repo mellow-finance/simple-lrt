@@ -13,7 +13,7 @@
     "test:mainnet:multi-vault:acceptance:batch1": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --evm-version cancun --fork-block-number 21887183 --match-test testDeployScriptMainnetDeploymentBatch1",
     "test:mainnet:multi-vault:acceptance:batch2": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --evm-version cancun --fork-block-number 21966465 --match-test testDeployScriptMainnetDeploymentBatch2",
     "test:migrations": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 21731211  --match-path test/unit/MigratorTest.t.sol --evm-version cancun",
-    "test:eigen": "forge test --evm-version cancun -vv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 3500000 --match-path igen",
+    "test:eigen": "forge test --evm-version cancun -vv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 3565848 --match-path igen",
     "compile": "forge build --use 0.8.25 --cache-path cache",
     "sizes": "forge build --sizes --force",
     "scc:report": "scc src --sort names --no-cocomo --exclude-dir interfaces --by-file --format wide > scc-report.txt",

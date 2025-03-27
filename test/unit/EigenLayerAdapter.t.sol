@@ -184,6 +184,7 @@ contract Unit is BaseTest {
 
         vm.startPrank(user);
         amount = ISTETH(Constants.STETH()).submit{value: amount}(address(0));
+        amount = IERC20(Constants.STETH()).balanceOf(user);
         IERC20(Constants.STETH()).approve(address(vault), amount);
         vault.deposit(amount, user);
         vault.withdraw(amount / 2, user, user);

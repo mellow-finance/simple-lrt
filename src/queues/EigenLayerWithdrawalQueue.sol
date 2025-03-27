@@ -175,23 +175,19 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         }
         IDelegationManager delegationManager = IDelegationManager(delegation);
 
-        IDelegationManagerTypes.Withdrawal memory data = IDelegationManagerTypes.Withdrawal({
-            staker: isolatedVault_,
-            delegatedTo: operator,
-            withdrawer: isolatedVault_,
-            nonce: delegationManager.cumulativeWithdrawalsQueued(isolatedVault_),
-            startBlock: uint32(block.number),
-            strategies: strategies,
-            scaledShares: shares
-        });
-
         IDelegationManagerTypes.QueuedWithdrawalParams[] memory requests =
             new IDelegationManagerTypes.QueuedWithdrawalParams[](1);
         requests[0] =
             IDelegationManagerTypes.QueuedWithdrawalParams(strategies, shares, isolatedVault_);
-        IIsolatedEigenLayerVault(isolatedVault_).queueWithdrawals(delegationManager, requests);
+        bytes32[] memory withdrawalRoots =
+            IIsolatedEigenLayerVault(isolatedVault_).queueWithdrawals(delegationManager, requests);
+        if (withdrawalRoots.length != 1) {
+            revert("EigenLayerWithdrawalQueue: invalid withdrawal root");
+        }
 
-        uint256 withdrawalIndex = _pushRequest(data, account, isSelfRequested, false);
+        uint256 withdrawalIndex = _pushRequest(
+            delegationManager.queuedWithdrawals(withdrawalRoots[0]), account, isSelfRequested, false
+        );
         emit Request(account, withdrawalIndex, assets, isSelfRequested);
     }
 

@@ -507,6 +507,11 @@ interface IDelegationManager is
         view
         returns (Withdrawal[] memory withdrawals, uint256[][] memory shares);
 
+    function queuedWithdrawals(bytes32 withdrawalRoot)
+        external
+        view
+        returns (Withdrawal memory withdrawal);
+
     /// @notice Returns a list of queued withdrawal roots for the `staker`.
     /// NOTE that this only returns withdrawals queued AFTER the slashing release.
     function getQueuedWithdrawalRoots(address staker) external view returns (bytes32[] memory);

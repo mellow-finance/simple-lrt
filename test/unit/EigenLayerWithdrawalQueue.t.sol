@@ -285,6 +285,7 @@ contract Unit is BaseTest {
         vm.startPrank(user1);
         amount1 = ISTETH(Constants.STETH()).submit{value: amount1}(address(0));
         IERC20(Constants.STETH()).approve(address(vault), amount1);
+        amount1 = IERC20(Constants.STETH()).balanceOf(user1);
         vault.deposit(amount1, user1);
         vault.withdraw(amount1 / 2, user1, user1);
 
@@ -351,6 +352,7 @@ contract Unit is BaseTest {
         vm.startPrank(user1);
         amount1 = ISTETH(Constants.STETH()).submit{value: amount1}(address(0));
         IERC20(Constants.STETH()).approve(address(vault), amount1);
+        amount1 = IERC20(Constants.STETH()).balanceOf(user1);
         vault.deposit(amount1, user1);
         vault.withdraw(1, user1, user1);
         vm.roll(block.number + BLOCKS);
