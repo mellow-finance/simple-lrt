@@ -20,7 +20,7 @@ interface IDelegationManager is ISignatureUtils {
         uint256 nonce;
         uint32 startBlock;
         IStrategy[] strategies;
-        uint256[] scaledShares;
+        uint256[] shares;
     }
 
     struct QueuedWithdrawalParams {

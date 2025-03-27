@@ -356,10 +356,10 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             nonce: delegationManager.cumulativeWithdrawalsQueued(isolatedVault_) - 1,
             startBlock: blockNumber,
             strategies: new IStrategy[](1),
-            scaledShares: new uint256[](1)
+            shares: new uint256[](1)
         });
         withdrawal.strategies[0] = IStrategy(strategy);
-        withdrawal.scaledShares[0] = shares;
+        withdrawal.shares[0] = shares;
 
         bytes32 withdrawalRoot = delegationManager.calculateWithdrawalRoot(withdrawal);
         require(
@@ -393,8 +393,8 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         withdrawalIndex = _withdrawals.length;
         WithdrawalData storage withdrawal = _withdrawals.push();
         withdrawal.data = data;
-        withdrawal.shares = data.scaledShares[0];
-        withdrawal.sharesOf[account] = data.scaledShares[0];
+        withdrawal.shares = data.shares[0];
+        withdrawal.sharesOf[account] = data.shares[0];
         AccountData storage accountData = _accountData[account];
         if (isSelfRequested) {
             if (!isShutdown_ && accountData.withdrawals.length() + 1 > MAX_WITHDRAWALS) {
