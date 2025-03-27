@@ -153,16 +153,14 @@ abstract contract BaseTest is Test {
 
     function deployEigenStrategy(address /*underlyingToken*/ ) public returns (address) {
         IStrategyManager strategyManager = IStrategyManager(Constants.HOLESKY_EL_STRATEGY_MANAGER);
-        MockStrategyBaseTVLLimits strategyBase = new MockStrategyBaseTVLLimits(strategyManager);
+        MockStrategyBaseTVLLimits strategyBase = new MockStrategyBaseTVLLimits(
+            strategyManager, IPauserRegistry(Constants.HOLESKY_EL_PAUSER_REGISTRY), "1"
+        );
         {
             IStrategy[] memory strategiesToWhitelist = new IStrategy[](1);
-            bool[] memory thirdPartyTransfersForbiddenValues = new bool[](1);
             strategiesToWhitelist[0] = IStrategy(strategyBase);
-            thirdPartyTransfersForbiddenValues[0] = false;
             vm.prank(strategyManager.strategyWhitelister());
-            strategyManager.addStrategiesToDepositWhitelist(
-                strategiesToWhitelist, thirdPartyTransfersForbiddenValues
-            );
+            strategyManager.addStrategiesToDepositWhitelist(strategiesToWhitelist);
         }
         return address(strategyBase);
     }

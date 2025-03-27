@@ -58,7 +58,6 @@ contract Unit is BaseTest {
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
 
-        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
         IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerVault()),
@@ -138,19 +137,16 @@ contract Unit is BaseTest {
         rewardsMerkleClaim.tokenLeaves = new IRewardsCoordinator.TokenTreeMerkleLeaf[](1);
         rewardsMerkleClaim.tokenLeaves[0].token = IERC20(rewardToken);
 
-        vm.expectRevert(
-            "RewardsCoordinator._checkClaim: tokenTreeProofs and leaves length mismatch"
-        );
+        vm.expectRevert(abi.encodeWithSignature("InputArrayLengthMismatch()"));
         vault.pushRewards(0, abi.encode(rewardsMerkleClaim));
 
         rewardsMerkleClaim.tokenTreeProofs = new bytes[](1);
-        vm.expectRevert(
-            "RewardsCoordinator._checkClaim: tokenIndices and tokenProofs length mismatch"
-        );
+
+        vm.expectRevert(abi.encodeWithSignature("InputArrayLengthMismatch()"));
         vault.pushRewards(0, abi.encode(rewardsMerkleClaim));
 
         rewardsMerkleClaim.tokenIndices = new uint32[](1);
-        vm.expectRevert("RewardsCoordinator._verifyEarnerClaimProof: invalid earner claim proof");
+        vm.expectRevert(abi.encodeWithSignature("InvalidClaimProof()"));
         vault.pushRewards(0, abi.encode(rewardsMerkleClaim));
 
         assertEq(IsolatedEigenLayerVault(isolatedVault).isDelegated(), true, "not delegated");
@@ -187,6 +183,7 @@ contract Unit is BaseTest {
 
         vm.startPrank(user);
         amount = ISTETH(Constants.STETH()).submit{value: amount}(address(0));
+        amount = IERC20(Constants.STETH()).balanceOf(user);
         IERC20(Constants.STETH()).approve(address(vault), amount);
         vault.deposit(amount, user);
         vault.withdraw(amount / 2, user, user);

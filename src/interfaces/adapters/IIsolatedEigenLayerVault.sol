@@ -48,7 +48,7 @@ interface IIsolatedEigenLayerVault {
     function queueWithdrawals(
         IDelegationManager manager,
         IDelegationManager.QueuedWithdrawalParams[] calldata requests
-    ) external;
+    ) external returns (bytes32[] memory withdrawalRoots);
 
     function sharesToUnderlyingView(address strategy, uint256 shares)
         external

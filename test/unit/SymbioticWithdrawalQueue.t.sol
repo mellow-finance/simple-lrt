@@ -9,11 +9,7 @@ contract Unit is BaseTest {
     uint48 public constant epochDuration = 1 weeks;
 
     function testConstructor() external {
-        // vm.expectRevert();
-        // new SymbioticWithdrawalQueue(address(0));
-
-        (address symbioticVault,,,) =
-            symbioticHelper.createDefaultSymbioticVault(Constants.WSTETH());
+        symbioticHelper.createDefaultSymbioticVault(Constants.WSTETH());
         assertNotEq(address(0), address(new SymbioticWithdrawalQueue(address(0))));
     }
 
@@ -56,8 +52,7 @@ contract Unit is BaseTest {
 
     function testWithdrawalQueue() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,, address symbioticVault) =
-            createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
         ISymbioticWithdrawalQueue withdrawalQueue =
             ISymbioticWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -132,13 +127,11 @@ contract Unit is BaseTest {
 
     function testWithdrawalQueueMultipleRequests() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,, address symbioticVault) =
-            createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
         ISymbioticWithdrawalQueue withdrawalQueue =
             ISymbioticWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
         address user1 = rnd.randAddress();
-        address user2 = rnd.randAddress();
 
         uint256 amount1 = 100 ether;
 
@@ -210,9 +203,6 @@ contract Unit is BaseTest {
         ISymbioticWithdrawalQueue withdrawalQueue =
             ISymbioticWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
-        address user1 = rnd.randAddress();
-        address user2 = rnd.randAddress();
-
         assertEq(withdrawalQueue.getCurrentEpoch(), 0, "initial getCurrentEpoch");
         assertEq(ISymbioticVault(symbioticVault).currentEpoch(), 0, "initial currentEpoch");
         skip(epochDuration);
@@ -231,8 +221,7 @@ contract Unit is BaseTest {
 
     function testPendingAssets() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,, address symbioticVault) =
-            createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
         ISymbioticWithdrawalQueue withdrawalQueue =
             ISymbioticWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -271,8 +260,7 @@ contract Unit is BaseTest {
 
     function testPendingAssetsOf() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,, address symbioticVault) =
-            createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
         ISymbioticWithdrawalQueue withdrawalQueue =
             ISymbioticWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -380,8 +368,7 @@ contract Unit is BaseTest {
 
     function testClaimableAssetsOf() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,, address symbioticVault) =
-            createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
         ISymbioticWithdrawalQueue withdrawalQueue =
             ISymbioticWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -477,8 +464,7 @@ contract Unit is BaseTest {
 
     function testPull() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,, address symbioticVault) =
-            createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
         ISymbioticWithdrawalQueue withdrawalQueue =
             ISymbioticWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -519,8 +505,7 @@ contract Unit is BaseTest {
 
     function testClaim() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,, address symbioticVault) =
-            createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
         ISymbioticWithdrawalQueue withdrawalQueue =
             ISymbioticWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -570,8 +555,7 @@ contract Unit is BaseTest {
 
     function testHandlePendingEpochs() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,, address symbioticVault) =
-            createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
         ISymbioticWithdrawalQueue withdrawalQueue =
             ISymbioticWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -646,8 +630,7 @@ contract Unit is BaseTest {
 
     function testGetAccountData() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,, address symbioticVault) =
-            createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
         ISymbioticWithdrawalQueue withdrawalQueue =
             ISymbioticWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -723,8 +706,7 @@ contract Unit is BaseTest {
 
     function testTransferPendingAssets() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,, address symbioticVault) =
-            createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithSymbioticVault(vaultAdmin);
         ISymbioticWithdrawalQueue withdrawalQueue =
             ISymbioticWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 

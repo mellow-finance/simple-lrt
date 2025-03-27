@@ -59,8 +59,6 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        address wsteth = Constants.WSTETH();
-        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
         IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
@@ -140,19 +138,15 @@ contract Unit is BaseTest {
         rewardsMerkleClaim.tokenLeaves = new IRewardsCoordinator.TokenTreeMerkleLeaf[](1);
         rewardsMerkleClaim.tokenLeaves[0].token = IERC20(rewardToken);
 
-        vm.expectRevert(
-            "RewardsCoordinator._checkClaim: tokenTreeProofs and leaves length mismatch"
-        );
+        vm.expectRevert(abi.encodeWithSignature("InputArrayLengthMismatch()"));
         vault.pushRewards(0, abi.encode(rewardsMerkleClaim));
 
         rewardsMerkleClaim.tokenTreeProofs = new bytes[](1);
-        vm.expectRevert(
-            "RewardsCoordinator._checkClaim: tokenIndices and tokenProofs length mismatch"
-        );
+        vm.expectRevert(abi.encodeWithSignature("InputArrayLengthMismatch()"));
         vault.pushRewards(0, abi.encode(rewardsMerkleClaim));
 
         rewardsMerkleClaim.tokenIndices = new uint32[](1);
-        vm.expectRevert("RewardsCoordinator._verifyEarnerClaimProof: invalid earner claim proof");
+        vm.expectRevert(abi.encodeWithSignature("InvalidClaimProof()"));
         vault.pushRewards(0, abi.encode(rewardsMerkleClaim));
     }
 

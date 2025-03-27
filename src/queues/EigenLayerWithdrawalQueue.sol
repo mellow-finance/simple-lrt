@@ -49,7 +49,22 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     function latestWithdrawableBlock() public view returns (uint256) {
         IStrategy[] memory strategies = new IStrategy[](1);
         strategies[0] = IStrategy(strategy);
-        return block.number - IDelegationManager(delegation).getWithdrawalDelay(strategies);
+        return block.number - IDelegationManager(delegation).minWithdrawalDelayBlocks() - 1;
+    }
+
+    /// @inheritdoc IEigenLayerWithdrawalQueue
+    function convertScaledSharesToShares(
+        IDelegationManager.Withdrawal memory withdrawal,
+        uint256 scaledShares,
+        uint256 totalScaledShares
+    ) public view returns (uint256) {
+        if (scaledShares == 0) {
+            return 0;
+        }
+        IDelegationManager delegationManager = IDelegationManager(delegation);
+        bytes32 withdrawalRoot = delegationManager.calculateWithdrawalRoot(withdrawal);
+        (, uint256[] memory shares) = delegationManager.getQueuedWithdrawal(withdrawalRoot);
+        return shares[0].mulDiv(scaledShares, totalScaledShares);
     }
 
     /// @inheritdoc IWithdrawalQueue
@@ -61,7 +76,9 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         for (uint256 i = 0; i < indices.length; i++) {
             WithdrawalData storage withdrawal = _withdrawals[indices[i]];
             if (block_ < withdrawal.data.startBlock) {
-                shares += withdrawal.sharesOf[account];
+                shares += convertScaledSharesToShares(
+                    withdrawal.data, withdrawal.sharesOf[account], withdrawal.shares
+                );
             }
         }
         assets = shares == 0
@@ -84,7 +101,9 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
                     ? withdrawal.assets
                     : withdrawal.assets.mulDiv(accountShares, totalShares);
             } else if (block_ >= withdrawal.data.startBlock) {
-                shares += withdrawal.sharesOf[account];
+                shares += convertScaledSharesToShares(
+                    withdrawal.data, withdrawal.sharesOf[account], withdrawal.shares
+                );
             }
         }
         assets += accountData_.claimableAssets;
@@ -175,22 +194,15 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         }
         IDelegationManager delegationManager = IDelegationManager(delegation);
 
-        IDelegationManager.Withdrawal memory data = IDelegationManager.Withdrawal({
-            staker: isolatedVault_,
-            delegatedTo: operator,
-            withdrawer: isolatedVault_,
-            nonce: delegationManager.cumulativeWithdrawalsQueued(isolatedVault_),
-            startBlock: uint32(block.number),
-            strategies: strategies,
-            shares: shares
-        });
-
         IDelegationManager.QueuedWithdrawalParams[] memory requests =
             new IDelegationManager.QueuedWithdrawalParams[](1);
         requests[0] = IDelegationManager.QueuedWithdrawalParams(strategies, shares, isolatedVault_);
-        IIsolatedEigenLayerVault(isolatedVault_).queueWithdrawals(delegationManager, requests);
-
-        uint256 withdrawalIndex = _pushRequest(data, account, isSelfRequested, false);
+        bytes32 withdrawalRoot = IIsolatedEigenLayerVault(isolatedVault_).queueWithdrawals(
+            delegationManager, requests
+        )[0];
+        uint256 withdrawalIndex = _pushRequest(
+            delegationManager.queuedWithdrawals(withdrawalRoot), account, isSelfRequested, false
+        );
         emit Request(account, withdrawalIndex, assets, isSelfRequested);
     }
 
@@ -215,7 +227,10 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
                 accountShares = balances[from];
                 accountAssets = withdrawal.isClaimed
                     ? withdrawal.assets.mulDiv(accountShares, withdrawal.shares)
-                    : isolatedVault_.sharesToUnderlyingView(strategy, accountShares);
+                    : isolatedVault_.sharesToUnderlyingView(
+                        strategy,
+                        convertScaledSharesToShares(withdrawal.data, accountShares, withdrawal.shares)
+                    );
             }
             if (accountAssets == 0) {
                 i++;
@@ -260,11 +275,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         if (withdrawal.isClaimed) {
             return;
         }
-        IDelegationManager.Withdrawal memory data = withdrawal.data;
-        if (
-            data.startBlock + IDelegationManager(delegation).getWithdrawalDelay(data.strategies)
-                <= block.number
-        ) {
+        if (latestWithdrawableBlock() >= withdrawal.data.startBlock) {
             _pull(withdrawal, withdrawalIndex);
         }
     }
@@ -345,10 +356,10 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             nonce: delegationManager.cumulativeWithdrawalsQueued(isolatedVault_) - 1,
             startBlock: blockNumber,
             strategies: new IStrategy[](1),
-            shares: new uint256[](1)
+            scaledShares: new uint256[](1)
         });
         withdrawal.strategies[0] = IStrategy(strategy);
-        withdrawal.shares[0] = shares;
+        withdrawal.scaledShares[0] = shares;
 
         bytes32 withdrawalRoot = delegationManager.calculateWithdrawalRoot(withdrawal);
         require(
@@ -382,8 +393,8 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         withdrawalIndex = _withdrawals.length;
         WithdrawalData storage withdrawal = _withdrawals.push();
         withdrawal.data = data;
-        withdrawal.shares = data.shares[0];
-        withdrawal.sharesOf[account] = data.shares[0];
+        withdrawal.shares = data.scaledShares[0];
+        withdrawal.sharesOf[account] = data.scaledShares[0];
         AccountData storage accountData = _accountData[account];
         if (isSelfRequested) {
             if (!isShutdown_ && accountData.withdrawals.length() + 1 > MAX_WITHDRAWALS) {

@@ -43,6 +43,12 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
 
     function latestWithdrawableBlock() external view returns (uint256);
 
+    function convertScaledSharesToShares(
+        IDelegationManager.Withdrawal memory withdrawal,
+        uint256 scaledShares,
+        uint256 totalScaledShares
+    ) external view returns (uint256);
+
     function getAccountData(
         address account,
         uint256 withdrawalsLimit,

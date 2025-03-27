@@ -51,7 +51,7 @@ contract IsolatedEigenLayerWstETHVault is IsolatedEigenLayerVault {
         require(msg.sender == queue, "IsolatedEigenLayerWstETHVault: forbidden");
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = IERC20(steth);
-        manager.completeQueuedWithdrawal(data, tokens, 0, true);
+        manager.completeQueuedWithdrawal(data, tokens, true);
         assets = steth.balanceOf(this_);
         IERC20(steth).safeIncreaseAllowance(address(wsteth), assets);
         assets = wsteth.wrap(assets);
