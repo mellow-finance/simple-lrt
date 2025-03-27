@@ -59,8 +59,6 @@ contract Unit is BaseTest {
         address vaultAdmin = rnd.randAddress();
         RatiosStrategy strategy = new RatiosStrategy();
         Claimer claimer = new Claimer();
-        address wsteth = Constants.WSTETH();
-        address delegationManager = Constants.HOLESKY_EL_DELEGATION_MANAGER;
         IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
             Constants.HOLESKY_EL_DELEGATION_MANAGER,
             address(new IsolatedEigenLayerWstETHVault(Constants.WSTETH())),
@@ -98,7 +96,7 @@ contract Unit is BaseTest {
             })
         );
 
-        ISignatureUtilsMixinTypes.SignatureWithExpiry memory signature;
+        ISignatureUtils.SignatureWithExpiry memory signature;
         (address isolatedVault,) = factory.getOrCreate(
             address(vault),
             Constants.HOLESKY_EL_STRATEGY,

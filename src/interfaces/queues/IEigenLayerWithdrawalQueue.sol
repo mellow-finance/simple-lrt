@@ -3,10 +3,7 @@ pragma solidity 0.8.25;
 
 import {IIsolatedEigenLayerVault} from "../adapters/IIsolatedEigenLayerVault.sol";
 import {IWithdrawalQueue} from "./IWithdrawalQueue.sol";
-import {
-    IDelegationManager,
-    IDelegationManagerTypes
-} from "@eigenlayer-interfaces/IDelegationManager.sol";
+import {IDelegationManager} from "@eigenlayer-interfaces/IDelegationManager.sol";
 import {IStrategy} from "@eigenlayer-interfaces/IStrategy.sol";
 
 import {IDelegationManagerExtended} from "../utils/IDelegationManagerExtended.sol";

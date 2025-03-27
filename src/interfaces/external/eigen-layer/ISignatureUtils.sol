@@ -3,14 +3,12 @@ pragma solidity 0.8.25;
 
 import "./ISemVerMixin.sol";
 
-interface ISignatureUtilsMixinErrors {
+interface ISignatureUtils is ISemVerMixin {
     /// @notice Thrown when a signature is invalid.
     error InvalidSignature();
     /// @notice Thrown when a signature has expired.
     error SignatureExpired();
-}
 
-interface ISignatureUtilsMixinTypes {
     /// @notice Struct that bundles together a signature and an expiration time for the signature.
     /// @dev Used primarily for stack management.
     struct SignatureWithExpiry {
@@ -30,18 +28,7 @@ interface ISignatureUtilsMixinTypes {
         // the expiration timestamp (UTC) of the signature
         uint256 expiry;
     }
-}
 
-/**
- * @title The interface for common signature utilities.
- * @author Layr Labs, Inc.
- * @notice Terms of Service: https://docs.eigenlayer.xyz/overview/terms-of-service
- */
-interface ISignatureUtilsMixin is
-    ISignatureUtilsMixinErrors,
-    ISignatureUtilsMixinTypes,
-    ISemVerMixin
-{
     /// @notice Computes the EIP-712 domain separator used for signature validation.
     /// @dev The domain separator is computed according to EIP-712 specification, using:
     ///      - The hardcoded name "EigenLayer"

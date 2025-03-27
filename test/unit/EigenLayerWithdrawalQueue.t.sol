@@ -184,13 +184,8 @@ contract Unit is BaseTest {
 
         {
             assertEq(withdrawalQueue.withdrawalRequests(), 1, "user1 requests");
-            (
-                IDelegationManager.Withdrawal memory withdrawal,
-                bool isClaimed,
-                uint256 accountAssets,
-                uint256 shares,
-                uint256 accountShares
-            ) = withdrawalQueue.getWithdrawalRequest(0, user1);
+            (, bool isClaimed, uint256 accountAssets, uint256 shares, uint256 accountShares) =
+                withdrawalQueue.getWithdrawalRequest(0, user1);
             assertFalse(isClaimed, "already claimed");
             assertEq(accountAssets, 0, "user1 asset");
             assertEq(shares, accountShares, "user1 shares");
@@ -343,7 +338,7 @@ contract Unit is BaseTest {
             EigenLayerWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
         address user1 = rnd.randAddress();
-        address user2 = rnd.randAddress();
+        // address user2 = rnd.randAddress();
 
         uint256 amount1 = 100 ether;
 
@@ -357,16 +352,6 @@ contract Unit is BaseTest {
         vault.withdraw(1, user1, user1);
         vm.roll(block.number + BLOCKS);
         withdrawalQueue.claim(user1, user1, type(uint256).max);
-
-        return;
-
-        withdrawalQueue.transferPendingAssets(user2, 1);
-        vm.stopPrank();
-
-        uint256[] memory withdrawal = new uint256[](1);
-        withdrawal[0] = 0;
-        vm.startPrank(user2);
-        withdrawalQueue.acceptPendingAssets(user2, withdrawal);
     }
 
     function testGetAccountData() external {

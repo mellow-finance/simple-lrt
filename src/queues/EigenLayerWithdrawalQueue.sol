@@ -194,10 +194,9 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         }
         IDelegationManager delegationManager = IDelegationManager(delegation);
 
-        IDelegationManagerTypes.QueuedWithdrawalParams[] memory requests =
-            new IDelegationManagerTypes.QueuedWithdrawalParams[](1);
-        requests[0] =
-            IDelegationManagerTypes.QueuedWithdrawalParams(strategies, shares, isolatedVault_);
+        IDelegationManager.QueuedWithdrawalParams[] memory requests =
+            new IDelegationManager.QueuedWithdrawalParams[](1);
+        requests[0] = IDelegationManager.QueuedWithdrawalParams(strategies, shares, isolatedVault_);
         bytes32 withdrawalRoot = IIsolatedEigenLayerVault(isolatedVault_).queueWithdrawals(
             delegationManager, requests
         )[0];
@@ -350,7 +349,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             "EigenLayerWithdrawalQueue: not yet forcibly unstaked"
         );
 
-        IDelegationManagerTypes.Withdrawal memory withdrawal = IDelegationManagerTypes.Withdrawal({
+        IDelegationManager.Withdrawal memory withdrawal = IDelegationManager.Withdrawal({
             staker: isolatedVault_,
             delegatedTo: operator,
             withdrawer: isolatedVault_,

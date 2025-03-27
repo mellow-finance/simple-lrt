@@ -13,7 +13,7 @@ import "./ISemVerMixin.sol";
 import "./IStrategy.sol";
 import "./IStrategyManager.sol";
 
-interface IRewardsCoordinatorErrors {
+interface IRewardsCoordinator {
     /// @dev Thrown when msg.sender is not allowed to call a function
     error UnauthorizedCaller();
     /// @dev Thrown when a earner not an AVS or Operator
@@ -92,9 +92,7 @@ interface IRewardsCoordinatorErrors {
     error RootNotActivated();
     /// @dev Thrown if a root has already been activated.
     error RootAlreadyActivated();
-}
 
-interface IRewardsCoordinatorTypes {
     /**
      * @notice A linear combination of strategies and multipliers for AVSs to weigh
      * EigenLayer strategies.
@@ -275,9 +273,7 @@ interface IRewardsCoordinatorTypes {
         uint32 GENESIS_REWARDS_TIMESTAMP;
         string version;
     }
-}
 
-interface IRewardsCoordinatorEvents is IRewardsCoordinatorTypes {
     /// @notice emitted when an AVS creates a valid RewardsSubmission
     event AVSRewardsSubmissionCreated(
         address indexed avs,
@@ -421,22 +417,7 @@ interface IRewardsCoordinatorEvents is IRewardsCoordinatorTypes {
         IERC20 token,
         uint256 claimedAmount
     );
-}
 
-/**
- * @title Interface for the `IRewardsCoordinator` contract.
- * @author Layr Labs, Inc.
- * @notice Terms of Service: https://docs.eigenlayer.xyz/overview/terms-of-service
- * @notice Allows AVSs to make "Rewards Submissions", which get distributed amongst the AVSs' confirmed
- * Operators and the Stakers delegated to those Operators.
- * Calculations are performed based on the completed RewardsSubmission, with the results posted in
- * a Merkle root against which Stakers & Operators can make claims.
- */
-interface IRewardsCoordinator is
-    IRewardsCoordinatorErrors,
-    IRewardsCoordinatorEvents,
-    ISemVerMixin
-{
     /**
      * @dev Initializes the addresses of the initial owner, pauser registry, rewardsUpdater and
      * configures the initial paused status, activationDelay, and defaultOperatorSplitBips.

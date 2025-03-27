@@ -128,7 +128,7 @@ abstract contract BaseTest is Test {
         );
 
         {
-            ISignatureUtilsMixinTypes.SignatureWithExpiry memory signature;
+            ISignatureUtils.SignatureWithExpiry memory signature;
             bytes32 salt = 0;
             address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
             if (eigenLayerStrategy == address(0)) {
@@ -220,7 +220,7 @@ abstract contract BaseTest is Test {
         );
 
         {
-            ISignatureUtilsMixinTypes.SignatureWithExpiry memory signature;
+            ISignatureUtils.SignatureWithExpiry memory signature;
             bytes32 salt = 0;
             address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937; // random operator
             if (eigenLayerStrategy == address(0)) {

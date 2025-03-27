@@ -2,10 +2,10 @@
 pragma solidity 0.8.25;
 
 import "./IPauserRegistry.sol";
-import "./ISignatureUtilsMixin.sol";
+import "./ISignatureUtils.sol";
 import "./IStrategy.sol";
 
-interface IDelegationManagerErrors {
+interface IDelegationManager is ISignatureUtils {
     /// @dev Thrown when caller is neither the StrategyManager or EigenPodManager contract.
     error OnlyStrategyManagerOrEigenPodManager();
     /// @dev Thrown when msg.sender is not the EigenPodManager
@@ -52,9 +52,7 @@ interface IDelegationManagerErrors {
     error WithdrawalDelayNotElapsed();
     /// @dev Thrown when withdrawer is not the current caller.
     error WithdrawerNotCaller();
-}
 
-interface IDelegationManagerTypes {
     // @notice Struct used for storing information about a single operator who has registered with EigenLayer
     struct OperatorDetails {
         /// @notice DEPRECATED -- this field is no longer used, payments are handled in RewardsCoordinator.sol
@@ -126,9 +124,7 @@ interface IDelegationManagerTypes {
         uint256[] depositShares;
         address __deprecated_withdrawer;
     }
-}
 
-interface IDelegationManagerEvents is IDelegationManagerTypes {
     // @notice Emitted when a new operator registers in EigenLayer and provides their delegation approver.
     event OperatorRegistered(address indexed operator, address delegationApprover);
 
@@ -182,23 +178,7 @@ interface IDelegationManagerEvents is IDelegationManagerTypes {
     event OperatorSharesSlashed(
         address indexed operator, IStrategy strategy, uint256 totalSlashedShares
     );
-}
 
-/**
- * @title DelegationManager
- * @author Layr Labs, Inc.
- * @notice Terms of Service: https://docs.eigenlayer.xyz/overview/terms-of-service
- * @notice  This is the contract for delegation in EigenLayer. The main functionalities of this contract are
- * - enabling anyone to register as an operator in EigenLayer
- * - allowing operators to specify parameters related to stakers who delegate to them
- * - enabling any staker to delegate its stake to the operator of its choice (a given staker can only delegate to a single operator at a time)
- * - enabling a staker to undelegate its assets from the operator it is delegated to (performed as part of the withdrawal process, initiated through the StrategyManager)
- */
-interface IDelegationManager is
-    ISignatureUtilsMixin,
-    IDelegationManagerErrors,
-    IDelegationManagerEvents
-{
     /**
      * @dev Initializes the initial owner and paused status.
      */

@@ -35,7 +35,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
     function delegateTo(
         address manager,
         address operator,
-        ISignatureUtilsMixinTypes.SignatureWithExpiry memory signature,
+        ISignatureUtils.SignatureWithExpiry memory signature,
         bytes32 salt
     ) external {
         require(!isDelegated, "IsolatedEigenLayerVault: already delegated");

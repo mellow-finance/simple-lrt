@@ -101,8 +101,8 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         external
         delegateCallOnly
     {
-        IRewardsCoordinatorTypes.RewardsMerkleClaim memory eigenLayerFarmData =
-            abi.decode(farmData, (IRewardsCoordinatorTypes.RewardsMerkleClaim));
+        IRewardsCoordinator.RewardsMerkleClaim memory eigenLayerFarmData =
+            abi.decode(farmData, (IRewardsCoordinator.RewardsMerkleClaim));
         require(
             eigenLayerFarmData.tokenLeaves.length == 1
                 && address(eigenLayerFarmData.tokenLeaves[0].token) == address(rewardToken),

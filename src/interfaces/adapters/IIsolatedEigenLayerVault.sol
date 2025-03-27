@@ -5,10 +5,7 @@ import {IEigenLayerWithdrawalQueue} from "../queues/IEigenLayerWithdrawalQueue.s
 import {IIsolatedEigenLayerVaultFactory} from "./IIsolatedEigenLayerVaultFactory.sol";
 import {IDelegationManager} from "@eigenlayer-interfaces/IDelegationManager.sol";
 import {IRewardsCoordinator} from "@eigenlayer-interfaces/IRewardsCoordinator.sol";
-import {
-    ISignatureUtilsMixin,
-    ISignatureUtilsMixinTypes
-} from "@eigenlayer-interfaces/ISignatureUtilsMixin.sol";
+import {ISignatureUtils} from "@eigenlayer-interfaces/ISignatureUtils.sol";
 import {IStrategy, IStrategyManager} from "@eigenlayer-interfaces/IStrategyManager.sol";
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -29,7 +26,7 @@ interface IIsolatedEigenLayerVault {
     function delegateTo(
         address manager,
         address operator,
-        ISignatureUtilsMixinTypes.SignatureWithExpiry memory signature,
+        ISignatureUtils.SignatureWithExpiry memory signature,
         bytes32 salt
     ) external;
 

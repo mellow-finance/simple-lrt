@@ -9,7 +9,6 @@ contract Unit is BaseTest {
 
     function testSymbioticAdapter() external {
         MultiVault vault = new MultiVault("test", 1);
-        Claimer claimer = new Claimer();
         SymbioticAdapter symbioticAdapter = new SymbioticAdapter(
             address(vault),
             Constants.symbioticDeployment().vaultFactory,
