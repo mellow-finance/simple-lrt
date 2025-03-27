@@ -98,7 +98,7 @@ contract Unit is BaseTest {
             })
         );
 
-        ISignatureUtils.SignatureWithExpiry memory signature;
+        ISignatureUtilsMixinTypes.SignatureWithExpiry memory signature;
         (address isolatedVault,) = factory.getOrCreate(
             address(vault),
             Constants.HOLESKY_EL_STRATEGY,
@@ -140,19 +140,15 @@ contract Unit is BaseTest {
         rewardsMerkleClaim.tokenLeaves = new IRewardsCoordinator.TokenTreeMerkleLeaf[](1);
         rewardsMerkleClaim.tokenLeaves[0].token = IERC20(rewardToken);
 
-        vm.expectRevert(
-            "RewardsCoordinator._checkClaim: tokenTreeProofs and leaves length mismatch"
-        );
+        vm.expectRevert(abi.encodeWithSignature("InputArrayLengthMismatch()"));
         vault.pushRewards(0, abi.encode(rewardsMerkleClaim));
 
         rewardsMerkleClaim.tokenTreeProofs = new bytes[](1);
-        vm.expectRevert(
-            "RewardsCoordinator._checkClaim: tokenIndices and tokenProofs length mismatch"
-        );
+        vm.expectRevert(abi.encodeWithSignature("InputArrayLengthMismatch()"));
         vault.pushRewards(0, abi.encode(rewardsMerkleClaim));
 
         rewardsMerkleClaim.tokenIndices = new uint32[](1);
-        vm.expectRevert("RewardsCoordinator._verifyEarnerClaimProof: invalid earner claim proof");
+        vm.expectRevert(abi.encodeWithSignature("InvalidClaimProof()"));
         vault.pushRewards(0, abi.encode(rewardsMerkleClaim));
     }
 

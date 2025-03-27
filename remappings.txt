@@ -4,5 +4,4 @@
 @symbiotic/core-test/=lib/core/test/
 @symbiotic/rewards/=lib/rewards/src/
 @symbiotic/burners/=lib/burners/src/
-@eigenlayer-interfaces/=lib/eigenlayer-contracts/src/contracts/interfaces/
-@eigenlayer-src/=lib/eigenlayer-contracts/src/contracts/
+@eigenlayer-interfaces/=src/interfaces/external/eigen-layer/

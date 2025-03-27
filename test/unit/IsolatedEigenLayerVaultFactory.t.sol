@@ -57,7 +57,7 @@ contract Unit is BaseTest {
             })
         );
 
-        ISignatureUtils.SignatureWithExpiry memory signature;
+        ISignatureUtilsMixinTypes.SignatureWithExpiry memory signature;
         (address isolatedVault0,) = factory.getOrCreate(
             address(vault),
             Constants.HOLESKY_EL_STRATEGY,
@@ -137,7 +137,7 @@ contract Unit is BaseTest {
             Constants.HOLESKY_EL_STRATEGY,
             0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937
         );
-        ISignatureUtils.SignatureWithExpiry memory signature;
+        ISignatureUtilsMixinTypes.SignatureWithExpiry memory signature;
         (address isolatedVault0,) = factory.getOrCreate(
             address(vault),
             Constants.HOLESKY_EL_STRATEGY,

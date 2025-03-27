@@ -49,7 +49,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
     function latestWithdrawableBlock() public view returns (uint256) {
         IStrategy[] memory strategies = new IStrategy[](1);
         strategies[0] = IStrategy(strategy);
-        return block.number - IDelegationManager(delegation).getWithdrawalDelay(strategies);
+        return block.number - IDelegationManager(delegation).minWithdrawalDelayBlocks();
     }
 
     /// @inheritdoc IWithdrawalQueue
@@ -175,19 +175,20 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         }
         IDelegationManager delegationManager = IDelegationManager(delegation);
 
-        IDelegationManager.Withdrawal memory data = IDelegationManager.Withdrawal({
+        IDelegationManagerTypes.Withdrawal memory data = IDelegationManagerTypes.Withdrawal({
             staker: isolatedVault_,
             delegatedTo: operator,
             withdrawer: isolatedVault_,
             nonce: delegationManager.cumulativeWithdrawalsQueued(isolatedVault_),
             startBlock: uint32(block.number),
             strategies: strategies,
-            shares: shares
+            scaledShares: shares
         });
 
-        IDelegationManager.QueuedWithdrawalParams[] memory requests =
-            new IDelegationManager.QueuedWithdrawalParams[](1);
-        requests[0] = IDelegationManager.QueuedWithdrawalParams(strategies, shares, isolatedVault_);
+        IDelegationManagerTypes.QueuedWithdrawalParams[] memory requests =
+            new IDelegationManagerTypes.QueuedWithdrawalParams[](1);
+        requests[0] =
+            IDelegationManagerTypes.QueuedWithdrawalParams(strategies, shares, isolatedVault_);
         IIsolatedEigenLayerVault(isolatedVault_).queueWithdrawals(delegationManager, requests);
 
         uint256 withdrawalIndex = _pushRequest(data, account, isSelfRequested, false);
@@ -262,7 +263,7 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         }
         IDelegationManager.Withdrawal memory data = withdrawal.data;
         if (
-            data.startBlock + IDelegationManager(delegation).getWithdrawalDelay(data.strategies)
+            data.startBlock + IDelegationManager(delegation).minWithdrawalDelayBlocks()
                 <= block.number
         ) {
             _pull(withdrawal, withdrawalIndex);
@@ -338,17 +339,17 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             "EigenLayerWithdrawalQueue: not yet forcibly unstaked"
         );
 
-        IDelegationManager.Withdrawal memory withdrawal = IDelegationManager.Withdrawal({
+        IDelegationManagerTypes.Withdrawal memory withdrawal = IDelegationManagerTypes.Withdrawal({
             staker: isolatedVault_,
             delegatedTo: operator,
             withdrawer: isolatedVault_,
             nonce: delegationManager.cumulativeWithdrawalsQueued(isolatedVault_) - 1,
             startBlock: blockNumber,
             strategies: new IStrategy[](1),
-            shares: new uint256[](1)
+            scaledShares: new uint256[](1)
         });
         withdrawal.strategies[0] = IStrategy(strategy);
-        withdrawal.shares[0] = shares;
+        withdrawal.scaledShares[0] = shares;
 
         bytes32 withdrawalRoot = delegationManager.calculateWithdrawalRoot(withdrawal);
         require(
@@ -382,8 +383,8 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         withdrawalIndex = _withdrawals.length;
         WithdrawalData storage withdrawal = _withdrawals.push();
         withdrawal.data = data;
-        withdrawal.shares = data.shares[0];
-        withdrawal.sharesOf[account] = data.shares[0];
+        withdrawal.shares = data.scaledShares[0];
+        withdrawal.sharesOf[account] = data.scaledShares[0];
         AccountData storage accountData = _accountData[account];
         if (isSelfRequested) {
             if (!isShutdown_ && accountData.withdrawals.length() + 1 > MAX_WITHDRAWALS) {

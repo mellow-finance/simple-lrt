@@ -6,7 +6,10 @@ import {IIsolatedEigenLayerVaultFactory} from "./IIsolatedEigenLayerVaultFactory
 import {IProtocolAdapter} from "./IProtocolAdapter.sol";
 import {IDelegationManager} from "@eigenlayer-interfaces/IDelegationManager.sol";
 import {IPausable} from "@eigenlayer-interfaces/IPausable.sol";
-import {IRewardsCoordinator} from "@eigenlayer-interfaces/IRewardsCoordinator.sol";
+import {
+    IRewardsCoordinator,
+    IRewardsCoordinatorTypes
+} from "@eigenlayer-interfaces/IRewardsCoordinator.sol";
 import {IStrategy, IStrategyManager} from "@eigenlayer-interfaces/IStrategyManager.sol";
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";

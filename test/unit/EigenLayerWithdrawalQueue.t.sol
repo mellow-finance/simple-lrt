@@ -6,6 +6,9 @@ import "../BaseTest.sol";
 contract Unit is BaseTest {
     using RandomLib for RandomLib.Storage;
 
+    uint256 public constant BLOCKS = 2000;
+    uint256 public constant ERROR = 10 wei;
+
     function testConstructor() external {
         address withdrawalQueue = address(
             new EigenLayerWithdrawalQueue(
@@ -27,7 +30,7 @@ contract Unit is BaseTest {
         require(
             latestWithdrawableBlock
                 == block.number
-                    - IDelegationManager(withdrawalQueue.delegation()).getWithdrawalDelay(strategies)
+                    - IDelegationManager(withdrawalQueue.delegation()).minWithdrawalDelayBlocks()
         );
     }
 
@@ -76,9 +79,12 @@ contract Unit is BaseTest {
             vm.stopPrank();
 
             assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "user1: claimableAssets");
-            vm.roll(block.number + 10); // skip delay
+            vm.roll(block.number + BLOCKS); // skip delay
             assertApproxEqAbs(
-                withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, 2, "user1: claimableAssets"
+                withdrawalQueue.claimableAssetsOf(user1),
+                amount1 / 2,
+                ERROR,
+                "user1: claimableAssets"
             );
         }
         {
@@ -89,9 +95,12 @@ contract Unit is BaseTest {
             vm.stopPrank();
 
             assertEq(withdrawalQueue.claimableAssetsOf(user2), 0, "user2: claimableAssets");
-            vm.roll(block.number + 10); // skip delay
+            vm.roll(block.number + BLOCKS); // skip delay
             assertApproxEqAbs(
-                withdrawalQueue.claimableAssetsOf(user2), amount2 / 2, 2, "user2: claimableAssets"
+                withdrawalQueue.claimableAssetsOf(user2),
+                amount2 / 2,
+                ERROR,
+                "user2: claimableAssets"
             );
         }
 
@@ -104,7 +113,7 @@ contract Unit is BaseTest {
             vm.stopPrank();
             assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "user1: claimableAssets");
             assertApproxEqAbs(
-                IERC20(Constants.WSTETH()).balanceOf(user1), amount1 / 2, 3, "user1: balance"
+                IERC20(Constants.WSTETH()).balanceOf(user1), amount1 / 2, ERROR, "user1: balance"
             );
         }
         {
@@ -113,7 +122,7 @@ contract Unit is BaseTest {
             vm.stopPrank();
             assertEq(withdrawalQueue.claimableAssetsOf(user2), 0, "user2: claimableAssets");
             assertApproxEqAbs(
-                IERC20(Constants.WSTETH()).balanceOf(user2), amount2 / 2, 3, "user2: balance"
+                IERC20(Constants.WSTETH()).balanceOf(user2), amount2 / 2, ERROR, "user2: balance"
             );
         }
 
@@ -121,31 +130,35 @@ contract Unit is BaseTest {
         vault.withdraw(vault.maxWithdraw(user1), user1, user1);
         vm.stopPrank();
         assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "user1: claimableAssets");
-        vm.roll(block.number + 10); // skip delay
+        vm.roll(block.number + BLOCKS); // skip delay
         assertApproxEqAbs(
-            withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, 3, "user1: claimableAssets"
+            withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, ERROR, "user1: claimableAssets"
         );
 
         vm.startPrank(user2);
         vault.withdraw(vault.maxWithdraw(user2), user2, user2);
         vm.stopPrank();
         assertEq(withdrawalQueue.claimableAssetsOf(user2), 0, "user2: claimableAssets");
-        vm.roll(block.number + 10); // skip delay
+        vm.roll(block.number + BLOCKS); // skip delay
         assertApproxEqAbs(
-            withdrawalQueue.claimableAssetsOf(user2), amount2 / 2, 3, "user2: claimableAssets"
+            withdrawalQueue.claimableAssetsOf(user2), amount2 / 2, ERROR, "user2: claimableAssets"
         );
 
         vm.startPrank(user1);
         withdrawalQueue.claim(user1, user1, withdrawalQueue.claimableAssetsOf(user1));
         vm.stopPrank();
 
-        assertApproxEqAbs(IERC20(Constants.WSTETH()).balanceOf(user1), amount1, 6, "user1: balance");
+        assertApproxEqAbs(
+            IERC20(Constants.WSTETH()).balanceOf(user1), amount1, ERROR, "user1: balance"
+        );
 
         vm.startPrank(user2);
         withdrawalQueue.claim(user2, user2, withdrawalQueue.claimableAssetsOf(user2));
         vm.stopPrank();
 
-        assertApproxEqAbs(IERC20(Constants.WSTETH()).balanceOf(user2), amount2, 6, "user2: balance");
+        assertApproxEqAbs(
+            IERC20(Constants.WSTETH()).balanceOf(user2), amount2, ERROR, "user2: balance"
+        );
 
         return;
     }
@@ -204,11 +217,11 @@ contract Unit is BaseTest {
         withdrawals[0] = 0;
         withdrawalQueue.acceptPendingAssets(user2, withdrawals);
         assertApproxEqAbs(
-            totalPending / 2, withdrawalQueue.pendingAssetsOf(user2), 3, "user2: pending"
+            totalPending / 2, withdrawalQueue.pendingAssetsOf(user2), ERROR, "user2: pending"
         );
         vm.stopPrank();
 
-        vm.roll(block.number + 10); // skip delay
+        vm.roll(block.number + BLOCKS); // skip delay
         vm.startPrank(user1);
         withdrawalQueue.claim(user1, user1, withdrawalQueue.claimableAssetsOf(user1) / 2);
 
@@ -226,7 +239,7 @@ contract Unit is BaseTest {
         assertApproxEqAbs(
             3 * totalPending / 4 - assets,
             withdrawalQueue.claimableAssetsOf(user2),
-            3,
+            ERROR,
             "user2: claimable"
         );
     }
@@ -340,7 +353,7 @@ contract Unit is BaseTest {
         IERC20(Constants.STETH()).approve(address(vault), amount1);
         vault.deposit(amount1, user1);
         vault.withdraw(1, user1, user1);
-        vm.roll(block.number + 10);
+        vm.roll(block.number + BLOCKS);
         withdrawalQueue.claim(user1, user1, type(uint256).max);
 
         return;
@@ -375,7 +388,7 @@ contract Unit is BaseTest {
         withdrawalQueue.transferPendingAssets(user2, totalPending);
         vault.withdraw(amount / 2 - 1, user1, user1);
 
-        vm.roll(block.number + 10); // skip delay
+        vm.roll(block.number + BLOCKS); // skip delay
         totalPending = withdrawalQueue.pendingAssetsOf(user1);
         withdrawalQueue.transferPendingAssets(user2, totalPending);
         vm.stopPrank();
@@ -433,17 +446,20 @@ contract Unit is BaseTest {
         vm.stopPrank();
 
         assertApproxEqAbs(
-            withdrawalQueue.pendingAssetsOf(user1), 3 * amount1 / 4, 3, "stage 0: pendingAssetsOf"
+            withdrawalQueue.pendingAssetsOf(user1),
+            3 * amount1 / 4,
+            ERROR,
+            "stage 0: pendingAssetsOf"
         );
         assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
 
-        vm.roll(block.number + 10); // skip delay
+        vm.roll(block.number + BLOCKS); // skip delay
 
         assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 1: pendingAssetsOf");
         assertApproxEqAbs(
             withdrawalQueue.claimableAssetsOf(user1),
             3 * amount1 / 4,
-            3,
+            ERROR,
             "stage 1: claimableAssetsOf"
         );
         withdrawalQueue.handleWithdrawals(user1);
@@ -470,16 +486,16 @@ contract Unit is BaseTest {
         vm.stopPrank();
 
         assertApproxEqAbs(
-            withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, 3, "stage 0: pendingAssetsOf"
+            withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, ERROR, "stage 0: pendingAssetsOf"
         );
         assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
 
         assertApproxEqAbs(
-            withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, 3, "stage 1: pendingAssetsOf"
+            withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, ERROR, "stage 1: pendingAssetsOf"
         );
         assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 1: claimableAssetsOf");
 
-        vm.roll(block.number + 10); // skip delay
+        vm.roll(block.number + BLOCKS); // skip delay
 
         vm.expectRevert();
         withdrawalQueue.pull(1);
@@ -487,7 +503,10 @@ contract Unit is BaseTest {
 
         assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 2: pendingAssetsOf");
         assertApproxEqAbs(
-            withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, 3, "stage 2: claimableAssetsOf"
+            withdrawalQueue.claimableAssetsOf(user1),
+            amount1 / 2,
+            ERROR,
+            "stage 2: claimableAssetsOf"
         );
 
         // early exit because claimed
@@ -526,16 +545,16 @@ contract Unit is BaseTest {
         vm.stopPrank();
 
         assertApproxEqAbs(
-            withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, 3, "stage 0: pendingAssetsOf"
+            withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, ERROR, "stage 0: pendingAssetsOf"
         );
         assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
 
         assertApproxEqAbs(
-            withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, 3, "stage 1: pendingAssetsOf"
+            withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, ERROR, "stage 1: pendingAssetsOf"
         );
         assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 1: claimableAssetsOf");
 
-        vm.roll(block.number + 10); // skip delay
+        vm.roll(block.number + BLOCKS); // skip delay
 
         vm.expectRevert();
         withdrawalQueue.pull(1);
@@ -543,7 +562,10 @@ contract Unit is BaseTest {
 
         assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 2: pendingAssetsOf");
         assertApproxEqAbs(
-            withdrawalQueue.claimableAssetsOf(user1), amount1 / 2, 3, "stage 2: claimableAssetsOf"
+            withdrawalQueue.claimableAssetsOf(user1),
+            amount1 / 2,
+            ERROR,
+            "stage 2: claimableAssetsOf"
         );
 
         // early exit because claimed

@@ -35,7 +35,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
     function delegateTo(
         address manager,
         address operator,
-        ISignatureUtils.SignatureWithExpiry memory signature,
+        ISignatureUtilsMixinTypes.SignatureWithExpiry memory signature,
         bytes32 salt
     ) external {
         require(!isDelegated, "IsolatedEigenLayerVault: already delegated");
@@ -94,7 +94,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
         IERC20 asset_ = IERC20(asset);
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = asset_;
-        manager.completeQueuedWithdrawal(data, tokens, 0, true);
+        manager.completeQueuedWithdrawal(data, tokens, true);
         assets = asset_.balanceOf(this_);
         asset_.safeTransfer(queue, assets);
     }

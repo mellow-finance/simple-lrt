@@ -57,8 +57,8 @@ contract IsolatedEigenLayerVaultFactory is IIsolatedEigenLayerVaultFactory {
                 abi.encodeCall(IsolatedEigenLayerVault.initialize, (owner))
             )
         );
-        (ISignatureUtils.SignatureWithExpiry memory signature, bytes32 salt) =
-            abi.decode(data, (ISignatureUtils.SignatureWithExpiry, bytes32));
+        (ISignatureUtilsMixinTypes.SignatureWithExpiry memory signature, bytes32 salt) =
+            abi.decode(data, (ISignatureUtilsMixinTypes.SignatureWithExpiry, bytes32));
         IIsolatedEigenLayerVault(isolatedVault).delegateTo(delegation, operator, signature, salt);
         withdrawalQueue = address(
             new TransparentUpgradeableProxy{salt: key_}(
