@@ -163,7 +163,7 @@ contract Unit is BaseTest {
         return;
     }
 
-    function testTransferPendingAssets() external {
+    function testTransferPendingAssetsX() external {
         address vaultAdmin = rnd.randAddress();
         (MultiVault vault,,,) =
             createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
