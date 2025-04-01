@@ -5,4 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface ISTETH is IERC20 {
     function submit(address _referral) external payable returns (uint256);
+
+    function getBufferedEther() external view returns (uint256);
 }

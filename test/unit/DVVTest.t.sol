@@ -28,8 +28,9 @@ contract Unit is Test {
             0xC035a7cf15375cE2706766804551791aD035E0C2, 0xfA1fDbBD71B0aA16162D76914d69cD8CB3Ef92da
         );
 
-        DefaultStakingModule stakingModule =
-            new DefaultStakingModule(address(dvvSingleton.WSTETH()), address(dvvSingleton.WETH()));
+        DefaultStakingModule stakingModule = new DefaultStakingModule(
+            0xC1d0b3DE6792Bf6b4b37EccdcC24e45978Cfd2Eb, address(dvvSingleton.WETH()), 2
+        );
 
         vm.startPrank(admin);
         {
