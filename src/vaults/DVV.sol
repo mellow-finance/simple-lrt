@@ -4,24 +4,26 @@ pragma solidity 0.8.25;
 import "./DVVStorage.sol";
 import "./MellowVaultCompat.sol";
 import "./VaultControlStorage.sol";
-import {ERC4626Upgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract DVV is MellowVaultCompat, DVVStorage {
     using SafeERC20 for IERC20;
 
     bytes32 public constant SET_STAKING_MODULE_ROLE = keccak256("SET_STAKING_MODULE_ROLE");
+    uint256 public constant AAVE_PAUSE_MASK = 0x1300000000000000;
 
-    constructor(bytes32 name_, uint256 version_, address wsteth_, address weth_)
-        DVVStorage(name_, version_, wsteth_, weth_)
-    {}
+    modifier onlyWhenNotPaused() {
+        if ((AAVE_POOL.getReserveData(address(WETH)).configuration.data & AAVE_PAUSE_MASK) != 0) {
+            revert("DVV: AAVE WETH is paused");
+        }
+        if ((AAVE_POOL.getReserveData(address(WSTETH)).configuration.data & AAVE_PAUSE_MASK) != 0) {
+            revert("DVV: AAVE WSTETH is paused");
+        }
+        _;
+    }
 
-    function initialize(address _admin, address _stakingModule, address _yieldVault)
-        external
-        initializer
-    {
+    constructor(address aaveWstETH_, address aaveWETH_) DVVStorage(aaveWstETH_, aaveWETH_) {}
+
+    function initialize(address _admin, address _stakingModule) external initializer {
         uint256 balance =
             WETH.balanceOf(address(this)) + WSTETH.getStETHByWstETH(WSTETH.balanceOf(address(this)));
         __initializeERC4626(
@@ -34,7 +36,8 @@ contract DVV is MellowVaultCompat, DVVStorage {
             "Decentralized Validator Token",
             "DVstETH"
         );
-        __init_DVVStorage(_stakingModule, _yieldVault);
+        __init_DVVStorage(_stakingModule);
+        _pushIntoAave();
     }
 
     /// @inheritdoc IERC4626
@@ -46,34 +49,11 @@ contract DVV is MellowVaultCompat, DVVStorage {
         returns (uint256 assets_)
     {
         address this_ = address(this);
-        IERC4626 yieldVault_ = yieldVault();
-        uint256 wstethBalance =
-            WSTETH.balanceOf(this_) + yieldVault_.previewRedeem(yieldVault_.balanceOf(this_));
-        return WSTETH.getStETHByWstETH(wstethBalance) + WETH.balanceOf(this_);
-    }
-
-    function ethDeposit(uint256 assets, address receiver, address referral)
-        public
-        payable
-        nonReentrant
-        returns (uint256 shares)
-    {
-        require(msg.value == assets, "DVV: value mismatch");
-        uint256 maxAssets = maxDeposit(receiver);
-        if (assets > maxAssets) {
-            revert ERC4626ExceededMaxDeposit(receiver, assets, maxAssets);
+        assets_ = WETH.balanceOf(this_) + AAVE_WETH.balanceOf(this_);
+        uint256 wstethBalance = WSTETH.balanceOf(this_) + AAVE_WSTETH.balanceOf(this_);
+        if (wstethBalance != 0) {
+            assets_ = WSTETH.getStETHByWstETH(wstethBalance);
         }
-
-        shares = previewDeposit(assets);
-
-        WETH.deposit{value: assets}();
-
-        _mint(receiver, shares);
-
-        emit Deposit(_msgSender(), receiver, assets, shares);
-        emit ReferralDeposit(assets, receiver, referral);
-
-        return shares;
     }
 
     receive() external payable {
@@ -88,11 +68,22 @@ contract DVV is MellowVaultCompat, DVVStorage {
         _setStakingModule(newStakingModule);
     }
 
-    function stake(bytes calldata data) external nonReentrant {
+    function stake(bytes calldata data) external nonReentrant onlyWhenNotPaused {
+        _pullFromAave(address(WETH), AAVE_WETH);
         Address.functionDelegateCall(
             address(stakingModule()), abi.encodeCall(IStakingModule.stake, (data, _msgSender()))
         );
-        _pushIntoYieldVault();
+        _pushIntoAave();
+    }
+
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
+        internal
+        virtual
+        override
+        onlyWhenNotPaused
+    {
+        super._deposit(caller, receiver, assets, shares);
+        _pushIntoAave(address(WETH));
     }
 
     function _withdraw(
@@ -101,48 +92,78 @@ contract DVV is MellowVaultCompat, DVVStorage {
         address owner,
         uint256 assets,
         uint256 shares
-    ) internal virtual override {
+    ) internal virtual override onlyWhenNotPaused {
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }
 
         _burn(owner, shares);
 
-        IERC4626 yieldVault_ = yieldVault();
-        uint256 wstethAssets = WSTETH.getWstETHByStETH(assets);
-        address this_ = address(this);
-        uint256 yieldAssets = Math.min(yieldVault_.maxWithdraw(this_), wstethAssets);
-        if (yieldAssets != 0) {
-            yieldVault_.withdraw(yieldAssets, receiver, this_);
-            wstethAssets -= yieldAssets;
-        }
-        if (wstethAssets != 0) {
+        uint256 requiredValue = WSTETH.getWstETHByStETH(assets);
+        if (requiredValue > 0) {
+            address this_ = address(this);
             uint256 wstethBalance = WSTETH.balanceOf(this_);
-            if (wstethBalance < wstethAssets) {
-                Address.functionDelegateCall(
-                    address(stakingModule()),
-                    abi.encodeCall(
-                        IStakingModule.forceStake,
-                        (WSTETH.getStETHByWstETH(wstethAssets - wstethBalance))
-                    )
-                );
-                IERC20(WSTETH).safeTransfer(receiver, WSTETH.balanceOf(this_));
-            } else {
-                IERC20(WSTETH).safeTransfer(receiver, wstethAssets);
+            if (wstethBalance < requiredValue) {
+                uint256 aaveWstethBalance = AAVE_WSTETH.balanceOf(this_);
+                if (aaveWstethBalance + wstethBalance >= requiredValue) {
+                    _pullFromAave(address(WSTETH), requiredValue - wstethBalance);
+                } else {
+                    _pullFromAave(address(WSTETH), aaveWstethBalance);
+                    wstethBalance += aaveWstethBalance;
+                    uint256 requiredWethValue =
+                        WSTETH.getStETHByWstETH(requiredValue - wstethBalance);
+                    uint256 wethBalance = WETH.balanceOf(this_);
+                    if (wethBalance < requiredWethValue) {
+                        uint256 aaveWethBalance =
+                            Math.min(AAVE_WETH.balanceOf(this_), requiredWethValue - wethBalance);
+                        _pullFromAave(address(WETH), aaveWethBalance);
+                        requiredWethValue = wethBalance + aaveWethBalance;
+                    }
+                    if (requiredWethValue > 0) {
+                        Address.functionDelegateCall(
+                            address(stakingModule()),
+                            abi.encodeCall(IStakingModule.forceStake, (requiredWethValue))
+                        );
+                    }
+                }
+            }
+
+            requiredValue = Math.min(requiredValue, WSTETH.balanceOf(this_));
+            if (requiredValue > 0) {
+                IERC20(WSTETH).safeTransfer(receiver, requiredValue);
             }
         }
 
         emit Withdraw(caller, receiver, owner, assets, shares);
     }
 
-    function _pushIntoYieldVault() internal {
-        address this_ = address(this);
-        IERC4626 yieldVault_ = yieldVault();
-        uint256 assets = Math.min(WSTETH.balanceOf(this_), yieldVault_.maxDeposit(this_));
-        if (assets == 0) {
-            return;
-        }
-        IERC20(address(WSTETH)).safeIncreaseAllowance(address(yieldVault_), assets);
-        yieldVault_.deposit(assets, this_);
+    function _pushIntoAave() internal {
+        _pushIntoAave(address(WETH));
+        _pushIntoAave(address(WSTETH));
     }
+
+    function _pushIntoAave(address asset_) internal {
+        address this_ = address(this);
+        uint256 balance = IERC20(asset_).balanceOf(this_);
+        if (balance != 0) {
+            IERC20(asset_).safeIncreaseAllowance(address(AAVE_POOL), balance);
+            AAVE_POOL.supply(asset_, balance, this_, 0);
+        }
+        emit AaveDeposit(asset_, balance);
+    }
+
+    function _pullFromAave(address asset_, IAToken token) internal {
+        _pullFromAave(asset_, token.balanceOf(address(this)));
+    }
+
+    function _pullFromAave(address asset_, uint256 assets) internal {
+        if (assets != 0) {
+            AAVE_POOL.withdraw(asset_, assets, address(this));
+            emit AaveWithdraw(asset_, assets);
+        }
+    }
+
+    event AaveDeposit(address indexed asset, uint256 amount);
+
+    event AaveWithdraw(address indexed asset, uint256 amount);
 }
