@@ -14,6 +14,11 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract DefaultStakingModule is IStakingModule {
+    error InvalidDepositRoot();
+    error InvalidWithdrawalQueueState();
+    error InvalidAmount();
+    error Forbidden();
+
     struct StakeParams {
         uint256 blockNumber;
         bytes32 blockHash;
@@ -26,7 +31,6 @@ contract DefaultStakingModule is IStakingModule {
     bytes32 public constant STAKE_ROLE = keccak256("STAKE_ROLE");
 
     ILidoLocator public immutable LOCATOR;
-    ILidoWithdrawalQueue public immutable WITHDRAWAL_QUEUE;
     IWSTETH public immutable WSTETH;
     IWETH public immutable WETH;
     uint256 public immutable STAKING_MODULE_ID;
@@ -40,7 +44,9 @@ contract DefaultStakingModule is IStakingModule {
 
     function stake(bytes calldata data, address caller) external {
         address this_ = address(this);
-        require(IAccessControl(this_).hasRole(STAKE_ROLE, caller), "StakingModule: forbidden");
+        if (!IAccessControl(this_).hasRole(STAKE_ROLE, caller)) {
+            revert Forbidden();
+        }
 
         StakeParams memory params = abi.decode(data, (StakeParams));
 
@@ -51,15 +57,15 @@ contract DefaultStakingModule is IStakingModule {
             IDepositContract(depositSecurityModule.DEPOSIT_CONTRACT()).get_deposit_root()
                 != params.depositRoot
         ) {
-            revert("DefaultStakingModule: InvalidDepositRoot");
+            revert InvalidDepositRoot();
         }
         {
             uint256 wethBalance = WETH.balanceOf(address(this));
             uint256 unfinalizedStETH =
                 ILidoWithdrawalQueue(LOCATOR.withdrawalQueue()).unfinalizedStETH();
-            uint256 bufferedEther = WSTETH.stETH().getBufferedEther();
+            uint256 bufferedEther = ISTETH(LOCATOR.lido()).getBufferedEther();
             if (bufferedEther < unfinalizedStETH) {
-                revert("InvalidWithdrawalQueueState()");
+                revert InvalidWithdrawalQueueState();
             }
 
             uint256 maxDepositsCount = Math.min(
@@ -73,7 +79,7 @@ contract DefaultStakingModule is IStakingModule {
             amount = Math.min(wethBalance, 32 ether * maxDepositsCount);
         }
         if (amount == 0) {
-            revert("InvalidAmount()");
+            revert InvalidAmount();
         }
         forceStake(amount);
         depositSecurityModule.depositBufferedEther(
@@ -85,7 +91,7 @@ contract DefaultStakingModule is IStakingModule {
             params.depositCalldata,
             params.sortedGuardianSignatures
         );
-        emit DepositCompleted(amount, params.blockNumber);
+        emit DepositCompleted(amount, params);
     }
 
     function forceStake(uint256 amount) public {
@@ -94,6 +100,6 @@ contract DefaultStakingModule is IStakingModule {
         emit ForceStaked(amount);
     }
 
-    event DepositCompleted(uint256 amount, uint256 blockNumber);
+    event DepositCompleted(uint256 amount, StakeParams params);
     event ForceStaked(uint256 amount);
 }
