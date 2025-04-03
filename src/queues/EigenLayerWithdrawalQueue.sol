@@ -47,8 +47,6 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
 
     /// @inheritdoc IEigenLayerWithdrawalQueue
     function latestWithdrawableBlock() public view returns (uint256) {
-        IStrategy[] memory strategies = new IStrategy[](1);
-        strategies[0] = IStrategy(strategy);
         return block.number - IDelegationManager(delegation).minWithdrawalDelayBlocks() - 1;
     }
 
