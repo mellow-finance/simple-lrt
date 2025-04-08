@@ -35,7 +35,7 @@ contract Deploy is Script {
     function _deployVaults() internal {
         address[N] memory curators = [STAKELY_MULTISIG];
         string[N] memory names = ["Stakely x Gauntlet Restaking Plus"];
-        string[N] memory symbols = ["srpstETH"];
+        string[N] memory symbols = ["sgrpETH"];
         uint256[N] memory limits = [uint256(400 ether)];
         address[N] memory symbioticVaults = [address(0)];
 
