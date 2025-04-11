@@ -4,7 +4,6 @@ pragma solidity 0.8.25;
 import "../BaseTest.sol";
 import "../mocks/MockSymbioticFarm.sol";
 
-import "../../src/utils/DefaultStakingModule.sol";
 import "../../src/vaults/DVV.sol";
 
 interface ISimpleDVTStakingStrategy {
@@ -23,14 +22,12 @@ contract Unit is Test {
     address public constant admin = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
     address public constant proxyAdmin = 0x8E6C80c41450D3fA7B1Fd0196676b99Bfb34bF48;
 
-    function testDVV() external {
-        DVV dvvSingleton = new DVV(
-            0xC035a7cf15375cE2706766804551791aD035E0C2, 0xfA1fDbBD71B0aA16162D76914d69cD8CB3Ef92da
-        );
+    address public immutable weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public immutable wsteth = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
+    address public constant depositWrapper = 0xfD4a4922d1AFe70000Ce0Ec6806454e78256504e;
 
-        DefaultStakingModule stakingModule = new DefaultStakingModule(
-            0xC1d0b3DE6792Bf6b4b37EccdcC24e45978Cfd2Eb, address(dvvSingleton.WETH()), 2
-        );
+    function testDVVMigration() external {
+        DVV dvvSingleton = new DVV(weth, wsteth);
 
         vm.startPrank(admin);
         {
@@ -40,15 +37,15 @@ contract Unit is Test {
             );
         }
         vm.stopPrank();
-
         vm.startPrank(proxyAdminOwner);
         ProxyAdmin(proxyAdmin).upgradeAndCall(
             ITransparentUpgradeableProxy(dvv),
             address(dvvSingleton),
-            new bytes(0) //abi.encodeCall(DVV.initialize, (admin, address(stakingModule)))
+            abi.encodeCall(DVV.initialize, (admin, depositWrapper))
         );
 
-        DVV(payable(dvv)).initialize(admin, address(stakingModule));
+        console2.log(DVV(payable(dvv)).totalAssets());
+        console2.log(DVV(payable(dvv)).totalSupply());
 
         vm.stopPrank();
     }
