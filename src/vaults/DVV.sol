@@ -25,7 +25,7 @@ contract DVV is MellowVaultCompat {
     }
 
     receive() external payable {
-        require(msg.sender == WETH, "DVV: Only WETH");
+        require(_msgSender() == WETH, "DVV: Only WETH");
     }
 
     function submit() public {
