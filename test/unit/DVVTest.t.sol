@@ -22,12 +22,10 @@ contract Unit is Test {
     address public constant admin = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
     address public constant proxyAdmin = 0x8E6C80c41450D3fA7B1Fd0196676b99Bfb34bF48;
 
-    address public immutable weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address public immutable wsteth = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public constant depositWrapper = 0xfD4a4922d1AFe70000Ce0Ec6806454e78256504e;
 
     function testDVVMigration() external {
-        DVV dvvSingleton = new DVV(weth, wsteth);
+        DVV dvvSingleton = new DVV();
 
         vm.startPrank(admin);
         {
@@ -41,7 +39,7 @@ contract Unit is Test {
         ProxyAdmin(proxyAdmin).upgradeAndCall(
             ITransparentUpgradeableProxy(dvv),
             address(dvvSingleton),
-            abi.encodeCall(DVV.initialize, (admin, depositWrapper))
+            abi.encodeCall(DVV.initialize, (admin, depositWrapper, 10000 ether))
         );
 
         console2.log(DVV(payable(dvv)).totalAssets());

@@ -7,18 +7,19 @@ import "./VaultControlStorage.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 contract DVV is MellowVaultCompat {
-    address public immutable WETH;
-    address public immutable WSTETH;
+    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
 
-    constructor(address weth_, address wsteth_) VaultControlStorage("DVV", 2) {
-        WETH = weth_;
-        WSTETH = wsteth_;
+    constructor() VaultControlStorage("DVV", 2) {
         _disableInitializers();
     }
 
-    function initialize(address admin, address depositWrapper) external initializer {
+    function initialize(address admin, address depositWrapper, uint256 limit)
+        external
+        initializer
+    {
         __initializeERC4626(
-            admin, 0, false, false, true, WSTETH, "Decentralized Validator Token", "DVstETH"
+            admin, limit, false, false, true, WSTETH, "Decentralized Validator Token", "DVstETH"
         );
         _setDepositorWhitelistStatus(depositWrapper, true);
         submit();
