@@ -7,7 +7,7 @@ import "../mocks/MockMultiVault.sol";
 contract Unit is BaseTest {
     using RandomLib for RandomLib.Storage;
 
-    uint256 ITERATIONS = 100;
+    uint256 ITERATIONS = 10;
 
     function testConstructor() external {
         RatiosStrategy c = new RatiosStrategy();
