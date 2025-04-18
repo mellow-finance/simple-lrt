@@ -37,7 +37,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
     }
 
     /// @inheritdoc IProtocolAdapter
-    function maxDeposit(address isolatedVault) external view virtual returns (uint256) {
+    function maxDeposit(address isolatedVault) public view virtual returns (uint256) {
         (, address strategy,, address withdrawalQueue) = factory.instances(isolatedVault);
         if (IEigenLayerWithdrawalQueue(withdrawalQueue).isShutdown()) {
             return 0;
@@ -63,7 +63,7 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
     }
 
     /// @inheritdoc IProtocolAdapter
-    function stakedAt(address isolatedVault) external view virtual returns (uint256) {
+    function stakedAt(address isolatedVault) public view virtual returns (uint256) {
         (, address strategy,, address withdrawalQueue) = factory.instances(isolatedVault);
         if (
             !delegationManager.isDelegated(isolatedVault)
@@ -71,7 +71,11 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         ) {
             revert("EigenLayerAdapter: isolated vault is neither delegated nor shut down");
         }
-        return IStrategy(strategy).userUnderlyingView(isolatedVault);
+        IStrategy[] memory strategies = new IStrategy[](1);
+        strategies[0] = IStrategy(strategy);
+        (uint256[] memory withdrawableShares,) =
+            delegationManager.getWithdrawableShares(isolatedVault, strategies);
+        return IStrategy(strategy).sharesToUnderlyingView(withdrawableShares[0]);
     }
 
     /// @inheritdoc IProtocolAdapter

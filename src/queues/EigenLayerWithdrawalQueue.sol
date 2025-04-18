@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import "../interfaces/queues/IEigenLayerWithdrawalQueue.sol";
+import "forge-std/console2.sol";
 
 contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable {
     using SafeERC20 for IERC20;
@@ -191,6 +192,10 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
             return;
         }
         IDelegationManager delegationManager = IDelegationManager(delegation);
+        shares[0] = delegationManager.convertToDepositShares(isolatedVault_, strategies, shares)[0];
+        if (shares[0] == 0) {
+            return;
+        }
 
         IDelegationManager.QueuedWithdrawalParams[] memory requests =
             new IDelegationManager.QueuedWithdrawalParams[](1);
