@@ -32,8 +32,8 @@ contract Deploy is Script {
         address[N] memory curators = [SYMIOSIS_MULTISIG];
         string[N] memory names = ["Symbiosis Vault"];
         string[N] memory symbols = ["rsSIS"];
-        uint256[N] memory limits = [uint256(50e6 ether)];
-        address[N] memory symbioticVaults = [address(0x8A6084a5C0738918dC9Fd0AA051a2381FAF540Ed)];
+        uint256[N] memory limits = [uint256(5e6 ether)];
+        address[N] memory symbioticVaults = [address(0xf344a1025080B0168b014009d0769348c5AD6A2f)];
 
         MultiVaultDeployScript.DeployParams memory deployParams = MultiVaultDeployScript
             .DeployParams({
