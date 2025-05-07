@@ -13,11 +13,10 @@ import "../../src/strategies/RatiosStrategy.sol";
 import "../../src/utils/Claimer.sol";
 import "../../src/vaults/MultiVault.sol";
 
+import "../../src/interfaces/external/eigen-layer/IAllocationManager.sol";
 import "../Constants.sol";
 import "../RandomLib.sol";
 import "../mocks/MockAVS.sol";
-
-import "./IAllocationManager.sol";
 
 contract EigenLayerSolvencyTest is Test {
     using RandomLib for RandomLib.Storage;

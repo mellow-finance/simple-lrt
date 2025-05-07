@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
+import "./IAllocationManager.sol";
 import "./IPauserRegistry.sol";
 import "./ISignatureUtils.sol";
 import "./IStrategy.sol";
@@ -28,6 +29,8 @@ interface IDelegationManager is ISignatureUtils {
         uint256[] depositShares;
         address __deprecated_withdrawer;
     }
+
+    function allocationManager() external view returns (IAllocationManager);
 
     function delegateTo(
         address operator,

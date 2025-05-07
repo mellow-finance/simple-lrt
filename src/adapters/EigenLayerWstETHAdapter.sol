@@ -23,7 +23,7 @@ contract EigenLayerWstETHAdapter is EigenLayerAdapter {
 
     /// @inheritdoc IProtocolAdapter
     function maxDeposit(address isolatedVault) public view override returns (uint256 assets) {
-        assets = super.maxDeposit(isolatedVault);
+        assets = _maxDeposit(isolatedVault, address(steth));
         if (assets > type(uint128).max) {
             return type(uint256).max;
         }

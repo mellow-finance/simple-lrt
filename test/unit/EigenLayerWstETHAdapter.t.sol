@@ -3,9 +3,9 @@ pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
 
+import "../../src/interfaces/external/eigen-layer/IAllocationManager.sol";
 import "../mocks/MockAVS.sol";
 import "../mocks/MockEigenLayerFarm.sol";
-import "../solvency/IAllocationManager.sol";
 
 contract Unit is BaseTest {
     using RandomLib for RandomLib.Storage;
@@ -252,7 +252,7 @@ contract Unit is BaseTest {
             vm.stopPrank();
         }
 
-        assertEq(eigenLayerAdapter.stakedAt(eigenLayerVault), 1 ether - 3 wei); // roundings
+        assertEq(eigenLayerAdapter.stakedAt(eigenLayerVault), 1 ether - 2 wei); // roundings
 
         (, address elStrategy, address elOperator,) =
             eigenLayerAdapter.factory().instances(eigenLayerVault);
@@ -318,12 +318,12 @@ contract Unit is BaseTest {
             })
         );
 
-        assertEq(eigenLayerAdapter.stakedAt(eigenLayerVault), 0.5 ether - 3 wei, "~50% slashing");
-        assertEq(vault.totalAssets(), 0.5 ether - 3 wei, "~50% slashing (totalAssets)");
+        assertEq(eigenLayerAdapter.stakedAt(eigenLayerVault), 0.5 ether - 2 wei, "~50% slashing");
+        assertEq(vault.totalAssets(), 0.5 ether - 2 wei, "~50% slashing (totalAssets)");
         vm.stopPrank();
 
         vm.startPrank(user);
-        assertEq(vault.totalAssets(), 0.5 ether - 3 wei, "~50% slashing (totalAssets) 2");
+        assertEq(vault.totalAssets(), 0.5 ether - 2 wei, "~50% slashing (totalAssets) 2");
         vault.redeem(vault.balanceOf(user), user, user);
         assertEq(vault.totalAssets(), 2, "~50% slashing (totalAssets) 3");
 
@@ -335,7 +335,7 @@ contract Unit is BaseTest {
         );
         delta = IERC20(Constants.WSTETH()).balanceOf(user) - delta;
         // wtf??
-        assertEq(delta, 0.5 ether - 6);
+        assertEq(delta, 0.5 ether - 5);
 
         assertEq(vault.totalSupply(), 0, "Invalid total supply");
         assertEq(vault.totalAssets(), 2, "Invalid total assets");
