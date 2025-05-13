@@ -12,9 +12,9 @@ contract Deploy is Script {
     address public constant VAULT_ADMIN_MULTISIG = 0xa62243c7a36e74d8280781242a3B0e019ce74E64;
     address public constant VAULT_PROXY_ADMIN_MULTISIG = 0xC7e8b00a61adB658c49D2d8a377FC44572e9ECb5;
 
-    address public constant LISK_WSTETH_OFT_ADAPTER = 0x7f98073e7234B7c7F9d0223168dBCd95feAfba58;
-    address public constant LISK_MBTC_OFT_ADAPTER = 0xdFCaB55563345Ed11616A377a6ba6189F2B57d4c;
-    address public constant LISK_LSK_OFT_ADAPTER = 0x20347ece0df3B4B413eE656B9FfCc0562285be71;
+    address public constant LISK_WSTETH_OFT = 0x552f1C7E18Bc2013c7FEec7B8F2cB18c8461469e;
+    address public constant LISK_MBTC_OFT = 0x57a013aC2A8790D3133f151F22a16fF2aC68627f;
+    address public constant LISK_LSK_OFT = 0x1e6b0fF883378Bf8ECb6b8D3A292933f6859384f;
     uint256 public constant N = 3;
     address public constant DEPLOYER = 0x188858AC61a74350116d1CB6958fBc509FD6afA1;
 
@@ -35,11 +35,11 @@ contract Deploy is Script {
         address[N] memory curators = [RE7_MULTISIG, RE7_MULTISIG, RE7_MULTISIG];
         string[N] memory names = ["Lisk wstETH Vault", "Lisk rsmBTC Vault", "Lisk LSK Vault"];
         string[N] memory symbols = ["lskETH", "rsM-BTC", "rsLSK"];
-        uint256[N] memory limits = [uint256(1000 ether), 100 ether, 10e6 ether];
+        uint256[N] memory limits = [type(uint256).max, type(uint256).max, type(uint256).max];
         address[N] memory symbioticVaults = [
-            0x1cB58A874a4771C62052dff05b91579497aeF2F2,
-            0x0e63bf8Cb140be60Cb13dFa662307E0231062a8C,
-            0x6d095e8c4B5bdA7f3dc5B86e8202627FBFb97d75
+            0xb65A578BF6b4B997B87C83c22F240b291A875ee3,
+            0x72926D99c913dede6c7d92ddf125bA781b0E901C,
+            0x230E1D993107d5902daC8A59a0BcB13f72477017
         ];
 
         MultiVaultDeployScript.DeployParams memory deployParams = MultiVaultDeployScript
@@ -62,13 +62,12 @@ contract Deploy is Script {
         });
 
         address[N] memory targetCores = [
-            0xb58D06eCC39cD6955542861d4374845Ed2014140,
-            0x197A5CaE846984F00Ff650b11a31907aEd7B959c,
-            0xf2BA9Dab43d5D9014eCA96f058C6dF3945b919bD
+            0x7E0E4B05898181a597673cD5a8FeF2B9E36bEC97,
+            0xB2657a1EB016692509F321A4365551e2EC1173C2,
+            0xcc1D3926E079c826Cd807FdF825a6777846bb5C1
         ];
 
-        address[N] memory assets =
-            [LISK_WSTETH_OFT_ADAPTER, LISK_MBTC_OFT_ADAPTER, LISK_LSK_OFT_ADAPTER];
+        address[N] memory assets = [LISK_WSTETH_OFT, LISK_MBTC_OFT, LISK_LSK_OFT];
 
         for (uint256 i = 0; i < curators.length; i++) {
             deployParams.curator = curators[i];

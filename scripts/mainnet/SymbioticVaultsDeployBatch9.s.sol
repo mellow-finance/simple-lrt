@@ -30,9 +30,9 @@ contract Deploy is Script {
     uint32 public constant VETO_SLASHER_INDEX = 1;
     uint32 public constant NETWORK_RESTAKE_DELEGATOR_INDEX = 0;
 
-    address public constant LISK_WSTETH_OFT_ADAPTER = 0x7f98073e7234B7c7F9d0223168dBCd95feAfba58;
-    address public constant LISK_MBTC_OFT_ADAPTER = 0xdFCaB55563345Ed11616A377a6ba6189F2B57d4c;
-    address public constant LISK_LSK_OFT_ADAPTER = 0x20347ece0df3B4B413eE656B9FfCc0562285be71;
+    address public constant LISK_WSTETH_OFT = 0x552f1C7E18Bc2013c7FEec7B8F2cB18c8461469e;
+    address public constant LISK_MBTC_OFT = 0x57a013aC2A8790D3133f151F22a16fF2aC68627f;
+    address public constant LISK_LSK_OFT = 0x1e6b0fF883378Bf8ECb6b8D3A292933f6859384f;
     uint256 public constant N = 3;
     address public constant DEPLOYER = 0x188858AC61a74350116d1CB6958fBc509FD6afA1;
 
@@ -61,8 +61,7 @@ contract Deploy is Script {
 
         address[N] memory curators = [RE7_MULTISIG, RE7_MULTISIG, RE7_MULTISIG];
         string[N] memory names = ["Lisk WSTETH Vault", "Lisk MBTC Vault", "Lisk LSK Vault"];
-        address[N] memory assets =
-            [LISK_WSTETH_OFT_ADAPTER, LISK_MBTC_OFT_ADAPTER, LISK_LSK_OFT_ADAPTER];
+        address[N] memory assets = [LISK_WSTETH_OFT, LISK_MBTC_OFT, LISK_LSK_OFT];
 
         for (uint256 i = 0; i < N; i++) {
             address asset = assets[i];
