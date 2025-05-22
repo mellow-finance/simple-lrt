@@ -47,8 +47,6 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
 
     /// @inheritdoc IEigenLayerWithdrawalQueue
     function latestWithdrawableBlock() public view returns (uint256) {
-        IStrategy[] memory strategies = new IStrategy[](1);
-        strategies[0] = IStrategy(strategy);
         return block.number - IDelegationManager(delegation).minWithdrawalDelayBlocks() - 1;
     }
 
@@ -188,11 +186,12 @@ contract EigenLayerWithdrawalQueue is IEigenLayerWithdrawalQueue, Initializable 
         shares[0] = IIsolatedEigenLayerVault(isolatedVault_).underlyingToSharesView(
             address(strategies[0]), assets
         );
+        IDelegationManager delegationManager = IDelegationManager(delegation);
+        shares[0] = delegationManager.convertToDepositShares(isolatedVault_, strategies, shares)[0];
         if (shares[0] == 0) {
             // nothing to withdraw
             return;
         }
-        IDelegationManager delegationManager = IDelegationManager(delegation);
 
         IDelegationManager.QueuedWithdrawalParams[] memory requests =
             new IDelegationManager.QueuedWithdrawalParams[](1);

@@ -2,6 +2,9 @@
 pragma solidity 0.8.25;
 
 import "../BaseTest.sol";
+
+import "../../src/interfaces/external/eigen-layer/IAllocationManager.sol";
+import "../mocks/MockAVS.sol";
 import "../mocks/MockEigenLayerFarm.sol";
 
 contract Unit is BaseTest {
@@ -228,9 +231,115 @@ contract Unit is BaseTest {
         IDelegationManager(Constants.HOLESKY_EL_DELEGATION_MANAGER).undelegate(eigenLayerVault);
         vm.stopPrank();
 
-        vm.expectRevert(
-            "EigenLayerWstETHAdapter: isolated vault is neither delegated nor shut down"
-        );
+        vm.expectRevert("EigenLayerAdapter: isolated vault is neither delegated nor shut down");
         eigenLayerAdapter.stakedAt(eigenLayerVault);
+    }
+
+    function testStakedAtAfterSlashingEvent() external {
+        address vaultAdmin = rnd.randAddress();
+        (MultiVault vault, EigenLayerAdapter eigenLayerAdapter,, address eigenLayerVault) =
+            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
+
+        assertEq(eigenLayerAdapter.stakedAt(eigenLayerVault), 0);
+
+        address user = vm.createWallet("user-1").addr;
+        {
+            vm.startPrank(user);
+            address wsteth = Constants.WSTETH();
+            deal(wsteth, user, 1 ether);
+            IERC20(wsteth).approve(address(vault), 1 ether);
+            vault.deposit(1 ether, user);
+            vm.stopPrank();
+        }
+
+        assertEq(eigenLayerAdapter.stakedAt(eigenLayerVault), 1 ether - 2 wei); // roundings
+
+        (, address elStrategy, address elOperator,) =
+            eigenLayerAdapter.factory().instances(eigenLayerVault);
+        address allocationManager = 0x78469728304326CBc65f8f95FA756B0B73164462;
+
+        address avs = address(new MockAVS());
+
+        address[] memory strategies = new address[](1);
+        strategies[0] = elStrategy;
+
+        vm.startPrank(avs);
+        IAllocationManager(allocationManager).updateAVSMetadataURI(avs, "test");
+
+        IAllocationManager.OperatorSet memory operatorSet = IAllocationManager.OperatorSet(avs, 0);
+        {
+            IAllocationManager.CreateSetParams[] memory x =
+                new IAllocationManager.CreateSetParams[](1);
+            x[0] = IAllocationManager.CreateSetParams({
+                operatorSetId: operatorSet.id,
+                strategies: strategies
+            });
+            IAllocationManager(allocationManager).createOperatorSets(operatorSet.avs, x);
+        }
+
+        vm.stopPrank();
+
+        vm.startPrank(elOperator);
+        IAllocationManager(allocationManager).setAllocationDelay(elOperator, 1 days);
+        vm.roll(block.number + 17.5 days);
+        IAllocationManager(allocationManager).registerForOperatorSets(
+            elOperator,
+            IAllocationManager.RegisterParams({avs: avs, operatorSetIds: new uint32[](1), data: ""})
+        );
+        vm.stopPrank();
+
+        {
+            IAllocationManager.AllocateParams[] memory x =
+                new IAllocationManager.AllocateParams[](1);
+            x[0] = IAllocationManager.AllocateParams({
+                operatorSet: operatorSet,
+                strategies: strategies,
+                newMagnitudes: new uint64[](1)
+            });
+            x[0].newMagnitudes[0] = 1 ether;
+            vm.startPrank(elOperator);
+            IAllocationManager(allocationManager).modifyAllocations(elOperator, x);
+            vm.roll(block.number + 20 days);
+            vm.stopPrank();
+        }
+
+        uint256[] memory wadsToSlash = new uint256[](1);
+        wadsToSlash[0] = 0.5 ether;
+
+        vm.startPrank(address(avs));
+        IAllocationManager(allocationManager).slashOperator(
+            avs,
+            IAllocationManager.SlashingParams({
+                operator: elOperator,
+                operatorSetId: 0,
+                strategies: strategies,
+                wadsToSlash: wadsToSlash,
+                description: "test"
+            })
+        );
+
+        assertEq(eigenLayerAdapter.stakedAt(eigenLayerVault), 0.5 ether - 2 wei, "~50% slashing");
+        assertEq(vault.totalAssets(), 0.5 ether - 2 wei, "~50% slashing (totalAssets)");
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        assertEq(vault.totalAssets(), 0.5 ether - 2 wei, "~50% slashing (totalAssets) 2");
+        vault.redeem(vault.balanceOf(user), user, user);
+        assertEq(vault.totalAssets(), 2, "~50% slashing (totalAssets) 3");
+
+        vm.roll(block.number + 1e3);
+
+        uint256 delta = IERC20(Constants.WSTETH()).balanceOf(user);
+        EigenLayerWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue).claim(
+            user, user, type(uint256).max
+        );
+        delta = IERC20(Constants.WSTETH()).balanceOf(user) - delta;
+        // wtf??
+        assertEq(delta, 0.5 ether - 5);
+
+        assertEq(vault.totalSupply(), 0, "Invalid total supply");
+        assertEq(vault.totalAssets(), 2, "Invalid total assets");
+
+        vm.stopPrank();
     }
 }

@@ -9,16 +9,12 @@ import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
 import "forge-std/Script.sol";
 
 contract Deploy is Script {
-    address public constant VAULT_ADMIN_MULTISIG = 0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
-    address public constant VAULT_PROXY_ADMIN_MULTISIG = 0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
+    address public constant VAULT_ADMIN_MULTISIG = 0x372142a666e13784c6f7cf6795a8e5aF4ED2d3B7;
+    address public constant VAULT_PROXY_ADMIN_MULTISIG = 0x843065A71d1D3045c980ee954248FeF23c199f09;
 
-    address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
-
-    address public constant WSTETH_DEFAULT_COLLATERAL = 0xC329400492c6ff2438472D4651Ad17389fCb843a;
+    address public constant SIS = 0xd38BB40815d2B0c2d2c866e0c72c5728ffC76dd9;
     address public constant SYMBIOTIC_VAULT_FACTORY = 0xAEb6bdd95c502390db8f52c8909F703E9Af6a346;
 
-    WhitelistedEthWrapper public depositWrapper =
-        WhitelistedEthWrapper(payable(0xfD4a4922d1AFe70000Ce0Ec6806454e78256504e));
     RatiosStrategy public strategy = RatiosStrategy(0x3aA61E6196fb3eb1170E578ad924898624f54ad6);
     MultiVault public multiVaultImplementation =
         MultiVault(0x0C5BC4C8406Fe03214D18bbf2962Ae2fa378c6f7);
@@ -30,14 +26,14 @@ contract Deploy is Script {
 
     uint256 public constant N = 1;
     address public constant DEPLOYER = 0x188858AC61a74350116d1CB6958fBc509FD6afA1;
-    address public constant STAKELY_MULTISIG = 0x059Ae3F8a1EaDDAAb34D0A74E8Eb752c848062d1;
+    address public constant SYMIOSIS_MULTISIG = 0x5112EbA9bc2468Bb5134CBfbEAb9334EdaE7106a;
 
     function _deployVaults() internal {
-        address[N] memory curators = [STAKELY_MULTISIG];
-        string[N] memory names = ["Stakely x Gauntlet Restaking Plus"];
-        string[N] memory symbols = ["sgrpETH"];
-        uint256[N] memory limits = [uint256(400 ether)];
-        address[N] memory symbioticVaults = [address(0)];
+        address[N] memory curators = [SYMIOSIS_MULTISIG];
+        string[N] memory names = ["Symbiosis Vault"];
+        string[N] memory symbols = ["rsSIS"];
+        uint256[N] memory limits = [uint256(5e6 ether)];
+        address[N] memory symbioticVaults = [address(0xf344a1025080B0168b014009d0769348c5AD6A2f)];
 
         MultiVaultDeployScript.DeployParams memory deployParams = MultiVaultDeployScript
             .DeployParams({
@@ -45,9 +41,9 @@ contract Deploy is Script {
             proxyAdmin: VAULT_PROXY_ADMIN_MULTISIG,
             curator: address(0),
             symbioticVault: address(0),
-            depositWrapper: address(depositWrapper),
-            asset: WSTETH,
-            defaultCollateral: WSTETH_DEFAULT_COLLATERAL,
+            depositWrapper: address(0),
+            asset: SIS,
+            defaultCollateral: address(0),
             limit: 0,
             depositPause: false,
             withdrawalPause: false,
@@ -85,9 +81,8 @@ contract Deploy is Script {
                     : address(multiVault.subvaultAt(0).withdrawalQueue)
             );
 
-            depositWrapper.deposit{value: 1 gwei}(
-                depositWrapper.ETH(), 1 gwei, address(multiVault), DEPLOYER, DEPLOYER
-            );
+            IERC20(SIS).approve(address(multiVault), 0.1 gwei);
+            multiVault.deposit(0.1 gwei, DEPLOYER);
         }
     }
 

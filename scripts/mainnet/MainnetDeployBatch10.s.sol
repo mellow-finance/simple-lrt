@@ -30,14 +30,14 @@ contract Deploy is Script {
 
     uint256 public constant N = 1;
     address public constant DEPLOYER = 0x188858AC61a74350116d1CB6958fBc509FD6afA1;
-    address public constant STAKELY_MULTISIG = 0x059Ae3F8a1EaDDAAb34D0A74E8Eb752c848062d1;
+    address public constant FLOW_TRADERS_MULTISIG = 0xe5F981ee3Be4Cb2aF1D33b00C7A3D2A11De67924;
 
     function _deployVaults() internal {
-        address[N] memory curators = [STAKELY_MULTISIG];
-        string[N] memory names = ["Stakely x Gauntlet Restaking Plus"];
-        string[N] memory symbols = ["sgrpETH"];
-        uint256[N] memory limits = [uint256(400 ether)];
-        address[N] memory symbioticVaults = [address(0)];
+        address[N] memory curators = [FLOW_TRADERS_MULTISIG];
+        string[N] memory names = ["Flow Traders Restaking Vault"];
+        string[N] memory symbols = ["flowETH"];
+        uint256[N] memory limits = [uint256(2500 ether)];
+        address[N] memory symbioticVaults = [address(0xA57f8127b500D937D3bddC8c1D9d6e4A5D20AdA3)];
 
         MultiVaultDeployScript.DeployParams memory deployParams = MultiVaultDeployScript
             .DeployParams({

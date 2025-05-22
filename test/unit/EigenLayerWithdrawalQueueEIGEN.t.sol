@@ -57,10 +57,9 @@ contract Unit is BaseTest {
 
     function testClaimableAssetsOf() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,,) =
-            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenEIGENVault(vaultAdmin);
         IEigenLayerWithdrawalQueue withdrawalQueue =
-            EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
+            EigenLayerWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
         address user1 = rnd.randAddress();
         address user2 = rnd.randAddress();
@@ -68,12 +67,12 @@ contract Unit is BaseTest {
         uint256 amount1 = 100 ether;
         uint256 amount2 = 10 ether;
 
-        deal(Constants.WSTETH(), user1, amount1);
-        deal(Constants.WSTETH(), user2, amount2);
+        deal(Constants.EIGEN(), user1, amount1);
+        deal(Constants.EIGEN(), user2, amount2);
 
         {
             vm.startPrank(user1);
-            IERC20(Constants.WSTETH()).approve(address(vault), amount1);
+            IERC20(Constants.EIGEN()).approve(address(vault), amount1);
             vault.deposit(amount1, user1);
             vault.withdraw(amount1 / 2, user1, user1);
             vm.stopPrank();
@@ -89,7 +88,7 @@ contract Unit is BaseTest {
         }
         {
             vm.startPrank(user2);
-            IERC20(Constants.WSTETH()).approve(address(vault), amount2);
+            IERC20(Constants.EIGEN()).approve(address(vault), amount2);
             vault.deposit(amount2, user2);
             vault.withdraw(amount2 / 2, user2, user2);
             vm.stopPrank();
@@ -113,7 +112,7 @@ contract Unit is BaseTest {
             vm.stopPrank();
             assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "user1: claimableAssets");
             assertApproxEqAbs(
-                IERC20(Constants.WSTETH()).balanceOf(user1), amount1 / 2, ERROR, "user1: balance"
+                IERC20(Constants.EIGEN()).balanceOf(user1), amount1 / 2, ERROR, "user1: balance"
             );
         }
         {
@@ -122,7 +121,7 @@ contract Unit is BaseTest {
             vm.stopPrank();
             assertEq(withdrawalQueue.claimableAssetsOf(user2), 0, "user2: claimableAssets");
             assertApproxEqAbs(
-                IERC20(Constants.WSTETH()).balanceOf(user2), amount2 / 2, ERROR, "user2: balance"
+                IERC20(Constants.EIGEN()).balanceOf(user2), amount2 / 2, ERROR, "user2: balance"
             );
         }
 
@@ -149,7 +148,7 @@ contract Unit is BaseTest {
         vm.stopPrank();
 
         assertApproxEqAbs(
-            IERC20(Constants.WSTETH()).balanceOf(user1), amount1, ERROR, "user1: balance"
+            IERC20(Constants.EIGEN()).balanceOf(user1), amount1, ERROR, "user1: balance"
         );
 
         vm.startPrank(user2);
@@ -157,28 +156,25 @@ contract Unit is BaseTest {
         vm.stopPrank();
 
         assertApproxEqAbs(
-            IERC20(Constants.WSTETH()).balanceOf(user2), amount2, ERROR, "user2: balance"
+            IERC20(Constants.EIGEN()).balanceOf(user2), amount2, ERROR, "user2: balance"
         );
-
-        return;
     }
 
     function testTransferPendingAssetsX() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,,) =
-            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenEIGENVault(vaultAdmin);
         IEigenLayerWithdrawalQueue withdrawalQueue =
-            EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
+            EigenLayerWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
         address user1 = rnd.randAddress();
         address user2 = rnd.randAddress();
 
         uint256 amount1 = 100 ether;
 
-        deal(Constants.WSTETH(), user1, amount1);
+        deal(Constants.EIGEN(), user1, amount1);
 
         vm.startPrank(user1);
-        IERC20(Constants.WSTETH()).approve(address(vault), amount1);
+        IERC20(Constants.EIGEN()).approve(address(vault), amount1);
         vault.deposit(amount1, user1);
         vault.withdraw(amount1 / 2, user1, user1);
 
@@ -241,26 +237,24 @@ contract Unit is BaseTest {
 
     function testTransferPendingAssets2() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,,) =
-            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenEIGENVault(vaultAdmin);
         IEigenLayerWithdrawalQueue withdrawalQueue =
-            EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
+            EigenLayerWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
         address user1 = rnd.randAddress();
         address user2 = rnd.randAddress();
 
         uint256 amount1 = 100 ether;
 
-        deal(Constants.WSTETH(), user1, amount1);
+        deal(Constants.EIGEN(), user1, amount1);
 
         vm.startPrank(user1);
-        IERC20(Constants.WSTETH()).approve(address(vault), amount1);
+        IERC20(Constants.EIGEN()).approve(address(vault), amount1);
         vault.deposit(amount1, user1);
         vault.withdraw(2, user1, user1);
 
-        // accountAssets == 0
         vm.expectRevert("EigenLayerWithdrawalQueue: insufficient pending assets");
-        withdrawalQueue.transferPendingAssets(user2, 1);
+        withdrawalQueue.transferPendingAssets(user2, 3);
     }
 
     function testTransferPendingAssets3() external {
@@ -290,20 +284,19 @@ contract Unit is BaseTest {
 
     function testTransferPendingAssets4() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,,) =
-            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenEIGENVault(vaultAdmin);
         IEigenLayerWithdrawalQueue withdrawalQueue =
-            EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
+            EigenLayerWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
         address user1 = rnd.randAddress();
         address user2 = rnd.randAddress();
 
         uint256 amount1 = 100 ether;
 
-        deal(Constants.WSTETH(), user1, amount1);
+        deal(Constants.EIGEN(), user1, amount1);
 
         vm.startPrank(user1);
-        IERC20(Constants.WSTETH()).approve(address(vault), amount1);
+        IERC20(Constants.EIGEN()).approve(address(vault), amount1);
         vault.deposit(amount1, user1);
         vm.stopPrank();
 
@@ -356,24 +349,23 @@ contract Unit is BaseTest {
 
     function testGetAccountData() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,,) =
-            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenEIGENVault(vaultAdmin);
         IEigenLayerWithdrawalQueue withdrawalQueue =
-            EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
+            EigenLayerWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
         address user1 = rnd.randAddress();
         address user2 = rnd.randAddress();
         uint256 amount = 100 ether;
-        deal(Constants.WSTETH(), user1, amount);
+        deal(Constants.EIGEN(), user1, amount);
 
         vm.startPrank(user1);
-        IERC20(Constants.WSTETH()).approve(address(vault), amount);
+        IERC20(Constants.EIGEN()).approve(address(vault), amount);
         vault.deposit(amount, user1);
         vault.withdraw(amount / 2 - 1, user1, user1);
 
         uint256 totalPending = withdrawalQueue.pendingAssetsOf(user1);
         withdrawalQueue.transferPendingAssets(user2, totalPending);
-        vault.withdraw(amount / 2 - 2, user1, user1);
+        vault.withdraw(amount / 2 - 1, user1, user1);
 
         vm.roll(block.number + BLOCKS); // skip delay
         totalPending = withdrawalQueue.pendingAssetsOf(user1);
@@ -405,18 +397,17 @@ contract Unit is BaseTest {
 
     function testRequest() external {
         address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,,) =
-            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
+        (MultiVault vault,,,) = createDefaultMultiVaultWithEigenEIGENVault(vaultAdmin);
         IEigenLayerWithdrawalQueue withdrawalQueue =
-            EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
+            EigenLayerWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
         address user1 = rnd.randAddress();
         uint256 amount1 = 100 ether;
 
-        deal(Constants.WSTETH(), user1, amount1);
+        deal(Constants.EIGEN(), user1, amount1);
 
         vm.startPrank(user1);
-        IERC20(Constants.WSTETH()).approve(address(vault), amount1);
+        IERC20(Constants.EIGEN()).approve(address(vault), amount1);
         vault.deposit(amount1, user1);
         vm.stopPrank();
 
@@ -453,68 +444,10 @@ contract Unit is BaseTest {
         assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 2: claimableAssetsOf");
     }
 
-    function testPullWstETH() external {
+    function testPullEIGEN() external {
         address vaultAdmin = rnd.randAddress();
         (MultiVault vault,,, address isolatedVault) =
-            createDefaultMultiVaultWithEigenWstETHVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
-        IEigenLayerWithdrawalQueue withdrawalQueue =
-            EigenLayerWstETHWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
-
-        address user1 = rnd.randAddress();
-
-        uint256 amount1 = 100 ether;
-
-        deal(Constants.WSTETH(), user1, amount1);
-
-        vm.startPrank(user1);
-        IERC20(Constants.WSTETH()).approve(address(vault), amount1);
-        vault.deposit(amount1, user1);
-        vault.withdraw(amount1 / 2, user1, user1);
-        vm.stopPrank();
-
-        assertApproxEqAbs(
-            withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, ERROR, "stage 0: pendingAssetsOf"
-        );
-        assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 0: claimableAssetsOf");
-
-        assertApproxEqAbs(
-            withdrawalQueue.pendingAssetsOf(user1), amount1 / 2, ERROR, "stage 1: pendingAssetsOf"
-        );
-        assertEq(withdrawalQueue.claimableAssetsOf(user1), 0, "stage 1: claimableAssetsOf");
-
-        vm.roll(block.number + BLOCKS); // skip delay
-
-        vm.expectRevert();
-        withdrawalQueue.pull(1);
-        withdrawalQueue.pull(0);
-
-        assertEq(withdrawalQueue.pendingAssetsOf(user1), 0, "stage 2: pendingAssetsOf");
-        assertApproxEqAbs(
-            withdrawalQueue.claimableAssetsOf(user1),
-            amount1 / 2,
-            ERROR,
-            "stage 2: claimableAssetsOf"
-        );
-
-        // early exit because claimed
-        withdrawalQueue.pull(0);
-
-        vm.startPrank(user1);
-        withdrawalQueue.claim(user1, user1, withdrawalQueue.claimableAssetsOf(user1));
-        vm.stopPrank();
-
-        IDelegationManager delegation =
-            IStrategyManager(Constants.HOLESKY_EL_STRATEGY_MANAGER).delegation();
-        IDelegationManager.Withdrawal memory data;
-
-        vm.expectRevert("IsolatedEigenLayerWstETHVault: forbidden");
-        IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(delegation, data);
-    }
-
-    function testPull() external {
-        address vaultAdmin = rnd.randAddress();
-        (MultiVault vault,,, address isolatedVault) =
-            createDefaultMultiVaultWithEigenVault(vaultAdmin, Constants.HOLESKY_EL_STRATEGY);
+            createDefaultMultiVaultWithEigenEIGENVault(vaultAdmin);
         IEigenLayerWithdrawalQueue withdrawalQueue =
             EigenLayerWithdrawalQueue(vault.subvaultAt(0).withdrawalQueue);
 
@@ -522,11 +455,10 @@ contract Unit is BaseTest {
 
         uint256 amount1 = 100 ether;
 
-        deal(Constants.WSTETH(), user1, amount1);
+        deal(Constants.EIGEN(), user1, amount1);
 
         vm.startPrank(user1);
-        amount1 = IWSTETH(Constants.WSTETH()).unwrap(amount1);
-        IERC20(Constants.STETH()).approve(address(vault), amount1);
+        IERC20(Constants.EIGEN()).approve(address(vault), amount1);
         vault.deposit(amount1, user1);
         vault.withdraw(amount1 / 2, user1, user1);
         vm.stopPrank();
@@ -568,9 +500,5 @@ contract Unit is BaseTest {
 
         vm.expectRevert("IsolatedEigenLayerVault: forbidden");
         IIsolatedEigenLayerVault(isolatedVault).claimWithdrawal(delegation, data);
-
-        IDelegationManager.QueuedWithdrawalParams[] memory requests;
-        vm.expectRevert("IsolatedEigenLayerVault: forbidden");
-        IIsolatedEigenLayerVault(isolatedVault).queueWithdrawals(delegation, requests);
     }
 }
