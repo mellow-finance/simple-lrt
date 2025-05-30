@@ -50,7 +50,7 @@ contract Deploy is Script {
                 symbol: "MELTV",
                 minRatioD18: 0.9 ether,
                 maxRatioD18: 0.95 ether,
-                salt: bytes32(0)
+                salt: bytes32(uint256(1))
             })
         );
 
@@ -61,20 +61,12 @@ contract Deploy is Script {
             DEPLOYER
         );
 
-        EigenLayerWstETHAdapter eigenLayerAdapterSingleton = new EigenLayerWstETHAdapter(
+        EigenLayerWstETHAdapter eigenLayerAdapter = new EigenLayerWstETHAdapter(
             address(factory),
             address(multiVault),
             IStrategyManager(STRATEGY_MANAGER),
             IRewardsCoordinator(REWARDS_COORDINATOR),
             WSTETH
-        );
-
-        EigenLayerWstETHAdapter eigenLayerAdapter = EigenLayerWstETHAdapter(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(eigenLayerAdapterSingleton), DEPLOYER, new bytes(0)
-                )
-            )
         );
 
         multiVault.grantRole(multiVault.SET_ADAPTER_ROLE(), DEPLOYER);
@@ -102,11 +94,11 @@ contract Deploy is Script {
         require(deployer == DEPLOYER, "not authorized");
         vm.startBroadcast(deployerPk);
 
-        // uint g = gasleft();
+        uint256 g = gasleft();
         _deployVaults();
-        // console2.log(g - gasleft());
+        console2.log(g - gasleft());
 
         vm.stopBroadcast();
-        // revert("success");
+        revert("success");
     }
 }
