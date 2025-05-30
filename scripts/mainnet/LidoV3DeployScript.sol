@@ -40,6 +40,7 @@ contract LidoV3DeployScript {
         address slasher;
         address burner;
         address delegator;
+        bytes32 mvSalt;
     }
 
     // Symbiotic deployment:
@@ -61,17 +62,19 @@ contract LidoV3DeployScript {
 
     // Mutable functions
 
-    function deploy(Config memory config) public returns (Deployment memory $) {
+    function deploy(Config calldata config) public returns (Deployment memory $) {
         _deploySymbioticVault(config, $);
         _deployMultiVaults(config, $);
+        emit Deployed($.vault, config, $);
     }
 
     receive() external payable {}
 
     // Internal functions
 
-    function _deployMultiVaults(Config memory config, Deployment memory $) internal {
-        (MultiVault multiVault,,) = deployScript.deploy(
+    function _deployMultiVaults(Config calldata config, Deployment memory $) internal {
+        (MultiVault multiVault,, MultiVaultDeployScript.DeployParams memory dp) = deployScript
+            .deploy(
             MultiVaultDeployScript.DeployParams({
                 admin: config.vaultAdmin,
                 proxyAdmin: config.vaultProxyAdmin,
@@ -90,6 +93,7 @@ contract LidoV3DeployScript {
                 salt: config.salt
             })
         );
+        $.mvSalt = deployScript.calculateSalt(dp);
 
         if ($.symbioticVault != address(0)) {
             IVault($.symbioticVault).setDepositorWhitelistStatus(address(multiVault), true);
@@ -108,7 +112,7 @@ contract LidoV3DeployScript {
         $.withdrawalQueue = address(multiVault.subvaultAt(0).withdrawalQueue);
     }
 
-    function _deploySymbioticVault(Config memory config, Deployment memory $) internal {
+    function _deploySymbioticVault(Config calldata config, Deployment memory $) internal {
         $.burner = IBurnerRouterFactory(BURNER_ROUTER_FACTORY).create(
             IBurnerRouter.InitParams({
                 owner: config.vaultAdmin,
@@ -180,4 +184,6 @@ contract LidoV3DeployScript {
             receiver: 0xD5881f91270550B8850127f05BD6C8C203B3D33f
         });
     }
+
+    event Deployed(address indexed vault, Config config, Deployment deployment);
 }
