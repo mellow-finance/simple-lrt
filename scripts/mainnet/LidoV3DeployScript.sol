@@ -65,7 +65,7 @@ contract LidoV3DeployScript {
     function deploy(Config calldata config) public returns (Deployment memory $) {
         _deploySymbioticVault(config, $);
         _deployMultiVaults(config, $);
-        emit Deployed($.vault, config, $);
+        emit Deployed($.vault, $.mvSalt, config, $);
     }
 
     receive() external payable {}
@@ -185,5 +185,7 @@ contract LidoV3DeployScript {
         });
     }
 
-    event Deployed(address indexed vault, Config config, Deployment deployment);
+    event Deployed(
+        address indexed vault, bytes32 indexed mvSalt, Config config, Deployment deployment
+    );
 }
