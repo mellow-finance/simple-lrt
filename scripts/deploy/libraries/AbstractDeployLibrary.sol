@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "../AbstractDeployScript.sol";
+import "../DeployScript.sol";
 
 abstract contract AbstractDeployLibrary {
     address private immutable _this;
@@ -19,13 +19,13 @@ abstract contract AbstractDeployLibrary {
 
     function deployAndSetAdapter(
         address multiVault,
-        AbstractDeployScript.Config calldata config,
+        DeployScript.Config calldata config,
         bytes calldata data
     ) external virtual;
 
     function deploySubvault(
         address multiVault,
-        AbstractDeployScript.Config calldata config,
+        DeployScript.Config calldata config,
         bytes calldata data
     ) external virtual returns (address);
 }

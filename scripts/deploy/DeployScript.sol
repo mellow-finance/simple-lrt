@@ -8,7 +8,7 @@ import "./libraries/AbstractDeployLibrary.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-contract AbstractDeployScript is Ownable {
+contract DeployScript is Ownable {
     struct Config {
         // actors
         address vaultAdmin;
@@ -48,7 +48,7 @@ contract AbstractDeployScript is Ownable {
 
     mapping(uint256 => address) public deployLibraries;
     mapping(uint256 index => address multiVault) public deployments;
-    mapping(uint256 index => DeployParams) public deployParams;
+    mapping(uint256 index => DeployParams) private _deployParams;
     uint256 public deploymentsCount = 0;
 
     constructor(
@@ -68,6 +68,10 @@ contract AbstractDeployScript is Ownable {
 
     function calculateSalt(DeployParams calldata params) public pure returns (bytes32) {
         return keccak256(abi.encode(params));
+    }
+
+    function deployParams(uint256 index) external view returns (DeployParams memory) {
+        return _deployParams[index];
     }
 
     // Mutable functions
@@ -184,6 +188,6 @@ contract AbstractDeployScript is Ownable {
 
         uint256 index = deploymentsCount++;
         deployments[index] = address(multiVault);
-        deployParams[index] = params;
+        _deployParams[index] = params;
     }
 }

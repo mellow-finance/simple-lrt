@@ -3,7 +3,6 @@ pragma solidity 0.8.25;
 
 import "../../../src/adapters/EigenLayerAdapter.sol";
 import "../../../src/adapters/IsolatedEigenLayerVault.sol";
-
 import "../../../src/adapters/IsolatedEigenLayerVaultFactory.sol";
 import "../../../src/adapters/IsolatedEigenLayerWstETHVault.sol";
 import "../../../src/vaults/MultiVault.sol";
@@ -13,7 +12,7 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
     struct DeployParams {
         address strategy;
         address operator;
-        bytes signature;
+        ISignatureUtils.SignatureWithExpiry signature;
         bytes32 salt;
     }
 
@@ -47,11 +46,22 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
         return 1; // Symbiotic vault type
     }
 
+    function combineOptions(
+        address strategy,
+        address operator,
+        ISignatureUtils.SignatureWithExpiry memory signature,
+        bytes32 salt
+    ) external pure returns (bytes memory) {
+        return abi.encode(
+            DeployParams({strategy: strategy, operator: operator, signature: signature, salt: salt})
+        );
+    }
+
     // Mutable functions
 
     function deployAndSetAdapter(
         address multiVault,
-        AbstractDeployScript.Config calldata config,
+        DeployScript.Config calldata config,
         bytes calldata /* data */
     ) external override onlyDelegateCall {
         bool isWstETH = config.asset == WSTETH;
@@ -87,7 +97,7 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
 
     function deploySubvault(
         address multiVault,
-        AbstractDeployScript.Config calldata config,
+        DeployScript.Config calldata config,
         bytes calldata data
     ) external override onlyDelegateCall returns (address isolatedVault) {
         DeployParams memory params = abi.decode(data, (DeployParams));

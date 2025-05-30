@@ -47,11 +47,27 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
         return 0; // Symbiotic vault type
     }
 
+    function combineOptions(
+        address burnerGlobalReceiver,
+        uint48 epochDuration,
+        uint48 vetoDuration,
+        uint48 burnerDelay
+    ) public pure returns (bytes memory) {
+        return abi.encode(
+            DeployParams({
+                burnerGlobalReceiver: burnerGlobalReceiver,
+                epochDuration: epochDuration,
+                vetoDuration: vetoDuration,
+                burnerDelay: burnerDelay
+            })
+        );
+    }
+
     // Mutable functions
 
     function deployAndSetAdapter(
         address multiVault,
-        AbstractDeployScript.Config calldata config,
+        DeployScript.Config calldata config,
         bytes calldata /* data */
     ) external override onlyDelegateCall {
         if (address(MultiVault(multiVault).symbioticAdapter()) != address(0)) {
@@ -70,7 +86,7 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
 
     function deploySubvault(
         address, /* multiVault */
-        AbstractDeployScript.Config calldata config,
+        DeployScript.Config calldata config,
         bytes calldata data
     ) external override onlyDelegateCall returns (address symbioticVault) {
         DeployParams memory params = abi.decode(data, (DeployParams));
@@ -141,7 +157,7 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
         returns (IBurnerRouter.NetworkReceiver[] memory networkReceivers)
     {
         networkReceivers = new IBurnerRouter.NetworkReceiver[](1);
-        // Primev network receiver
+        // Primev network
         networkReceivers[0] = IBurnerRouter.NetworkReceiver({
             network: 0x9101eda106A443A0fA82375936D0D1680D5a64F5,
             receiver: 0xD5881f91270550B8850127f05BD6C8C203B3D33f
