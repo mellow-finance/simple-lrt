@@ -15,6 +15,8 @@ abstract contract AbstractDeployLibrary {
         _this = address(this);
     }
 
+    function subvaultType() external view virtual returns (uint256);
+
     function deployAndSetAdapter(
         address multiVault,
         AbstractDeployScript.Config calldata config,

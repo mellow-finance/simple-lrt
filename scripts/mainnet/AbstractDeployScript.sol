@@ -9,28 +9,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract AbstractDeployScript is Ownable {
-    address public immutable strategy;
-    address public immutable multiVaultImplementation;
-
-    mapping(uint256 => address) public deployLibraries;
-
-    constructor(
-        address strategy_,
-        address multiVaultImplementation_,
-        address[] memory deployLibraries_,
-        address owner
-    ) Ownable(owner) {
-        strategy = strategy_;
-        multiVaultImplementation = multiVaultImplementation_;
-        for (uint256 i = 0; i < deployLibraries_.length; i++) {
-            deployLibraries[i] = deployLibraries_[i];
-        }
-    }
-
-    function setDeployLibrary(uint256 index, address deployLibrary) external onlyOwner {
-        deployLibraries[index] = deployLibrary;
-    }
-
     struct Config {
         // actors
         address vaultAdmin;
@@ -49,7 +27,7 @@ contract AbstractDeployScript is Ownable {
     }
 
     struct SubvaultParams {
-        IMultiVaultStorage.Protocol protocol;
+        uint256 libraryIndex;
         bytes data;
         uint64 minRatioD18;
         uint64 maxRatioD18;
@@ -65,12 +43,37 @@ contract AbstractDeployScript is Ownable {
         bytes32 salt;
     }
 
+    address public immutable strategy;
+    address public immutable multiVaultImplementation;
+
+    mapping(uint256 => address) public deployLibraries;
     mapping(uint256 index => address multiVault) public deployments;
     mapping(uint256 index => DeployParams) public deployParams;
     uint256 public deploymentsCount = 0;
 
+    constructor(
+        address strategy_,
+        address multiVaultImplementation_,
+        address[] memory deployLibraries_,
+        address owner
+    ) Ownable(owner) {
+        strategy = strategy_;
+        multiVaultImplementation = multiVaultImplementation_;
+        for (uint256 i = 0; i < deployLibraries_.length; i++) {
+            deployLibraries[i] = deployLibraries_[i];
+        }
+    }
+
+    // View functions
+
     function calculateSalt(DeployParams calldata params) public pure returns (bytes32) {
         return keccak256(abi.encode(params));
+    }
+
+    // Mutable functions
+
+    function setDeployLibrary(uint256 index, address deployLibrary) external onlyOwner {
+        deployLibraries[index] = deployLibrary;
     }
 
     function deploy(DeployParams calldata params) external returns (MultiVault multiVault) {
@@ -136,7 +139,7 @@ contract AbstractDeployScript is Ownable {
 
             for (uint256 i = 0; i < params.subvaults.length; i++) {
                 SubvaultParams calldata subvaultParams = params.subvaults[i];
-                address deployLibrary = deployLibraries[uint256(subvaultParams.protocol)];
+                address deployLibrary = deployLibraries[uint256(subvaultParams.libraryIndex)];
                 if (deployLibrary == address(0)) {
                     revert("AbstractDeployScript: unsupported protocol type");
                 }
@@ -162,7 +165,8 @@ contract AbstractDeployScript is Ownable {
 
                 address subvault = abi.decode(subvaultResponse, (address));
                 multiVault.addSubvault(
-                    subvault, IMultiVaultStorage.Protocol(params.subvaults[i].protocol)
+                    subvault,
+                    IMultiVaultStorage.Protocol(AbstractDeployLibrary(deployLibrary).subvaultType())
                 );
 
                 ratios[i] = IRatiosStrategy.Ratio(

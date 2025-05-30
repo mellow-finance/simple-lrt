@@ -41,6 +41,14 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
         symbioticWithdrawalQueueImplementation = symbioticWithdrawalQueueImplementation_;
     }
 
+    // View functions
+
+    function subvaultType() external pure override returns (uint256) {
+        return 0; // Symbiotic vault type
+    }
+
+    // Mutable functions
+
     function deployAndSetAdapter(
         address multiVault,
         AbstractDeployScript.Config calldata config,
@@ -119,6 +127,8 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
             })
         );
     }
+
+    // Internal functions
 
     function _createArray(address curator) internal pure returns (address[] memory a) {
         a = new address[](1);

@@ -31,13 +31,6 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
     address public immutable isolatedEigenLayerWstETHVaultImplementation;
     address public immutable isolatedEigenLayerVaultImplementation;
 
-    function _contractStorage() internal pure returns (Storage storage s) {
-        bytes32 slot = STORAGE_SLOT;
-        assembly {
-            s.slot := slot
-        }
-    }
-
     constructor(
         address withdrawalQueueImplementation_,
         address isolatedEigenLayerVaultImplementation_,
@@ -47,6 +40,14 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
         isolatedEigenLayerVaultImplementation = isolatedEigenLayerVaultImplementation_;
         isolatedEigenLayerWstETHVaultImplementation = isolatedEigenLayerWstETHVaultImplementation_;
     }
+
+    // View functions
+
+    function subvaultType() external pure override returns (uint256) {
+        return 1; // Symbiotic vault type
+    }
+
+    // Mutable functions
 
     function deployAndSetAdapter(
         address multiVault,
@@ -98,5 +99,14 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
             params.operator,
             abi.encode(params.signature, params.salt)
         );
+    }
+
+    // Internal functions
+
+    function _contractStorage() internal pure returns (Storage storage s) {
+        bytes32 slot = STORAGE_SLOT;
+        assembly {
+            s.slot := slot
+        }
     }
 }
