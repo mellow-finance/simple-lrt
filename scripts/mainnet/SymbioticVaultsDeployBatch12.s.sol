@@ -58,8 +58,10 @@ contract Deploy is Script {
     function _deploySymbioticVaults() internal {
         IVaultConfigurator vaultConfigurator = IVaultConfigurator(VAULT_CONFIGURATOR);
         IBurnerRouterFactory burnerRouterFactory = IBurnerRouterFactory(BURNER_ROUTER_FACTORY);
-        address[N] memory curators = [ALLNODES_MULTISIG, ENCAPSULATE_MULTISIG, LAUNCH_NODES_MULTISIG];
-        string[N] memory names = ["UltraYield x Edge x Allnodes", "Encapsulate Vault", "Launchnodes Vault"];
+        address[N] memory curators =
+            [ALLNODES_MULTISIG, ENCAPSULATE_MULTISIG, LAUNCH_NODES_MULTISIG];
+        string[N] memory names =
+            ["UltraYield x Edge x Allnodes", "Encapsulate Vault", "Launchnodes Vault"];
 
         for (uint256 i = 0; i < N; i++) {
             address curator = curators[i];

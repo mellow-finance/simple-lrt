@@ -35,15 +35,17 @@ contract Deploy is Script {
     address public constant LAUNCH_NODES_MULTISIG = 0x42c14013afE2440C3E5e0A33a968e458dA710A4c;
 
     function _deployVaults() internal {
-        address[N] memory curators = [ALLNODES_MULTISIG, ENCAPSULATE_MULTISIG, LAUNCH_NODES_MULTISIG];
-        string[N] memory names = ["UltraYield x Edge x Allnodes", "Encapsulate Vault", "Launchnodes Vault"];
+        address[N] memory curators =
+            [ALLNODES_MULTISIG, ENCAPSULATE_MULTISIG, LAUNCH_NODES_MULTISIG];
+        string[N] memory names =
+            ["UltraYield x Edge x Allnodes", "Encapsulate Vault", "Launchnodes Vault"];
 
         string[N] memory symbols = ["alluETH", "encapETH", "LNO"];
         uint256[N] memory limits = [uint256(3000 ether), 2000 ether, 2100 ether];
         address[N] memory symbioticVaults = [
             address(0x60b683aF37e15283f2623fC63eECa7726E934976),
             0xE596b8d74d260eb8bF8c6B055c61D4E07C45350E,
-            0x683af4B919a506fA1eE298F235Bd92074C9126B2 
+            0x683af4B919a506fA1eE298F235Bd92074C9126B2
         ];
 
         MultiVaultDeployScript.DeployParams memory deployParams = MultiVaultDeployScript
