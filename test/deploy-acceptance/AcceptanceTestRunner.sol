@@ -48,7 +48,7 @@ contract AcceptanceTestRunner {
         validateDeployScriptState(deployScript, deployIndex, deployParams);
         validateStrategyState(deployScript, deployIndex, deployParams);
         validateVaultPermissions(deployScript, deployIndex, deployParams);
-        // validateVaultState(deployScript, deployIndex, deployParams);
+        validateVaultState(deployScript, deployIndex, deployParams);
     }
 
     function getCleanBytecode(bytes memory contractCode) internal pure returns (bytes memory) {
@@ -98,181 +98,188 @@ contract AcceptanceTestRunner {
         }
     }
 
-    // function validateVaultState(
-    //     DeployScript deployScript,
-    //     DeployScript.DeployParams memory deployParams
-    // ) internal {
-    //     MultiVault multiVault = MultiVault(deployParams.multiVault);
-    //     require(address(multiVault) != address(0), "Invalid MultiVault contract address");
-    //     bytes32 salt = deployScript.calculateSalt(deployParams.params);
+    function validateVaultState(
+        DeployScript deployScript,
+        uint256 deployIndex,
+        DeployScript.DeployParams memory deployParams
+    ) internal {
+        MultiVault multiVault = MultiVault(deployScript.deployments(deployIndex));
+        require(address(multiVault) != address(0), "Invalid MultiVault contract address");
 
-    //     {
-    //         bytes memory a = address(multiVault).code;
-    //         bytes memory b = address(
-    //             new TransparentUpgradeableProxy{salt: salt}(
-    //                 deployScript.multiVaultImplementation(),
-    //                 deployParams.params.proxyAdmin,
-    //                 new bytes(0)
-    //             )
-    //         ).code;
-    //         a = getCleanBytecode(a);
-    //         b = getCleanBytecode(b);
-    //         require(a.length == b.length, "Invalid TransparentUpgradeableProxy bytecode length");
-    //         uint160 proxyAdmin;
-    //         for (uint256 i = 0; i < a.length; i++) {
-    //             if (i < 28 || i >= 28 + 20) {
-    //                 // ProxyAdmin
-    //                 require(a[i] == b[i], "Invalid TransparentUpgradeableProxy bytecode");
-    //             } else {
-    //                 proxyAdmin = (proxyAdmin << 8) | uint8(a[i]);
-    //             }
-    //         }
-    //         require(
-    //             ProxyAdmin(address(proxyAdmin)).owner() == deployParams.params.proxyAdmin,
-    //             "Invalid ProxyAdmin"
-    //         );
-    //     }
+        {
+            bytes memory a = address(multiVault).code;
+            bytes memory b = address(
+                new TransparentUpgradeableProxy(
+                    deployScript.multiVaultImplementation(),
+                    deployParams.config.vaultProxyAdmin,
+                    new bytes(0)
+                )
+            ).code;
+            a = getCleanBytecode(a);
+            b = getCleanBytecode(b);
+            require(a.length == b.length, "Invalid TransparentUpgradeableProxy bytecode length");
+            uint160 proxyAdmin;
+            for (uint256 i = 0; i < a.length; i++) {
+                if (i < 28 || i >= 28 + 20) {
+                    // ProxyAdmin
+                    require(a[i] == b[i], "Invalid TransparentUpgradeableProxy bytecode");
+                }
+            }
+            {
+                bytes memory fullMultivaultBytecode = address(multiVault).code;
+                for (uint256 i = 28; i < 28 + 20; i++) {
+                    proxyAdmin = (proxyAdmin << 8) | uint8(fullMultivaultBytecode[i]);
+                }
+            }
+            require(
+                ProxyAdmin(address(proxyAdmin)).owner() == deployParams.config.vaultProxyAdmin,
+                "Invalid ProxyAdmin"
+            );
+        }
 
-    //     require(
-    //         address(multiVault.symbioticAdapter()) == address(deployParams.symbioticAdapter),
-    //         "Invalid symbioticAdapter"
-    //     );
+        require(
+            address(multiVault.erc4626Adapter()) == address(0), "Invalid erc4626Adapter address"
+        );
 
-    //     require(
-    //         address(multiVault.eigenLayerAdapter()) == address(0),
-    //         "Invalid eigenLayerAdapter address"
-    //     );
+        if (deployParams.subvaults.length != 0) {
+            require(
+                address(multiVault.symbioticAdapter()) != address(0), "Invalid symbioticAdapter"
+            );
 
-    //     require(
-    //         address(multiVault.erc4626Adapter()) == address(0), "Invalid erc4626Adapter address"
-    //     );
+            require(
+                address(multiVault.eigenLayerAdapter()) != address(0),
+                "Invalid eigenLayerAdapter address"
+            );
+            require(
+                multiVault.subvaultsCount() == deployParams.subvaults.length,
+                "Invalid subvaults count"
+            );
 
-    //     if (deployParams.params.symbioticVault != address(0)) {
-    //         require(multiVault.subvaultsCount() == 1, "Invalid subvaults count");
-    //         IMultiVault.Subvault memory subvault = multiVault.subvaultAt(0);
-    //         require(subvault.vault == deployParams.params.symbioticVault, "Invalid symbioticVault");
-    //         require(
-    //             uint256(subvault.protocol) == uint256(IMultiVaultStorage.Protocol.SYMBIOTIC),
-    //             "Invalid protocol"
-    //         );
-    //         require(
-    //             address(subvault.withdrawalQueue) != address(0), "Invalid withdrawalQueue address"
-    //         );
+            console2.log("TODO!");
+            // IMultiVault.Subvault memory subvault = multiVault.subvaultAt(0);
+            // require(subvault.vault == deployParams.params.symbioticVault, "Invalid symbioticVault");
+            // require(
+            //     uint256(subvault.protocol) == uint256(IMultiVaultStorage.Protocol.SYMBIOTIC),
+            //     "Invalid protocol"
+            // );
+            // require(
+            //     address(subvault.withdrawalQueue) != address(0), "Invalid withdrawalQueue address"
+            // );
 
-    //         {
-    //             bytes memory a = address(subvault.withdrawalQueue).code;
-    //             bytes memory b = address(
-    //                 new TransparentUpgradeableProxy{
-    //                     salt: keccak256(abi.encodePacked(deployParams.params.symbioticVault))
-    //                 }(
-    //                     deployScript.symbioticWithdrawalQueueImplementation(),
-    //                     deployParams.params.proxyAdmin,
-    //                     abi.encodeCall(
-    //                         SymbioticWithdrawalQueue.initialize,
-    //                         (
-    //                             address(deployParams.multiVault),
-    //                             address(deployParams.params.symbioticVault)
-    //                         )
-    //                     )
-    //                 )
-    //             ).code;
+            // {
+            //     bytes memory a = address(subvault.withdrawalQueue).code;
+            //     bytes memory b = address(
+            //         new TransparentUpgradeableProxy{
+            //             salt: keccak256(abi.encodePacked(deployParams.params.symbioticVault))
+            //         }(
+            //             deployScript.symbioticWithdrawalQueueImplementation(),
+            //             deployParams.params.proxyAdmin,
+            //             abi.encodeCall(
+            //                 SymbioticWithdrawalQueue.initialize,
+            //                 (
+            //                     address(deployParams.multiVault),
+            //                     address(deployParams.params.symbioticVault)
+            //                 )
+            //             )
+            //         )
+            //     ).code;
 
-    //             a = getCleanBytecode(a);
-    //             b = getCleanBytecode(b);
+            //     a = getCleanBytecode(a);
+            //     b = getCleanBytecode(b);
 
-    //             require(a.length == b.length, "Invalid TransparentUpgradeableProxy bytecode length");
-    //             uint160 proxyAdmin;
-    //             for (uint256 i = 0; i < a.length; i++) {
-    //                 if (i < 28 || i >= 28 + 20) {
-    //                     // ProxyAdmin
-    //                     require(a[i] == b[i], "Invalid TransparentUpgradeableProxy bytecode");
-    //                 } else {
-    //                     proxyAdmin = (proxyAdmin << 8) | uint8(a[i]);
-    //                 }
-    //             }
-    //             require(
-    //                 ProxyAdmin(address(proxyAdmin)).owner() == deployParams.params.proxyAdmin,
-    //                 "Invalid ProxyAdmin"
-    //             );
-    //         }
+            //     require(a.length == b.length, "Invalid TransparentUpgradeableProxy bytecode length");
+            //     uint160 proxyAdmin;
+            //     for (uint256 i = 0; i < a.length; i++) {
+            //         if (i < 28 || i >= 28 + 20) {
+            //             // ProxyAdmin
+            //             require(a[i] == b[i], "Invalid TransparentUpgradeableProxy bytecode");
+            //         } else {
+            //             proxyAdmin = (proxyAdmin << 8) | uint8(a[i]);
+            //         }
+            //     }
+            //     require(
+            //         ProxyAdmin(address(proxyAdmin)).owner() == deployParams.params.proxyAdmin,
+            //         "Invalid ProxyAdmin"
+            //     );
+            // }
 
-    //         require(
-    //             IRegistry(deployScript.symbioticVaultFactory()).isEntity(
-    //                 deployParams.params.symbioticVault
-    //             ),
-    //             "Invalid symbioticVaultFactory"
-    //         );
+            // require(
+            //     IRegistry(deployScript.symbioticVaultFactory()).isEntity(
+            //         deployParams.params.symbioticVault
+            //     ),
+            //     "Invalid symbioticVaultFactory"
+            // );
 
-    //         require(
-    //             ISymbioticVault(deployParams.params.symbioticVault).collateral()
-    //                 == multiVault.asset(),
-    //             "Invalid symbioticVault collateral"
-    //         );
-    //     } else {
-    //         require(multiVault.subvaultsCount() == 0, "Invalid subvaults count");
-    //     }
+            // require(
+            //     ISymbioticVault(deployParams.params.symbioticVault).collateral()
+            //         == multiVault.asset(),
+            //     "Invalid symbioticVault collateral"
+            // );
+        } else {
+            require(multiVault.subvaultsCount() == 0, "Invalid subvaults count");
+        }
 
-    //     require(
-    //         address(multiVault.depositStrategy()) == address(deployScript.strategy()),
-    //         "Invalid strategy"
-    //     );
+        require(
+            address(multiVault.depositStrategy()) == address(deployScript.strategy()),
+            "Invalid strategy"
+        );
 
-    //     require(
-    //         address(multiVault.withdrawalStrategy()) == address(deployScript.strategy()),
-    //         "Invalid strategy"
-    //     );
+        require(
+            address(multiVault.withdrawalStrategy()) == address(deployScript.strategy()),
+            "Invalid strategy"
+        );
 
-    //     require(
-    //         address(multiVault.rebalanceStrategy()) == address(deployScript.strategy()),
-    //         "Invalid strategy"
-    //     );
+        require(
+            address(multiVault.rebalanceStrategy()) == address(deployScript.strategy()),
+            "Invalid strategy"
+        );
 
-    //     require(
-    //         address(multiVault.defaultCollateral())
-    //             == address(deployParams.params.defaultCollateral),
-    //         "Invalid defaultCollateral"
-    //     );
+        require(
+            address(multiVault.defaultCollateral())
+                == address(deployParams.config.defaultCollateral),
+            "Invalid defaultCollateral"
+        );
 
-    //     require(
-    //         address(multiVault.defaultCollateral().asset()) == multiVault.asset(),
-    //         "Invalid defaultCollateral asset"
-    //     );
+        require(
+            address(multiVault.defaultCollateral().asset()) == multiVault.asset(),
+            "Invalid defaultCollateral asset"
+        );
 
-    //     require(multiVault.farmCount() == 0, "Invalid farm count");
+        require(multiVault.farmCount() == 0, "Invalid farm count");
 
-    //     if (multiVault.totalSupply() == 0) {
-    //         require(
-    //             multiVault.totalSupply() == 0 && multiVault.totalAssets() == 0,
-    //             "Invalid totalSupply or totalAssets"
-    //         );
-    //     } else {
-    //         require(
-    //             multiVault.totalSupply() == multiVault.totalAssets(), "totalSupply != totalAssets"
-    //         );
-    //     }
+        if (multiVault.totalSupply() == 0) {
+            require(
+                multiVault.totalSupply() == 0 && multiVault.totalAssets() == 0,
+                "Invalid totalSupply or totalAssets"
+            );
+        } else {
+            require(
+                multiVault.totalSupply() == multiVault.totalAssets(), "totalSupply != totalAssets"
+            );
+        }
 
-    //     require(multiVault.limit() == deployParams.params.limit, "Invalid limit");
+        require(multiVault.limit() == deployParams.config.limit, "Invalid limit");
 
-    //     require(
-    //         multiVault.depositPause() == deployParams.params.depositPause, "Invalid depositPause"
-    //     );
+        require(
+            multiVault.depositPause() == deployParams.config.depositPause, "Invalid depositPause"
+        );
 
-    //     require(
-    //         multiVault.withdrawalPause() == deployParams.params.withdrawalPause,
-    //         "Invalid withdrawalPause"
-    //     );
+        require(
+            multiVault.withdrawalPause() == deployParams.config.withdrawalPause,
+            "Invalid withdrawalPause"
+        );
 
-    //     if (deployParams.params.depositWrapper != address(0)) {
-    //         require(multiVault.depositWhitelist(), "Invalid depositWhitelist");
+        if (deployParams.config.depositWrapper != address(0)) {
+            require(multiVault.depositWhitelist(), "Invalid depositWhitelist");
 
-    //         require(
-    //             multiVault.isDepositorWhitelisted(deployParams.params.depositWrapper),
-    //             "Invalid depositWrapper whitelist status"
-    //         );
-    //     } else {
-    //         require(!multiVault.depositWhitelist(), "Invalid depositWhitelist");
-    //     }
-    // }
+            require(
+                multiVault.isDepositorWhitelisted(deployParams.config.depositWrapper),
+                "Invalid depositWrapper whitelist status"
+            );
+        } else {
+            require(!multiVault.depositWhitelist(), "Invalid depositWhitelist");
+        }
+    }
 
     function validateStrategyState(
         DeployScript deployScript,
