@@ -34,17 +34,17 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
     uint32 public constant NETWORK_RESTAKE_DELEGATOR_INDEX = 0;
 
     address public immutable symbioticVaultFactory;
-    address public immutable symbioticWithdrawalQueueImplementation;
+    address public immutable withdrawalQueueImplementation;
 
     constructor(address symbioticVaultFactory_, address symbioticWithdrawalQueueImplementation_) {
         symbioticVaultFactory = symbioticVaultFactory_;
-        symbioticWithdrawalQueueImplementation = symbioticWithdrawalQueueImplementation_;
+        withdrawalQueueImplementation = symbioticWithdrawalQueueImplementation_;
     }
 
     // View functions
 
     function subvaultType() external pure override returns (uint256) {
-        return 0; // Symbiotic vault type
+        return 0;
     }
 
     function combineOptions(
@@ -77,7 +77,7 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
             new SymbioticAdapter{salt: bytes32(bytes20(multiVault))}(
                 multiVault,
                 symbioticVaultFactory,
-                symbioticWithdrawalQueueImplementation,
+                withdrawalQueueImplementation,
                 config.vaultProxyAdmin
             )
         );

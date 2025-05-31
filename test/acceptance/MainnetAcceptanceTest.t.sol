@@ -43,8 +43,7 @@ contract AcceptanceTest is Test, AcceptanceTestRunner {
 
     function testDeployScriptMainnetDeploymentConfig() external {
         LidoV3DeployScript script = new LidoV3DeployScript();
-        deal(address(this), 10 gwei);
-        address(script).call{value: 10 gwei}("");
+        deal(address(script), 10 gwei);
         LidoV3DeployScript.Deployment memory d = script.deploy(
             LidoV3DeployScript.Config({
                 vaultAdmin: 0x9437B2a8cF3b69D782a61f9814baAbc172f72003,

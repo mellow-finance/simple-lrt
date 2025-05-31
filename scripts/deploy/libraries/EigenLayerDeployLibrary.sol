@@ -34,7 +34,7 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
         address withdrawalQueueImplementation_,
         address isolatedEigenLayerVaultImplementation_,
         address isolatedEigenLayerWstETHVaultImplementation_
-    ) {
+    ) AbstractDeployLibrary() {
         withdrawalQueueImplementation = withdrawalQueueImplementation_;
         isolatedEigenLayerVaultImplementation = isolatedEigenLayerVaultImplementation_;
         isolatedEigenLayerWstETHVaultImplementation = isolatedEigenLayerWstETHVaultImplementation_;
@@ -43,7 +43,7 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
     // View functions
 
     function subvaultType() external pure override returns (uint256) {
-        return 1; // Symbiotic vault type
+        return 1;
     }
 
     function combineOptions(

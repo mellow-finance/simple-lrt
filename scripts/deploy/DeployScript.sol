@@ -80,7 +80,10 @@ contract DeployScript is Ownable {
         deployLibraries[index] = deployLibrary;
     }
 
-    function deploy(DeployParams calldata params) external returns (MultiVault multiVault) {
+    function deploy(DeployParams calldata params)
+        external
+        returns (uint256 index, MultiVault multiVault)
+    {
         bytes32 salt = calculateSalt(params);
         Config calldata config = params.config;
         multiVault = MultiVault(
@@ -136,6 +139,7 @@ contract DeployScript is Ownable {
                 RatiosStrategy(strategy).RATIOS_STRATEGY_SET_RATIOS_ROLE(), address(this)
             );
             multiVault.grantRole(multiVault.ADD_SUBVAULT_ROLE(), address(this));
+            multiVault.grantRole(multiVault.SET_ADAPTER_ROLE(), address(this));
 
             uint256 n = params.subvaults.length;
             IRatiosStrategy.Ratio[] memory ratios = new IRatiosStrategy.Ratio[](n);
@@ -172,7 +176,7 @@ contract DeployScript is Ownable {
                     subvault,
                     IMultiVaultStorage.Protocol(AbstractDeployLibrary(deployLibrary).subvaultType())
                 );
-
+                subvaults[i] = subvault;
                 ratios[i] = IRatiosStrategy.Ratio(
                     params.subvaults[i].minRatioD18, params.subvaults[i].maxRatioD18
                 );
@@ -183,10 +187,11 @@ contract DeployScript is Ownable {
                 RatiosStrategy(strategy).RATIOS_STRATEGY_SET_RATIOS_ROLE(), address(this)
             );
             multiVault.renounceRole(multiVault.ADD_SUBVAULT_ROLE(), address(this));
+            multiVault.renounceRole(multiVault.SET_ADAPTER_ROLE(), address(this));
         }
         multiVault.renounceRole(multiVault.DEFAULT_ADMIN_ROLE(), address(this));
 
-        uint256 index = deploymentsCount++;
+        index = deploymentsCount++;
         deployments[index] = address(multiVault);
         _deployParams[index] = params;
     }
