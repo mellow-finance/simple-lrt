@@ -41,6 +41,9 @@ contract AcceptanceTest is Test, AcceptanceTestRunner {
                 deployLibraries,
                 deployer
             );
+
+            script.setHasWhitelist(true);
+            script.setIsWhitelisted(deployer, true);
         }
 
         DeployScript.SubvaultParams[] memory subvaults = new DeployScript.SubvaultParams[](4);

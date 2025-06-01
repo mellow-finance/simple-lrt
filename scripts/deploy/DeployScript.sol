@@ -46,6 +46,9 @@ contract DeployScript is Ownable {
     address public immutable strategy;
     address public immutable multiVaultImplementation;
 
+    bool public hasWhitelist = true;
+    mapping(address account => bool isWhitelisted) public isWhitelisted;
+
     mapping(uint256 => address) public deployLibraries;
     mapping(uint256 index => address multiVault) public deployments;
     mapping(uint256 index => DeployParams) private _deployParams;
@@ -76,6 +79,14 @@ contract DeployScript is Ownable {
 
     // Mutable functions
 
+    function setHasWhitelist(bool status) external onlyOwner {
+        hasWhitelist = status;
+    }
+
+    function setIsWhitelisted(address account, bool status) external onlyOwner {
+        isWhitelisted[account] = status;
+    }
+
     function setDeployLibrary(uint256 index, address deployLibrary) external onlyOwner {
         deployLibraries[index] = deployLibrary;
     }
@@ -84,6 +95,9 @@ contract DeployScript is Ownable {
         external
         returns (uint256 index, MultiVault multiVault)
     {
+        if (hasWhitelist && !isWhitelisted[msg.sender]) {
+            revert("DeployScript: not whitelisted");
+        }
         bytes32 salt = calculateSalt(params);
         Config calldata config = params.config;
         multiVault = MultiVault(
