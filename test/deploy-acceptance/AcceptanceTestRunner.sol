@@ -43,6 +43,16 @@ contract AcceptanceTestRunner {
     bytes32 private constant RATIOS_STRATEGY_SET_RATIOS_ROLE =
         keccak256("RATIOS_STRATEGY_SET_RATIOS_ROLE");
 
+    function getProxyAdmin(address proxyAddress) public view returns (address) {
+        bytes memory proxyCode = address(proxyAddress).code;
+        require(proxyCode.length >= 28 + 20, "getProxyAdmin: invalid proxy code length");
+        address proxyAdmin;
+        assembly {
+            proxyAdmin := mload(add(proxyCode, 48))
+        }
+        return proxyAdmin;
+    }
+
     function validateState(DeployScript deployScript, uint256 deployIndex) internal {
         DeployScript.DeployParams memory deployParams = deployScript.deployParams(deployIndex);
         validateDeployScriptState(deployScript, deployIndex, deployParams);
@@ -91,9 +101,9 @@ contract AcceptanceTestRunner {
         b = getCleanBytecode(b);
         if (keccak256(a) != keccak256(b)) {
             if (a.length != b.length) {
-                revert(string.concat("Bytecode length mismatch for ", name));
+                revert(string.concat("validateBytecode: bytecode length mismatch for ", name));
             } else {
-                revert(string.concat("Bytecode mismatch for ", name));
+                revert(string.concat("validateBytecode: bytecode mismatch for ", name));
             }
         }
     }
@@ -104,7 +114,10 @@ contract AcceptanceTestRunner {
         DeployScript.DeployParams memory deployParams
     ) internal {
         MultiVault multiVault = MultiVault(deployScript.deployments(deployIndex));
-        require(address(multiVault) != address(0), "Invalid MultiVault contract address");
+        require(
+            address(multiVault) != address(0),
+            "validateVaultState: invalid MultiVault contract address"
+        );
 
         {
             bytes memory a = address(multiVault).code;
@@ -115,146 +128,212 @@ contract AcceptanceTestRunner {
                     new bytes(0)
                 )
             ).code;
-            a = getCleanBytecode(a);
-            b = getCleanBytecode(b);
-            require(a.length == b.length, "Invalid TransparentUpgradeableProxy bytecode length");
-            uint160 proxyAdmin;
-            for (uint256 i = 0; i < a.length; i++) {
-                if (i < 28 || i >= 28 + 20) {
-                    // ProxyAdmin
-                    require(a[i] == b[i], "Invalid TransparentUpgradeableProxy bytecode");
-                }
-            }
-            {
-                bytes memory fullMultivaultBytecode = address(multiVault).code;
-                for (uint256 i = 28; i < 28 + 20; i++) {
-                    proxyAdmin = (proxyAdmin << 8) | uint8(fullMultivaultBytecode[i]);
-                }
-            }
+            validateBytecode(a, b, "TransparentUpgradeableProxy(MultiVault)");
+            address proxyAdmin = getProxyAdmin(address(multiVault));
             require(
-                ProxyAdmin(address(proxyAdmin)).owner() == deployParams.config.vaultProxyAdmin,
-                "Invalid ProxyAdmin"
+                ProxyAdmin(proxyAdmin).owner() == deployParams.config.vaultProxyAdmin,
+                "validateVaultState: invalid ProxyAdmin(MultiVault)"
             );
         }
 
         require(
-            address(multiVault.erc4626Adapter()) == address(0), "Invalid erc4626Adapter address"
+            address(multiVault.erc4626Adapter()) == address(0),
+            "validateVaultState: invalid erc4626Adapter address"
         );
 
+        require(
+            multiVault.subvaultsCount() == deployParams.subvaults.length, "Invalid subvaults count"
+        );
         if (deployParams.subvaults.length != 0) {
+            uint256 protocols = 0;
+            for (
+                uint256 subvaultIndex = 0;
+                subvaultIndex < multiVault.subvaultsCount();
+                subvaultIndex++
+            ) {
+                IMultiVault.Subvault memory subvault = multiVault.subvaultAt(subvaultIndex);
+                AbstractDeployLibrary deployLibrary = AbstractDeployLibrary(
+                    deployScript.deployLibraries(deployParams.subvaults[subvaultIndex].libraryIndex)
+                );
+                require(
+                    uint256(deployLibrary.subvaultType()) == uint256(subvault.protocol),
+                    "Invalid subvault protocol"
+                );
+                require(
+                    address(subvault.withdrawalQueue) != address(0),
+                    "Invalid withdrawalQueue address"
+                );
+                if (subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC) {
+                    protocols |= 1;
+                    bytes memory a = address(subvault.withdrawalQueue).code;
+                    bytes memory b = address(
+                        new TransparentUpgradeableProxy(
+                            SymbioticDeployLibrary(address(deployLibrary))
+                                .withdrawalQueueImplementation(),
+                            deployParams.config.vaultProxyAdmin,
+                            abi.encodeCall(
+                                SymbioticWithdrawalQueue.initialize,
+                                (address(multiVault), subvault.vault)
+                            )
+                        )
+                    ).code;
+                    validateBytecode(a, b, "TransparentUpgradeableProxy(SymbioticWithdrawalQueue)");
+                    address proxyAdmin = getProxyAdmin(subvault.withdrawalQueue);
+                    require(
+                        ProxyAdmin(proxyAdmin).owner() == deployParams.config.vaultProxyAdmin,
+                        "validateVaultState: invalid ProxyAdmin"
+                    );
+                    require(
+                        IRegistry(
+                            SymbioticDeployLibrary(address(deployLibrary)).symbioticVaultFactory()
+                        ).isEntity(subvault.vault),
+                        "validateVaultState: invalid symbioticVaultFactory"
+                    );
+
+                    require(
+                        ISymbioticVault(subvault.vault).collateral() == multiVault.asset(),
+                        "validateVaultState: invalid symbioticVault collateral"
+                    );
+                } else {
+                    protocols |= 2;
+                    EigenLayerDeployLibrary.DeployParams memory params_ = abi.decode(
+                        deployParams.subvaults[subvaultIndex].data,
+                        (EigenLayerDeployLibrary.DeployParams)
+                    );
+                    bytes memory a = address(subvault.withdrawalQueue).code;
+                    bytes memory b = address(
+                        new TransparentUpgradeableProxy(
+                            EigenLayerDeployLibrary(address(deployLibrary))
+                                .withdrawalQueueImplementation(),
+                            deployParams.config.vaultProxyAdmin,
+                            abi.encodeCall(
+                                EigenLayerWithdrawalQueue.initialize,
+                                (subvault.vault, params_.strategy, params_.operator)
+                            )
+                        )
+                    ).code;
+
+                    validateBytecode(a, b, "TransparentUpgradeableProxy(EigenLayerWithdrawalQueue)");
+                    address proxyAdmin = getProxyAdmin(subvault.withdrawalQueue);
+                    require(
+                        ProxyAdmin(proxyAdmin).owner() == deployParams.config.vaultProxyAdmin,
+                        "validateVaultState: invalid ProxyAdmin"
+                    );
+
+                    {
+                        EigenLayerDeployLibrary deployLibrary_ =
+                            EigenLayerDeployLibrary(address(deployLibrary));
+                        bytes memory factoryCode =
+                            address(IsolatedEigenLayerVault(subvault.vault).factory()).code;
+                        bytes memory expectedFactoryCode = address(
+                            new IsolatedEigenLayerVaultFactory(
+                                deployLibrary_.DELEGATION_MANAGER(),
+                                deployParams.config.asset == deployLibrary_.WSTETH()
+                                    ? deployLibrary_.isolatedEigenLayerWstETHVaultImplementation()
+                                    : deployLibrary_.isolatedEigenLayerVaultImplementation(),
+                                deployLibrary_.withdrawalQueueImplementation(),
+                                deployParams.config.vaultProxyAdmin
+                            )
+                        ).code;
+                        validateBytecode(
+                            factoryCode, expectedFactoryCode, "IsolatedEigenLayerVaultFactory"
+                        );
+                    }
+                    {
+                        (address owner, address strategy, address operator, address withdrawalQueue)
+                        = IsolatedEigenLayerVaultFactory(
+                            IsolatedEigenLayerVault(subvault.vault).factory()
+                        ).instances(subvault.vault);
+                        require(
+                            owner == address(multiVault),
+                            "validateVaultState: invalid IsolatedEigenLayerVault owner"
+                        );
+                        require(
+                            strategy == params_.strategy,
+                            "validateVaultState: invalid IsolatedEigenLayerVault strategy"
+                        );
+                        require(
+                            operator == params_.operator,
+                            "validateVaultState: invalid IsolatedEigenLayerVault operator"
+                        );
+                        require(
+                            withdrawalQueue == address(subvault.withdrawalQueue),
+                            "validateVaultState: invalid IsolatedEigenLayerVault withdrawalQueue"
+                        );
+                    }
+                    {
+                        EigenLayerDeployLibrary deployLibrary_ =
+                            EigenLayerDeployLibrary(address(deployLibrary));
+                        bytes memory isolatedVaultBytecode = address(subvault.vault).code;
+                        bytes memory expectedIsolatedVaultBytecode = address(
+                            new TransparentUpgradeableProxy(
+                                deployParams.config.asset == deployLibrary_.WSTETH()
+                                    ? deployLibrary_.isolatedEigenLayerWstETHVaultImplementation()
+                                    : deployLibrary_.isolatedEigenLayerVaultImplementation(),
+                                deployParams.config.vaultProxyAdmin,
+                                abi.encodeCall(
+                                    IsolatedEigenLayerVault.initialize, (address(multiVault))
+                                )
+                            )
+                        ).code;
+                        validateBytecode(
+                            isolatedVaultBytecode,
+                            expectedIsolatedVaultBytecode,
+                            "TransparentUpgradeableProxy(IsolatedEigenLayerVault/IsolatedEigenLayerWstETHVault)"
+                        );
+                    }
+                }
+            }
+
+            if (protocols > 3) {
+                revert("validateVaultState: invalid subvaults protocols");
+            }
             require(
-                address(multiVault.symbioticAdapter()) != address(0), "Invalid symbioticAdapter"
-            );
-
-            require(
-                address(multiVault.eigenLayerAdapter()) != address(0),
-                "Invalid eigenLayerAdapter address"
+                (address(multiVault.symbioticAdapter()) != address(0)) == (protocols & 1 != 0),
+                "validateVaultState: invalid symbioticAdapter address"
             );
             require(
-                multiVault.subvaultsCount() == deployParams.subvaults.length,
-                "Invalid subvaults count"
+                (address(multiVault.eigenLayerAdapter()) != address(0)) == (protocols & 2 != 0),
+                "validateVaultState: invalid eigenLayerAdapter address"
             );
-
-            console2.log("TODO!");
-            // IMultiVault.Subvault memory subvault = multiVault.subvaultAt(0);
-            // require(subvault.vault == deployParams.params.symbioticVault, "Invalid symbioticVault");
-            // require(
-            //     uint256(subvault.protocol) == uint256(IMultiVaultStorage.Protocol.SYMBIOTIC),
-            //     "Invalid protocol"
-            // );
-            // require(
-            //     address(subvault.withdrawalQueue) != address(0), "Invalid withdrawalQueue address"
-            // );
-
-            // {
-            //     bytes memory a = address(subvault.withdrawalQueue).code;
-            //     bytes memory b = address(
-            //         new TransparentUpgradeableProxy{
-            //             salt: keccak256(abi.encodePacked(deployParams.params.symbioticVault))
-            //         }(
-            //             deployScript.symbioticWithdrawalQueueImplementation(),
-            //             deployParams.params.proxyAdmin,
-            //             abi.encodeCall(
-            //                 SymbioticWithdrawalQueue.initialize,
-            //                 (
-            //                     address(deployParams.multiVault),
-            //                     address(deployParams.params.symbioticVault)
-            //                 )
-            //             )
-            //         )
-            //     ).code;
-
-            //     a = getCleanBytecode(a);
-            //     b = getCleanBytecode(b);
-
-            //     require(a.length == b.length, "Invalid TransparentUpgradeableProxy bytecode length");
-            //     uint160 proxyAdmin;
-            //     for (uint256 i = 0; i < a.length; i++) {
-            //         if (i < 28 || i >= 28 + 20) {
-            //             // ProxyAdmin
-            //             require(a[i] == b[i], "Invalid TransparentUpgradeableProxy bytecode");
-            //         } else {
-            //             proxyAdmin = (proxyAdmin << 8) | uint8(a[i]);
-            //         }
-            //     }
-            //     require(
-            //         ProxyAdmin(address(proxyAdmin)).owner() == deployParams.params.proxyAdmin,
-            //         "Invalid ProxyAdmin"
-            //     );
-            // }
-
-            // require(
-            //     IRegistry(deployScript.symbioticVaultFactory()).isEntity(
-            //         deployParams.params.symbioticVault
-            //     ),
-            //     "Invalid symbioticVaultFactory"
-            // );
-
-            // require(
-            //     ISymbioticVault(deployParams.params.symbioticVault).collateral()
-            //         == multiVault.asset(),
-            //     "Invalid symbioticVault collateral"
-            // );
-        } else {
-            require(multiVault.subvaultsCount() == 0, "Invalid subvaults count");
         }
-
         require(
             address(multiVault.depositStrategy()) == address(deployScript.strategy()),
-            "Invalid strategy"
+            "validateVaultState: invalid strategy"
         );
 
         require(
             address(multiVault.withdrawalStrategy()) == address(deployScript.strategy()),
-            "Invalid strategy"
+            "validateVaultState: invalid strategy"
         );
 
         require(
             address(multiVault.rebalanceStrategy()) == address(deployScript.strategy()),
-            "Invalid strategy"
+            "validateVaultState: invalid strategy"
         );
 
         require(
             address(multiVault.defaultCollateral())
                 == address(deployParams.config.defaultCollateral),
-            "Invalid defaultCollateral"
+            "validateVaultState: invalid defaultCollateral"
         );
 
         require(
             address(multiVault.defaultCollateral().asset()) == multiVault.asset(),
-            "Invalid defaultCollateral asset"
+            "validateVaultState: invalid defaultCollateral asset"
         );
 
-        require(multiVault.farmCount() == 0, "Invalid farm count");
+        require(multiVault.farmCount() == 0, "validateVaultState: invalid farm count");
 
         if (multiVault.totalSupply() == 0) {
             require(
                 multiVault.totalSupply() == 0 && multiVault.totalAssets() == 0,
-                "Invalid totalSupply or totalAssets"
+                "validateVaultState: invalid totalSupply or totalAssets"
             );
         } else {
             require(
-                multiVault.totalSupply() == multiVault.totalAssets(), "totalSupply != totalAssets"
+                multiVault.totalSupply() == multiVault.totalAssets(),
+                "validateVaultState: totalSupply != totalAssets"
             );
         }
 
