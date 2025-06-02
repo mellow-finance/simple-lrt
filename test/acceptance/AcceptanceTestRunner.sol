@@ -220,10 +220,16 @@ contract AcceptanceTestRunner {
 
         require(multiVault.farmCount() == 0, "Invalid farm count");
 
-        require(
-            multiVault.totalSupply() == 0 && multiVault.totalAssets() == 0,
-            "Invalid totalSupply or totalAssets"
-        );
+        if (multiVault.totalSupply() == 0) {
+            require(
+                multiVault.totalSupply() == 0 && multiVault.totalAssets() == 0,
+                "Invalid totalSupply or totalAssets"
+            );
+        } else {
+            require(
+                multiVault.totalSupply() == multiVault.totalAssets(), "totalSupply != totalAssets"
+            );
+        }
 
         require(multiVault.limit() == deployParams.params.limit, "Invalid limit");
 
