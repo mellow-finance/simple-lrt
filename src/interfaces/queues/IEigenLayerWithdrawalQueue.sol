@@ -27,9 +27,7 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
         EnumerableSet.UintSet transferredWithdrawals;
     }
 
-    function MAX_PENDING_WITHDRAWALS() external view returns (uint256);
-
-    function MAX_CLAIMING_WITHDRAWALS() external view returns (uint256);
+    function MAX_WITHDRAWALS() external view returns (uint256);
 
     function isolatedVault() external view returns (address);
 
@@ -44,6 +42,12 @@ interface IEigenLayerWithdrawalQueue is IWithdrawalQueue {
     function isShutdown() external view returns (bool);
 
     function latestWithdrawableBlock() external view returns (uint256);
+
+    function convertScaledSharesToShares(
+        IDelegationManager.Withdrawal memory withdrawal,
+        uint256 scaledShares,
+        uint256 totalScaledShares
+    ) external view returns (uint256);
 
     function getAccountData(
         address account,

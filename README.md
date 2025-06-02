@@ -1,2 +1,2 @@
-SPDX-License-Identifier: BSL-1.1
-simple-lrt
+SPDX-License-Identifier: BUSL-1.1
+multi-vault
