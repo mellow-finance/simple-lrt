@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../../../src/interfaces/queues/IEigenLayerWithdrawalQueue.sol";
-import "../../../src/interfaces/queues/ISymbioticWithdrawalQueue.sol";
-import "../../../src/interfaces/tokens/IWSTETH.sol";
+import "../../src/interfaces/queues/IEigenLayerWithdrawalQueue.sol";
+import "../../src/interfaces/queues/ISymbioticWithdrawalQueue.sol";
+import "../../src/interfaces/tokens/IWSTETH.sol";
 
-import "../../../src/strategies/RatiosStrategy.sol";
-import "../../../src/vaults/MultiVault.sol";
+import "../../src/strategies/RatiosStrategy.sol";
+import "../../src/vaults/MultiVault.sol";
 import "./Oracle.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import "./SymbioticModule.sol";
+import "./modules/SymbioticModule.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -20,7 +20,7 @@ contract CollectorV2 is Ownable {
     struct Withdrawal {
         uint256 subvaultIndex;
         uint256 assets;
-        bool isTimestamp;
+        bool isTimestamp; // if false -> block.number
         uint256 claimingTime; // if 0 - assets == claimable assets, otherwise = pending assets
         uint256 withdrawalIndex;
         uint256 withdrawalRequestType; // 0 - withdrawals, 1 - transferedWithdrawals
@@ -65,21 +65,8 @@ contract CollectorV2 is Ownable {
     struct CollectEigenLayerWithdrawalsStack {
         uint256[] withdrawals;
         uint256[] transferredWithdrawals;
-        uint256 block_;
+        uint256 withdrawalDelay;
         IStrategy strategy;
-    }
-
-    struct EigenStack {
-        uint256 block_;
-        uint256 counter;
-        uint256[] withdrawals;
-        IStrategy strategy;
-        uint256 length;
-        IDelegationManager.Withdrawal data;
-        bool isClaimed;
-        uint256 assets;
-        uint256 requestShares;
-        uint256 accountShares;
     }
 
     address public constant eth = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -93,7 +80,6 @@ contract CollectorV2 is Ownable {
         wsteth = wsteth_;
         steth = address(IWSTETH(wsteth_).stETH());
         weth = weth_;
-        owner = owner_;
     }
 
     function setOracle(address oracle_) external onlyOwner {
@@ -140,40 +126,33 @@ contract CollectorV2 is Ownable {
 
             IWithdrawalQueue queue = IWithdrawalQueue(subvault.withdrawalQueue);
 
-            {
-                uint256 claimable = queue.claimableAssetsOf(user);
-                if (claimable != 0) {
-                    withdrawals[iterator++] = Withdrawal({
-                        subvaultIndex: subvaultIndex,
-                        assets: claimable,
-                        isTimestamp: true,
-                        claimingTime: 0,
-                        withdrawalIndex: 0,
-                        withdrawalRequestType: 0
-                    });
-                }
+            uint256 claimable = queue.claimableAssetsOf(user);
+            if (claimable != 0) {
+                withdrawals[iterator++] = Withdrawal({
+                    subvaultIndex: subvaultIndex,
+                    assets: claimable,
+                    isTimestamp: true,
+                    claimingTime: 0,
+                    withdrawalIndex: 0,
+                    withdrawalRequestType: 0
+                });
             }
 
             if (queue.pendingAssetsOf(user) == 0) {
                 continue;
             }
 
-            if (subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC) {
-                Withdrawal[] memory w = collectSymbioticWithdrawals(
+            Withdrawal[] memory w = subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC
+                ? collectSymbioticWithdrawals(
                     user, subvaultIndex, ISymbioticWithdrawalQueue(subvault.withdrawalQueue)
-                );
-                for (uint256 i = 0; i < w.length; i++) {
-                    withdrawals[iterator++] = w[i];
-                }
-            } else if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
-                Withdrawal[] memory w = collectEigenLayerWithdrawals(
-                    user, subvaultIndex, IEigenLayerWithdrawalQueue(subvault.withdrawalQueue)
-                );
-                for (uint256 i = 0; i < w.length; i++) {
-                    withdrawals[iterator++] = w[i];
-                }
-            } else {
-                revert("Invalid state");
+                )
+                : subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER
+                    ? collectEigenLayerWithdrawals(
+                        user, subvaultIndex, IEigenLayerWithdrawalQueue(subvault.withdrawalQueue)
+                    )
+                    : new Withdrawal[](0);
+            for (uint256 i = 0; i < w.length; i++) {
+                withdrawals[iterator++] = w[i];
             }
         }
 
@@ -268,30 +247,37 @@ contract CollectorV2 is Ownable {
         IEigenLayerWithdrawalQueue queue
     ) public view returns (Withdrawal[] memory withdrawals_) {
         CollectEigenLayerWithdrawalsStack memory s;
-        s.strategy = IStrategy(queue.strategy());
         (, s.withdrawals, s.transferredWithdrawals) =
             queue.getAccountData(user, type(uint256).max, 0, type(uint256).max, 0);
-        s.block_ = queue.latestWithdrawableBlock();
-        uint256 counter = 0;
+        s.withdrawalDelay = IDelegationManager(queue.delegation()).minWithdrawalDelayBlocks() + 1;
+        uint256 currentBlock = block.number;
         withdrawals_ = new Withdrawal[](s.withdrawals.length + s.transferredWithdrawals.length);
-        uint256 n = 0;
+        uint256 iterator = 0;
         for (uint256 i = 0; i < s.withdrawals.length; i++) {
-            (IDelegationManager.Withdrawal memory data, bool isClaimed,,, uint256 accountShares) =
-                queue.getWithdrawalRequest(s.withdrawals[i], user);
-            if (isClaimed) {
+            (
+                IDelegationManager.Withdrawal memory data,
+                bool isClaimed,
+                ,
+                uint256 shares,
+                uint256 accountShares
+            ) = queue.getWithdrawalRequest(s.withdrawals[i], user);
+            if (isClaimed || data.startBlock + s.withdrawalDelay <= currentBlock) {
                 continue;
-            } else if (s.block_ >= data.startBlock && counter < queue.MAX_CLAIMING_WITHDRAWALS()) {
-                counter++;
-            } else {
-                withdrawals_[n++] = Withdrawal({
-                    subvaultIndex: subvaultIndex,
-                    assets: s.strategy.sharesToUnderlyingView(accountShares),
-                    isTimestamp: false,
-                    claimingTime: data.startBlock + block.number - s.block_,
-                    withdrawalIndex: s.withdrawals[i],
-                    withdrawalRequestType: 0
-                });
             }
+            uint256 pendingShares = queue.convertScaledSharesToShares(data, accountShares, shares);
+            uint256 pendingAssets = pendingShares == 0
+                ? 0
+                : IIsolatedEigenLayerVault(queue.isolatedVault()).sharesToUnderlyingView(
+                    queue.strategy(), pendingShares
+                );
+            withdrawals_[iterator++] = Withdrawal({
+                subvaultIndex: subvaultIndex,
+                assets: pendingAssets,
+                isTimestamp: false,
+                claimingTime: data.startBlock + s.withdrawalDelay,
+                withdrawalIndex: s.withdrawals[i],
+                withdrawalRequestType: 0
+            });
         }
 
         for (uint256 i = 0; i < s.transferredWithdrawals.length; i++) {
@@ -301,30 +287,32 @@ contract CollectorV2 is Ownable {
                 uint256 assets,
                 uint256 shares,
                 uint256 accountShares
-            ) = queue.getWithdrawalRequest(s.transferredWithdrawals[i], user);
+            ) = queue.getWithdrawalRequest(s.withdrawals[i], user);
+            withdrawals_[iterator] = Withdrawal({
+                subvaultIndex: subvaultIndex,
+                assets: 0,
+                isTimestamp: false,
+                claimingTime: data.startBlock + s.withdrawalDelay,
+                withdrawalIndex: s.withdrawals[i],
+                withdrawalRequestType: 1
+            });
             if (isClaimed) {
-                withdrawals_[n++] = Withdrawal({
-                    subvaultIndex: subvaultIndex,
-                    assets: Math.mulDiv(assets, accountShares, shares),
-                    isTimestamp: false,
-                    claimingTime: 0,
-                    withdrawalIndex: s.transferredWithdrawals[i],
-                    withdrawalRequestType: 1
-                });
+                uint256 claimalbleAssets =
+                    shares == accountShares ? assets : Math.mulDiv(assets, accountShares, shares);
+                withdrawals_[iterator++].assets = claimalbleAssets;
             } else {
-                withdrawals_[n++] = Withdrawal({
-                    subvaultIndex: subvaultIndex,
-                    assets: s.strategy.sharesToUnderlyingView(accountShares),
-                    isTimestamp: false,
-                    claimingTime: data.startBlock + block.number - s.block_,
-                    withdrawalIndex: s.transferredWithdrawals[i],
-                    withdrawalRequestType: 1
-                });
+                uint256 pendingShares =
+                    queue.convertScaledSharesToShares(data, accountShares, shares);
+                uint256 pendingAssets = pendingShares == 0
+                    ? 0
+                    : IIsolatedEigenLayerVault(queue.isolatedVault()).sharesToUnderlyingView(
+                        queue.strategy(), pendingShares
+                    );
+                withdrawals_[iterator++].assets = pendingAssets;
             }
         }
-
         assembly {
-            mstore(withdrawals_, n)
+            mstore(withdrawals_, iterator)
         }
     }
 
@@ -423,6 +411,17 @@ contract CollectorV2 is Ownable {
         r.expectedAmountsUSDC[0] = r.expectedLpAmountUSDC;
     }
 
+    struct GetVaultAssetsELStack {
+        uint256[] withdrawals;
+        uint256 withdrawalDelay;
+        IStrategy strategy;
+        uint256 length;
+        IDelegationManager.Withdrawal data;
+        bool isClaimed;
+        uint256 shares;
+        uint256 vaultShares;
+    }
+
     function getVaultAssets(MultiVault v, address user, uint256 shares)
         public
         view
@@ -447,6 +446,36 @@ contract CollectorV2 is Ownable {
             IMultiVaultStorage.Subvault memory subvault = v.subvaultAt(data[i].subvaultIndex);
             if (subvault.withdrawalQueue == address(0)) {
                 continue;
+            }
+
+            if (data[i].staked != 0) {
+                // regular unstaking
+                if (subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC) {
+                    ISymbioticVault symbioticVault = ISymbioticVault(subvault.vault);
+                    withdrawals[n++] = Withdrawal({
+                        subvaultIndex: data[i].subvaultIndex,
+                        assets: data[i].staked,
+                        isTimestamp: true,
+                        claimingTime: symbioticVault.currentEpochStart()
+                            + 2 * symbioticVault.epochDuration(),
+                        withdrawalIndex: 0,
+                        withdrawalRequestType: 0
+                    });
+                } else if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
+                    IEigenLayerWithdrawalQueue queue =
+                        IEigenLayerWithdrawalQueue(subvault.withdrawalQueue);
+                    withdrawals[n++] = Withdrawal({
+                        subvaultIndex: data[i].subvaultIndex,
+                        assets: data[i].staked,
+                        isTimestamp: false,
+                        claimingTime: block.number
+                            + IDelegationManager(queue.delegation()).minWithdrawalDelayBlocks() + 1,
+                        withdrawalIndex: queue.withdrawalRequests(),
+                        withdrawalRequestType: 0
+                    });
+                } else {
+                    revert("Unsupported protocol");
+                }
             }
 
             if (data[i].pending != 0) {
@@ -505,40 +534,35 @@ contract CollectorV2 is Ownable {
                         revert("Invalid state!");
                     }
                 } else if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
-                    EigenStack memory s;
+                    GetVaultAssetsELStack memory s;
                     IEigenLayerWithdrawalQueue queue =
                         IEigenLayerWithdrawalQueue(subvault.withdrawalQueue);
                     (, s.withdrawals,) =
                         queue.getAccountData(address(v), type(uint256).max, 0, 0, 0);
-                    s.length = s.withdrawals.length;
-                    s.counter = 0;
-                    s.block_ = queue.latestWithdrawableBlock();
+                    s.withdrawalDelay =
+                        IDelegationManager(queue.delegation()).minWithdrawalDelayBlocks() + 1;
                     s.strategy = IStrategy(queue.strategy());
-
+                    s.length = s.withdrawals.length;
+                    // Filter out claimed and claimable withdrawals
                     for (uint256 index = 0; index < s.length;) {
                         (s.data, s.isClaimed,,,) =
                             queue.getWithdrawalRequest(s.withdrawals[index], address(v));
-                        if (s.isClaimed) {
-                            s.withdrawals[index] = s.withdrawals[--s.length];
-                        } else if (
-                            s.data.startBlock <= s.block_
-                                && s.counter < queue.MAX_CLAIMING_WITHDRAWALS()
-                        ) {
-                            s.counter++;
+                        if (s.isClaimed || s.data.startBlock + s.withdrawalDelay <= block.number) {
                             s.withdrawals[index] = s.withdrawals[--s.length];
                         } else {
                             index++;
                         }
                     }
-
-                    for (uint256 index = 0; index < s.length;) {
-                        (s.data, s.isClaimed, s.assets, s.requestShares, s.accountShares) =
+                    for (uint256 index = 0; index < s.length; index++) {
+                        (s.data,,, s.shares, s.vaultShares) =
                             queue.getWithdrawalRequest(s.withdrawals[index], address(v));
-                        uint256 transferrableAssets = s.isClaimed
-                            ? Math.mulDiv(s.assets, s.accountShares, s.requestShares)
-                            : s.strategy.sharesToUnderlyingView(s.accountShares);
+                        uint256 transferrableAssets = IIsolatedEigenLayerVault(
+                            queue.isolatedVault()
+                        ).sharesToUnderlyingView(
+                            queue.strategy(),
+                            queue.convertScaledSharesToShares(s.data, s.vaultShares, s.shares)
+                        );
                         if (transferrableAssets == 0) {
-                            index++;
                             continue;
                         }
                         if (transferrableAssets >= data[i].pending) {
@@ -546,7 +570,7 @@ contract CollectorV2 is Ownable {
                                 subvaultIndex: data[i].subvaultIndex,
                                 assets: data[i].pending,
                                 isTimestamp: false,
-                                claimingTime: s.data.startBlock + block.number - s.block_,
+                                claimingTime: s.data.startBlock + s.withdrawalDelay,
                                 withdrawalIndex: s.withdrawals[index],
                                 withdrawalRequestType: 1
                             });
@@ -557,12 +581,11 @@ contract CollectorV2 is Ownable {
                                 subvaultIndex: data[i].subvaultIndex,
                                 assets: transferrableAssets,
                                 isTimestamp: false,
-                                claimingTime: s.data.startBlock + block.number - s.block_,
+                                claimingTime: s.data.startBlock + s.withdrawalDelay,
                                 withdrawalIndex: s.withdrawals[index],
                                 withdrawalRequestType: 1
                             });
                             data[i].pending -= transferrableAssets;
-                            s.withdrawals[index] = s.withdrawals[--s.length];
                         }
                     }
                     if (data[i].pending != 0) {
@@ -572,38 +595,9 @@ contract CollectorV2 is Ownable {
                             isTimestamp: false,
                             claimingTime: 0,
                             withdrawalIndex: 0,
-                            withdrawalRequestType: 0
+                            withdrawalRequestType: 2 /* roundings, et cetera */
                         });
                     }
-                } else {
-                    revert("Unsupported protocol");
-                }
-            }
-
-            if (data[i].staked != 0) {
-                // regular unstaking
-                if (subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC) {
-                    ISymbioticVault symbioticVault = ISymbioticVault(subvault.vault);
-                    withdrawals[n++] = Withdrawal({
-                        subvaultIndex: data[i].subvaultIndex,
-                        assets: data[i].staked,
-                        isTimestamp: true,
-                        claimingTime: symbioticVault.currentEpochStart()
-                            + 2 * symbioticVault.epochDuration(),
-                        withdrawalIndex: 0,
-                        withdrawalRequestType: 0
-                    });
-                } else if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
-                    IEigenLayerWithdrawalQueue queue =
-                        IEigenLayerWithdrawalQueue(subvault.withdrawalQueue);
-                    withdrawals[n++] = Withdrawal({
-                        subvaultIndex: data[i].subvaultIndex,
-                        assets: data[i].staked,
-                        isTimestamp: false,
-                        claimingTime: block.number + block.number - queue.latestWithdrawableBlock(),
-                        withdrawalIndex: queue.withdrawalRequests(),
-                        withdrawalRequestType: 0
-                    });
                 } else {
                     revert("Unsupported protocol");
                 }
