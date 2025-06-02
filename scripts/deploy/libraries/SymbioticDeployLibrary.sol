@@ -23,20 +23,33 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
         uint48 burnerDelay;
     }
 
-    address public constant VAULT_CONFIGURATOR = 0x29300b1d3150B4E2b12fE80BE72f365E200441EC;
-    address public constant BURNER_ROUTER_FACTORY = 0x99F2B89fB3C363fBafD8d826E5AA77b28bAB70a0;
-    address public constant WSTETH_BURNER = 0xdCaC890b14121FD5D925E2589017Be68C2B5B324;
-    address public constant WSTETH_DEFAULT_COLLATERAL = 0xC329400492c6ff2438472D4651Ad17389fCb843a;
-    address public constant SYMBIOTIC_VAULT_FACTORY = 0xAEb6bdd95c502390db8f52c8909F703E9Af6a346;
-    uint32 public constant VAULT_VERSION = 1;
-    uint256 public constant RESOLVER_SET_EPOCHS_DELAY = 3;
-    uint32 public constant VETO_SLASHER_INDEX = 1;
-    uint32 public constant NETWORK_RESTAKE_DELEGATOR_INDEX = 0;
-
+    // Symbiotic deployment
+    address public immutable vaultConfigurator;
+    address public immutable burnerRouterFactory;
+    uint32 public immutable vaultVersion;
+    uint256 public immutable resolverSetEpochsDelay;
+    uint32 public immutable vetoSlasherIndex;
+    uint32 public immutable networkRestakeDelegatorIndex;
     address public immutable symbioticVaultFactory;
+    // Mellow deployment
     address public immutable withdrawalQueueImplementation;
 
-    constructor(address symbioticVaultFactory_, address symbioticWithdrawalQueueImplementation_) {
+    constructor(
+        address vaultConfigurator_,
+        address burnerRouterFactory_,
+        uint32 vaultVersion_,
+        uint256 resolverSetEpochsDelay_,
+        uint32 vetoSlasherIndex_,
+        uint32 networkRestakeDelegatorIndex_,
+        address symbioticVaultFactory_,
+        address symbioticWithdrawalQueueImplementation_
+    ) {
+        vaultConfigurator = vaultConfigurator_;
+        burnerRouterFactory = burnerRouterFactory_;
+        vaultVersion = vaultVersion_;
+        resolverSetEpochsDelay = resolverSetEpochsDelay_;
+        vetoSlasherIndex = vetoSlasherIndex_;
+        networkRestakeDelegatorIndex = networkRestakeDelegatorIndex_;
         symbioticVaultFactory = symbioticVaultFactory_;
         withdrawalQueueImplementation = symbioticWithdrawalQueueImplementation_;
     }
@@ -90,7 +103,7 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
         bytes calldata data
     ) external override onlyDelegateCall returns (address symbioticVault) {
         DeployParams memory params = abi.decode(data, (DeployParams));
-        address burner = IBurnerRouterFactory(BURNER_ROUTER_FACTORY).create(
+        address burner = IBurnerRouterFactory(burnerRouterFactory).create(
             IBurnerRouter.InitParams({
                 owner: config.vaultAdmin,
                 collateral: config.asset,
@@ -100,9 +113,9 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
                 operatorNetworkReceivers: new IBurnerRouter.OperatorNetworkReceiver[](0)
             })
         );
-        (symbioticVault,,) = IVaultConfigurator(VAULT_CONFIGURATOR).create(
+        (symbioticVault,,) = IVaultConfigurator(vaultConfigurator).create(
             IVaultConfigurator.InitParams({
-                version: VAULT_VERSION,
+                version: vaultVersion,
                 owner: config.vaultProxyAdmin,
                 vaultParams: abi.encode(
                     IVault.InitParams({
@@ -119,7 +132,7 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
                         depositLimitSetRoleHolder: config.curator
                     })
                 ),
-                delegatorIndex: NETWORK_RESTAKE_DELEGATOR_INDEX,
+                delegatorIndex: networkRestakeDelegatorIndex,
                 delegatorParams: abi.encode(
                     INetworkRestakeDelegator.InitParams({
                         baseParams: IBaseDelegator.BaseParams({
@@ -132,12 +145,12 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
                     })
                 ),
                 withSlasher: true,
-                slasherIndex: VETO_SLASHER_INDEX,
+                slasherIndex: vetoSlasherIndex,
                 slasherParams: abi.encode(
                     IVetoSlasher.InitParams({
                         baseParams: IBaseSlasher.BaseParams({isBurnerHook: true}),
                         vetoDuration: params.vetoDuration,
-                        resolverSetEpochsDelay: RESOLVER_SET_EPOCHS_DELAY
+                        resolverSetEpochsDelay: resolverSetEpochsDelay
                     })
                 )
             })

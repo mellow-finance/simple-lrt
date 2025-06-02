@@ -75,17 +75,18 @@ contract AcceptanceTestRunner {
         assembly {
             mstore(contractCode, metadataIndex)
         }
-        if (metadataIndex == 0x4a83) {
+        console2.log(metadataIndex);
+        if (metadataIndex == 0x4b09) {
             // cleaning EigenLayerDeployLibrary
             for (uint256 i = 0; i < 20; i++) {
-                contractCode[i + 570] = bytes1(0); // this_
-                contractCode[i + 1565] = bytes1(0); // modifier
+                contractCode[i + 618] = bytes1(0); // this_
+                contractCode[i + 1670] = bytes1(0); // modifier
             }
-        } else if (metadataIndex == 0x347b) {
+        } else if (metadataIndex == 0x3544) {
             // cleaning SymbioticDeployLibrary
             for (uint256 i = 0; i < 20; i++) {
-                contractCode[i + 754] = bytes1(0); // this_
-                contractCode[i + 1240] = bytes1(0); // modifier
+                contractCode[i + 767] = bytes1(0); // this_
+                contractCode[i + 1253] = bytes1(0); // modifier
             }
         } else if (metadataIndex == 0x41e) {
             // cleaning TransparentUpgradeableProxy
@@ -227,8 +228,8 @@ contract AcceptanceTestRunner {
                             address(IsolatedEigenLayerVault(subvault.vault).factory()).code;
                         bytes memory expectedFactoryCode = address(
                             new IsolatedEigenLayerVaultFactory(
-                                deployLibrary_.DELEGATION_MANAGER(),
-                                deployParams.config.asset == deployLibrary_.WSTETH()
+                                deployLibrary_.delegationManager(),
+                                deployParams.config.asset == deployLibrary_.wsteth()
                                     ? deployLibrary_.isolatedEigenLayerWstETHVaultImplementation()
                                     : deployLibrary_.isolatedEigenLayerVaultImplementation(),
                                 deployLibrary_.withdrawalQueueImplementation(),
@@ -267,7 +268,7 @@ contract AcceptanceTestRunner {
                         bytes memory isolatedVaultBytecode = address(subvault.vault).code;
                         bytes memory expectedIsolatedVaultBytecode = address(
                             new TransparentUpgradeableProxy(
-                                deployParams.config.asset == deployLibrary_.WSTETH()
+                                deployParams.config.asset == deployLibrary_.wsteth()
                                     ? deployLibrary_.isolatedEigenLayerWstETHVaultImplementation()
                                     : deployLibrary_.isolatedEigenLayerVaultImplementation(),
                                 deployParams.config.vaultProxyAdmin,
@@ -416,9 +417,14 @@ contract AcceptanceTestRunner {
                         deployLibrary.code,
                         address(
                             new SymbioticDeployLibrary(
-                                SymbioticDeployLibrary(deployLibrary).symbioticVaultFactory(),
-                                SymbioticDeployLibrary(deployLibrary).withdrawalQueueImplementation(
-                                )
+                                0x29300b1d3150B4E2b12fE80BE72f365E200441EC,
+                                0x99F2B89fB3C363fBafD8d826E5AA77b28bAB70a0,
+                                1,
+                                3,
+                                1,
+                                0,
+                                0xAEb6bdd95c502390db8f52c8909F703E9Af6a346,
+                                0xaB253B304B0BfBe38Ef7EA1f086D01A6cE1c5028
                             )
                         ).code,
                         "SymbioticDeployLibrary"
@@ -429,6 +435,10 @@ contract AcceptanceTestRunner {
                         deployLibrary.code,
                         address(
                             new EigenLayerDeployLibrary(
+                                0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0,
+                                0x858646372CC42E1A627fcE94aa7A7033e7CF075A,
+                                0x7750d328b314EfFa365A0402CcfD489B80B0adda,
+                                0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A,
                                 EigenLayerDeployLibrary(deployLibrary).withdrawalQueueImplementation(
                                 ),
                                 EigenLayerDeployLibrary(deployLibrary)

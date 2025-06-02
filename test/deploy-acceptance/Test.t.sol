@@ -14,6 +14,12 @@ contract AcceptanceTest is Test, AcceptanceTestRunner {
             address[] memory deployLibraries = new address[](2);
             deployLibraries[0] = address(
                 new SymbioticDeployLibrary(
+                    0x29300b1d3150B4E2b12fE80BE72f365E200441EC,
+                    0x99F2B89fB3C363fBafD8d826E5AA77b28bAB70a0,
+                    1,
+                    3,
+                    1,
+                    0,
                     0xAEb6bdd95c502390db8f52c8909F703E9Af6a346,
                     0xaB253B304B0BfBe38Ef7EA1f086D01A6cE1c5028
                 )
@@ -21,6 +27,10 @@ contract AcceptanceTest is Test, AcceptanceTestRunner {
 
             deployLibraries[1] = address(
                 new EigenLayerDeployLibrary(
+                    0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0,
+                    0x858646372CC42E1A627fcE94aa7A7033e7CF075A,
+                    0x7750d328b314EfFa365A0402CcfD489B80B0adda,
+                    0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A,
                     address(
                         new EigenLayerWithdrawalQueue(
                             0x25024a3017B8da7161d8c5DCcF768F8678fB5802,

@@ -20,21 +20,29 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
         mapping(address proxyAdmin => mapping(bool isWstETH => address factory)) factories;
     }
 
-    address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
-    address public constant STRATEGY_MANAGER = 0x858646372CC42E1A627fcE94aa7A7033e7CF075A;
-    address public constant REWARDS_COORDINATOR = 0x7750d328b314EfFa365A0402CcfD489B80B0adda;
-    address public constant DELEGATION_MANAGER = 0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A;
     bytes32 public constant STORAGE_SLOT = keccak256("EigenLayerDeployLibrary.Storage");
 
+    address public immutable wsteth;
+    address public immutable strategyManager;
+    address public immutable rewardsCoordinator;
+    address public immutable delegationManager;
     address public immutable withdrawalQueueImplementation;
     address public immutable isolatedEigenLayerWstETHVaultImplementation;
     address public immutable isolatedEigenLayerVaultImplementation;
 
     constructor(
+        address wsteth_,
+        address strategyManager_,
+        address rewardsCoordinator_,
+        address delegationManager_,
         address withdrawalQueueImplementation_,
         address isolatedEigenLayerVaultImplementation_,
         address isolatedEigenLayerWstETHVaultImplementation_
     ) AbstractDeployLibrary() {
+        wsteth = wsteth_;
+        strategyManager = strategyManager_;
+        rewardsCoordinator = rewardsCoordinator_;
+        delegationManager = delegationManager_;
         withdrawalQueueImplementation = withdrawalQueueImplementation_;
         isolatedEigenLayerVaultImplementation = isolatedEigenLayerVaultImplementation_;
         isolatedEigenLayerWstETHVaultImplementation = isolatedEigenLayerWstETHVaultImplementation_;
@@ -64,14 +72,14 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
         DeployScript.Config calldata config,
         bytes calldata /* data */
     ) external override onlyDelegateCall {
-        bool isWstETH = config.asset == WSTETH;
+        bool isWstETH = config.asset == wsteth;
         address factory = _contractStorage().factories[config.vaultProxyAdmin][isWstETH];
         if (factory == address(0)) {
             factory = address(
                 new IsolatedEigenLayerVaultFactory{
                     salt: keccak256(abi.encodePacked(config.vaultProxyAdmin, isWstETH))
                 }(
-                    DELEGATION_MANAGER,
+                    delegationManager,
                     isWstETH
                         ? isolatedEigenLayerWstETHVaultImplementation
                         : isolatedEigenLayerVaultImplementation,
@@ -88,8 +96,8 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
             new EigenLayerAdapter{salt: bytes32(bytes20(multiVault))}(
                 factory,
                 multiVault,
-                IStrategyManager(STRATEGY_MANAGER),
-                IRewardsCoordinator(REWARDS_COORDINATOR)
+                IStrategyManager(strategyManager),
+                IRewardsCoordinator(rewardsCoordinator)
             )
         );
         MultiVault(multiVault).setEigenLayerAdapter(adapter);
@@ -102,7 +110,7 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
     ) external override onlyDelegateCall returns (address isolatedVault) {
         DeployParams memory params = abi.decode(data, (DeployParams));
         address factory =
-            _contractStorage().factories[config.vaultProxyAdmin][config.asset == WSTETH];
+            _contractStorage().factories[config.vaultProxyAdmin][config.asset == wsteth];
         (isolatedVault,) = IsolatedEigenLayerVaultFactory(factory).getOrCreate(
             address(multiVault),
             params.strategy,
