@@ -50,6 +50,7 @@
     "deploy:mainnet:multi-vaults:batch12": "forge script --use 0.8.25 scripts/mainnet/MainnetDeployBatch12.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:lido-v3:config": "forge script --use 0.8.25 scripts/mainnet/LidoV3Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:mainnet:multi-vaults:eigen-layer:batch1": "forge script --use 0.8.25 scripts/mainnet/MainnetDeployEigenBatch1.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
-    "deploy:factory": "forge script --use 0.8.25 scripts/deploy/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)"
+    "deploy:factory": "forge script --use 0.8.25 scripts/deploy/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
+    "deploy:factory:el-test": "forge script --use 0.8.25 scripts/deploy/ELDeploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)"
   }
 }
