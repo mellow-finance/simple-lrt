@@ -13,7 +13,7 @@ contract Deploy is Script {
         address deployer = vm.addr(deployerPk);
         vm.startBroadcast(deployerPk);
 
-        uint256 gas = gasleft();
+        // uint256 gas = gasleft();
         bytes32 salt = bytes32(0);
         address[] memory deployLibraries = new address[](2);
         deployLibraries[0] = address(
@@ -56,8 +56,8 @@ contract Deploy is Script {
         );
         script.setIsWhitelisted(deployer, true);
 
-        console2.log(gas - gasleft());
+        // console2.log(gas - gasleft());
         vm.stopBroadcast();
-        revert("success");
+        // revert("success");
     }
 }
