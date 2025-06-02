@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../helpers/MaskLib.sol";
 import "./CollectorV3.sol";
+import "./modules/EigenLayerModule.sol";
 import "forge-std/Script.sol";
 
 contract Deploy is Script {
@@ -17,6 +17,9 @@ contract Deploy is Script {
             prevCollector.wsteth(), prevCollector.weth(), deployer
         );
         collector.setOracle(address(prevCollector.oracle()));
+
+        EigenLayerModule elModule =
+            new EigenLayerModule(IAllocationManager(0x948a420b8CC1d6BFd0B6087C2E7c344a2CD0bc39));
         vm.stopBroadcast();
     }
 }
