@@ -16,7 +16,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract CollectorV2 is Ownable {
+contract CollectorV3 is Ownable {
     struct Withdrawal {
         uint256 subvaultIndex;
         uint256 assets;
@@ -69,6 +69,17 @@ contract CollectorV2 is Ownable {
         IStrategy strategy;
     }
 
+    struct GetVaultAssetsELStack {
+        uint256[] withdrawals;
+        uint256 withdrawalDelay;
+        IStrategy strategy;
+        uint256 length;
+        IDelegationManager.Withdrawal data;
+        bool isClaimed;
+        uint256 shares;
+        uint256 vaultShares;
+    }
+
     address public constant eth = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public immutable usd = address(bytes20(keccak256("usd-token-address")));
     address public immutable wsteth;
@@ -82,9 +93,13 @@ contract CollectorV2 is Ownable {
         weth = weth_;
     }
 
+    // Mutable functions
+
     function setOracle(address oracle_) external onlyOwner {
         oracle = Oracle(oracle_);
     }
+
+    // View functions
 
     function collect(address user, IERC4626 vault_) public view returns (Response memory r) {
         MultiVault vault = MultiVault(address(vault_));
@@ -409,17 +424,6 @@ contract CollectorV2 is Ownable {
         r.expectedAmounts[0] = amounts[0];
         r.expectedAmountsUSDC = new uint256[](1);
         r.expectedAmountsUSDC[0] = r.expectedLpAmountUSDC;
-    }
-
-    struct GetVaultAssetsELStack {
-        uint256[] withdrawals;
-        uint256 withdrawalDelay;
-        IStrategy strategy;
-        uint256 length;
-        IDelegationManager.Withdrawal data;
-        bool isClaimed;
-        uint256 shares;
-        uint256 vaultShares;
     }
 
     function getVaultAssets(MultiVault v, address user, uint256 shares)

@@ -10,7 +10,6 @@ contract AcceptanceTest is Test, AcceptanceTestRunner {
 
         DeployScript script;
         {
-            bytes32 salt = bytes32(0);
             address[] memory deployLibraries = new address[](2);
             deployLibraries[0] = address(
                 new SymbioticDeployLibrary(
