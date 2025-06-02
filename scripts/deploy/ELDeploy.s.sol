@@ -15,7 +15,7 @@ contract Deploy is Script {
 
         DeployScript script = DeployScript(0x4e0D1Ae69aF32ad07Bd3E96277E377404bFD3344);
         DeployScript.SubvaultParams[] memory subvaults = new DeployScript.SubvaultParams[](1);
-        ISignatureUtils.SignatureWithExpiry memory signature; 
+        ISignatureUtils.SignatureWithExpiry memory signature;
         subvaults[0] = DeployScript.SubvaultParams({
             libraryIndex: 1,
             data: EigenLayerDeployLibrary(script.deployLibraries(1)).combineOptions(
