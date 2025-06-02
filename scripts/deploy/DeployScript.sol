@@ -50,6 +50,7 @@ contract DeployScript is Ownable {
     mapping(address account => bool isWhitelisted) public isWhitelisted;
 
     mapping(uint256 => address) public deployLibraries;
+    uint256 public deployLibrariesCount = 0;
     mapping(uint256 index => address multiVault) public deployments;
     mapping(uint256 index => DeployParams) private _deployParams;
     uint256 public deploymentsCount = 0;
@@ -63,7 +64,7 @@ contract DeployScript is Ownable {
         strategy = strategy_;
         multiVaultImplementation = multiVaultImplementation_;
         for (uint256 i = 0; i < deployLibraries_.length; i++) {
-            deployLibraries[i] = deployLibraries_[i];
+            _addDeployLibrary(deployLibraries_[i]);
         }
     }
 
@@ -87,8 +88,8 @@ contract DeployScript is Ownable {
         isWhitelisted[account] = status;
     }
 
-    function setDeployLibrary(uint256 index, address deployLibrary) external onlyOwner {
-        deployLibraries[index] = deployLibrary;
+    function addDeployLibrary(address deployLibrary) external onlyOwner {
+        _addDeployLibrary(deployLibrary);
     }
 
     function deploy(DeployParams calldata params)
@@ -208,5 +209,14 @@ contract DeployScript is Ownable {
         index = deploymentsCount++;
         deployments[index] = address(multiVault);
         _deployParams[index] = params;
+    }
+
+    // Internal functions
+
+    function _addDeployLibrary(address deployLibrary) internal {
+        if (deployLibrary == address(0)) {
+            revert("DeployScript: zero address");
+        }
+        deployLibraries[deployLibrariesCount++] = deployLibrary;
     }
 }
