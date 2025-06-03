@@ -94,7 +94,7 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
         IERC20 asset_ = IERC20(asset);
         IERC20[] memory tokens = new IERC20[](1);
         tokens[0] = asset_;
-        manager.completeQueuedWithdrawal(data, tokens, 0, true);
+        manager.completeQueuedWithdrawal(data, tokens, true);
         assets = asset_.balanceOf(this_);
         asset_.safeTransfer(queue, assets);
     }
@@ -103,10 +103,10 @@ contract IsolatedEigenLayerVault is IIsolatedEigenLayerVault, Initializable {
     function queueWithdrawals(
         IDelegationManager manager,
         IDelegationManager.QueuedWithdrawalParams[] calldata requests
-    ) external {
+    ) external returns (bytes32[] memory withdrawalRoots) {
         (,,, address queue) = IIsolatedEigenLayerVaultFactory(factory).instances(address(this));
         require(msg.sender == queue, "IsolatedEigenLayerVault: forbidden");
-        manager.queueWithdrawals(requests);
+        return manager.queueWithdrawals(requests);
     }
 
     /// --------------- EXTERNAL VIEW FUNCTIONS ---------------

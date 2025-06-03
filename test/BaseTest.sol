@@ -151,18 +151,92 @@ abstract contract BaseTest is Test {
         }
     }
 
-    function deployEigenStrategy(address underlyingToken) public returns (address) {
+    function createDefaultMultiVaultWithEigenEIGENVault(address vaultAdmin)
+        internal
+        returns (
+            MultiVault vault,
+            EigenLayerAdapter eigenLayerAdapter,
+            RatiosStrategy strategy,
+            address eigenLayerVault
+        )
+    {
+        {
+            TransparentUpgradeableProxy c_ = new TransparentUpgradeableProxy(
+                address(new MultiVault("test", 1)), vm.createWallet("proxyAdmin").addr, new bytes(0)
+            );
+            vault = MultiVault(address(c_));
+        }
+        strategy = new RatiosStrategy();
+
+        IsolatedEigenLayerVaultFactory factory = new IsolatedEigenLayerVaultFactory(
+            Constants.HOLESKY_EL_DELEGATION_MANAGER,
+            address(new IsolatedEigenLayerVault()),
+            address(
+                new EigenLayerWithdrawalQueue(
+                    address(new Claimer()), Constants.HOLESKY_EL_DELEGATION_MANAGER
+                )
+            ),
+            vm.createWallet("proxyAdmin").addr
+        );
+        eigenLayerAdapter = new EigenLayerAdapter(
+            address(factory),
+            address(vault),
+            IStrategyManager(Constants.HOLESKY_EL_STRATEGY_MANAGER),
+            IRewardsCoordinator(Constants.HOLESKY_EL_REWARDS_COORDINATOR)
+        );
+
+        vault.initialize(
+            IMultiVault.InitParams({
+                admin: vaultAdmin,
+                limit: type(uint256).max,
+                depositPause: false,
+                withdrawalPause: false,
+                depositWhitelist: false,
+                asset: Constants.EIGEN(),
+                name: "MultiVault test",
+                symbol: "MVT",
+                depositStrategy: address(strategy),
+                withdrawalStrategy: address(strategy),
+                rebalanceStrategy: address(strategy),
+                defaultCollateral: address(0),
+                symbioticAdapter: address(0),
+                eigenLayerAdapter: address(eigenLayerAdapter),
+                erc4626Adapter: address(0)
+            })
+        );
+
+        {
+            ISignatureUtils.SignatureWithExpiry memory signature;
+            bytes32 salt = 0;
+            address operator = 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937;
+            address eigenLayerStrategy = 0x43252609bff8a13dFe5e057097f2f45A24387a84;
+            (eigenLayerVault,) = factory.getOrCreate(
+                address(vault), eigenLayerStrategy, operator, abi.encode(signature, salt)
+            );
+
+            vm.startPrank(vaultAdmin);
+            vault.grantRole(strategy.RATIOS_STRATEGY_SET_RATIOS_ROLE(), vaultAdmin);
+            vault.grantRole(vault.ADD_SUBVAULT_ROLE(), vaultAdmin);
+            vault.addSubvault(eigenLayerVault, IMultiVaultStorage.Protocol.EIGEN_LAYER);
+            address[] memory subvaults = new address[](1);
+            subvaults[0] = eigenLayerVault;
+            IRatiosStrategy.Ratio[] memory ratios = new IRatiosStrategy.Ratio[](1);
+            ratios[0] = IRatiosStrategy.Ratio(0.5 ether, 1 ether);
+            strategy.setRatios(address(vault), subvaults, ratios);
+            vm.stopPrank();
+        }
+    }
+
+    function deployEigenStrategy(address /*underlyingToken*/ ) public returns (address) {
         IStrategyManager strategyManager = IStrategyManager(Constants.HOLESKY_EL_STRATEGY_MANAGER);
-        MockStrategyBaseTVLLimits strategyBase = new MockStrategyBaseTVLLimits(strategyManager);
+        MockStrategyBaseTVLLimits strategyBase = new MockStrategyBaseTVLLimits(
+            strategyManager, IPauserRegistry(Constants.HOLESKY_EL_PAUSER_REGISTRY), "1"
+        );
         {
             IStrategy[] memory strategiesToWhitelist = new IStrategy[](1);
-            bool[] memory thirdPartyTransfersForbiddenValues = new bool[](1);
             strategiesToWhitelist[0] = IStrategy(strategyBase);
-            thirdPartyTransfersForbiddenValues[0] = false;
             vm.prank(strategyManager.strategyWhitelister());
-            strategyManager.addStrategiesToDepositWhitelist(
-                strategiesToWhitelist, thirdPartyTransfersForbiddenValues
-            );
+            strategyManager.addStrategiesToDepositWhitelist(strategiesToWhitelist);
         }
         return address(strategyBase);
     }

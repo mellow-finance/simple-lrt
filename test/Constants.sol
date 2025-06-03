@@ -13,6 +13,8 @@ library Constants {
     bytes32 public constant SET_DEPOSITOR_WHITELIST_STATUS_ROLE =
         keccak256("SET_DEPOSITOR_WHITELIST_STATUS_ROLE");
 
+    address public constant MAINNET_EL_DELEGATION_MANAGER = address(0);
+
     address public constant HOLESKY_EL_DELEGATION_MANAGER =
         0xA44151489861Fe9e3055d95adC98FbD462B948e7;
     address public constant HOLESKY_EL_PAUSER_REGISTRY = 0x85Ef7299F8311B25642679edBF02B62FA2212F06;
@@ -32,11 +34,23 @@ library Constants {
 
     address public constant HOLESKY_STETH = 0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
     address public constant HOLESKY_WETH = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
+    address public constant HOLESKY_EIGEN = 0x3B78576F7D6837500bA3De27A60c7f594934027E;
 
     address public constant MAINNET_STETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     address public constant MAINNET_WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant MAINNET_EIGEN = 0xec53bF9167f50cDEB3Ae105f56099aaaB9061F83;
 
     // chain-specific helper functions
+
+    function EIGEN() internal view returns (address) {
+        if (block.chainid == 1) {
+            return MAINNET_EIGEN;
+        } else if (block.chainid == 17000) {
+            return HOLESKY_EIGEN;
+        } else {
+            revert("Constants: unsupported chain");
+        }
+    }
 
     function WSTETH() internal view returns (address) {
         if (block.chainid == 1) {
@@ -76,6 +90,67 @@ library Constants {
         } else {
             revert("Constants: unsupported chain");
         }
+    }
+
+    function EL_DELEGATION_MANAGER() internal view returns (address) {
+        if (block.chainid == 17000) {
+            return HOLESKY_EL_DELEGATION_MANAGER;
+        } else {
+            revert("Constants: unsupported chain");
+        }
+    }
+
+    function EL_PAUSER_REGISTRY() internal view returns (address) {
+        if (block.chainid == 17000) {
+            return HOLESKY_EL_PAUSER_REGISTRY;
+        } else {
+            revert("Constants: unsupported chain");
+        }
+    }
+
+    function EL_STRATEGY_MANAGER() internal view returns (address) {
+        if (block.chainid == 17000) {
+            return HOLESKY_EL_STRATEGY_MANAGER;
+        } else {
+            revert("Constants: unsupported chain");
+        }
+    }
+
+    function EL_REWARDS_COORDINATOR() internal view returns (address) {
+        if (block.chainid == 17000) {
+            return HOLESKY_EL_REWARDS_COORDINATOR;
+        } else {
+            revert("Constants: unsupported chain");
+        }
+    }
+
+    function EL_OPERATOR() internal view returns (address) {
+        if (block.chainid == 17000) {
+            return 0xbF8a8B0d0450c8812ADDf04E1BcB7BfBA0E82937;
+        } else {
+            revert("Constants: unsupported chain");
+        }
+    }
+
+    function EL_ALLOCATION_MANAGER() internal view returns (address) {
+        if (block.chainid == 17000) {
+            return 0x78469728304326CBc65f8f95FA756B0B73164462;
+        } else {
+            revert("Constants: unsupported chain");
+        }
+    }
+
+    function getELStrategyForAssets(address asset) internal view returns (address) {
+        if (block.chainid == 17000) {
+            if (asset == WSTETH()) {
+                return 0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3;
+            } else if (asset == EIGEN()) {
+                return 0x43252609bff8a13dFe5e057097f2f45A24387a84;
+            } else {
+                revert("Constants: unsupported asset");
+            }
+        }
+        revert("Constants: unsupported chain");
     }
 
     struct SymbioticDeployment {

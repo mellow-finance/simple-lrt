@@ -36,9 +36,9 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         delegationManager = strategyManager_.delegation();
     }
 
-    /// @inheritdoc IProtocolAdapter
-    function maxDeposit(address isolatedVault) external view virtual returns (uint256) {
-        (, address strategy,, address withdrawalQueue) = factory.instances(isolatedVault);
+    function _maxDeposit(address isolatedVault, address asset) internal view returns (uint256) {
+        (, address strategy, address operator, address withdrawalQueue) =
+            factory.instances(isolatedVault);
         if (IEigenLayerWithdrawalQueue(withdrawalQueue).isShutdown()) {
             return 0;
         }
@@ -49,13 +49,16 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         ) {
             return 0;
         }
+        if (delegationManager.allocationManager().getMaxMagnitude(operator, strategy) == 0) {
+            return 0;
+        }
         (bool success, bytes memory data) =
             strategy.staticcall(abi.encodeWithSignature("getTVLLimits()"));
         if (!success) {
             return type(uint256).max;
         }
         (uint256 maxPerDeposit, uint256 maxTotalDeposits) = abi.decode(data, (uint256, uint256));
-        uint256 assets = IERC20(assetOf(isolatedVault)).balanceOf(strategy);
+        uint256 assets = IERC20(asset).balanceOf(strategy);
         if (assets >= maxTotalDeposits) {
             return 0;
         }
@@ -63,7 +66,12 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
     }
 
     /// @inheritdoc IProtocolAdapter
-    function stakedAt(address isolatedVault) external view virtual returns (uint256) {
+    function maxDeposit(address isolatedVault) public view virtual returns (uint256) {
+        return _maxDeposit(isolatedVault, assetOf(isolatedVault));
+    }
+
+    /// @inheritdoc IProtocolAdapter
+    function stakedAt(address isolatedVault) public view virtual returns (uint256) {
         (, address strategy,, address withdrawalQueue) = factory.instances(isolatedVault);
         if (
             !delegationManager.isDelegated(isolatedVault)
@@ -71,7 +79,11 @@ contract EigenLayerAdapter is IEigenLayerAdapter {
         ) {
             revert("EigenLayerAdapter: isolated vault is neither delegated nor shut down");
         }
-        return IStrategy(strategy).userUnderlyingView(isolatedVault);
+        IStrategy[] memory strategies = new IStrategy[](1);
+        strategies[0] = IStrategy(strategy);
+        (uint256[] memory withdrawableShares,) =
+            delegationManager.getWithdrawableShares(isolatedVault, strategies);
+        return IStrategy(strategy).sharesToUnderlyingView(withdrawableShares[0]);
     }
 
     /// @inheritdoc IProtocolAdapter

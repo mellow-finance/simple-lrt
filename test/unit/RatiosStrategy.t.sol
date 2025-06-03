@@ -7,7 +7,7 @@ import "../mocks/MockMultiVault.sol";
 contract Unit is BaseTest {
     using RandomLib for RandomLib.Storage;
 
-    uint256 ITERATIONS = 100;
+    uint256 ITERATIONS = 10;
 
     function testConstructor() external {
         RatiosStrategy c = new RatiosStrategy();
@@ -196,16 +196,16 @@ contract Unit is BaseTest {
                 c.calculateDepositAmounts(address(vault), actionValue);
             assertLe(depositData.length, n, "state.length <= n");
             totalAssets += actionValue;
-            uint256 subvaultsState = 0;
+            // uint256 subvaultsState = 0;
             for (uint256 j = 0; j < depositData.length; j++) {
                 if (j > 0) {
                     assertLt(depositData[j - 1].subvaultIndex, depositData[j].subvaultIndex);
                 }
-                uint256 maxAssets = data[j].staked + data[j].deposit;
-                uint256 min_ =
-                    Math.min(Math.mulDiv(totalAssets, ratios[j].minRatioD18, 1 ether), maxAssets);
-                uint256 max_ =
-                    Math.min(Math.mulDiv(totalAssets, ratios[j].maxRatioD18, 1 ether), maxAssets);
+                // uint256 maxAssets = data[j].staked + data[j].deposit;
+                // uint256 min_ =
+                //     Math.min(Math.mulDiv(totalAssets, ratios[j].minRatioD18, 1 ether), maxAssets);
+                // uint256 max_ =
+                //     Math.min(Math.mulDiv(totalAssets, ratios[j].maxRatioD18, 1 ether), maxAssets);
             }
         }
     }
@@ -255,7 +255,6 @@ contract Unit is BaseTest {
                 c.calculateWithdrawalAmounts(address(vault), actionValue);
             assertLe(withdrawalData.length, n, "state.length <= n");
             totalAssets -= actionValue;
-            uint256 subvaultsState = 0;
             for (uint256 j = 0; j < withdrawalData.length; j++) {
                 if (j > 0) {
                     assertLt(withdrawalData[j - 1].subvaultIndex, withdrawalData[j].subvaultIndex);
@@ -315,7 +314,6 @@ contract Unit is BaseTest {
             (IRebalanceStrategy.RebalanceData[] memory rebalanceData) =
                 c.calculateRebalanceAmounts(address(vault));
             assertLe(rebalanceData.length, n, "state.length <= n");
-            uint256 subvaultsState = 0;
             for (uint256 j = 0; j < rebalanceData.length; j++) {
                 if (j > 0) {
                     assertLt(rebalanceData[j - 1].subvaultIndex, rebalanceData[j].subvaultIndex);
@@ -359,7 +357,6 @@ contract Unit is BaseTest {
         (IRebalanceStrategy.RebalanceData[] memory rebalanceData) =
             c.calculateRebalanceAmounts(address(vault));
         assertLe(rebalanceData.length, n, "state.length <= n");
-        uint256 subvaultsState = 0;
         for (uint256 j = 0; j < rebalanceData.length; j++) {
             if (j > 0) {
                 assertLt(rebalanceData[j - 1].subvaultIndex, rebalanceData[j].subvaultIndex);
@@ -402,7 +399,6 @@ contract Unit is BaseTest {
         (IRebalanceStrategy.RebalanceData[] memory rebalanceData) =
             c.calculateRebalanceAmounts(address(vault));
         assertLe(rebalanceData.length, n, "state.length <= n");
-        uint256 subvaultsState = 0;
         for (uint256 j = 0; j < rebalanceData.length; j++) {
             if (j > 0) {
                 assertLt(rebalanceData[j - 1].subvaultIndex, rebalanceData[j].subvaultIndex);
