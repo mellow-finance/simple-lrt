@@ -18,8 +18,6 @@ contract Deploy is Script {
         );
         collector.setOracle(address(prevCollector.oracle()));
 
-        EigenLayerModule elModule =
-            new EigenLayerModule(IAllocationManager(0x948a420b8CC1d6BFd0B6087C2E7c344a2CD0bc39));
         vm.stopBroadcast();
     }
 }
