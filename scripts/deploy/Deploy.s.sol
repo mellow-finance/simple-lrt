@@ -3,9 +3,8 @@ pragma solidity 0.8.25;
 
 import "forge-std/Script.sol";
 
-import "./DeployScript.sol";
-import "./libraries/EigenLayerDeployLibrary.sol";
-import "./libraries/SymbioticDeployLibrary.sol";
+import "../../src/deploy/DeployScript.sol";
+import "../../src/deploy/libraries/EigenLayerDeployLibrary.sol";
 
 contract Deploy is Script {
     function run() external {
@@ -13,8 +12,7 @@ contract Deploy is Script {
         address deployer = vm.addr(deployerPk);
         vm.startBroadcast(deployerPk);
 
-        // uint256 gas = gasleft();
-        bytes32 salt = bytes32(0);
+        bytes32 salt = bytes32(uint256(1));
         address[] memory deployLibraries = new address[](2);
         deployLibraries[0] = address(
             new SymbioticDeployLibrary{salt: salt}(
@@ -34,18 +32,10 @@ contract Deploy is Script {
                 0x858646372CC42E1A627fcE94aa7A7033e7CF075A,
                 0x7750d328b314EfFa365A0402CcfD489B80B0adda,
                 0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A,
-                address(
-                    new EigenLayerWithdrawalQueue{salt: salt}(
-                        0x25024a3017B8da7161d8c5DCcF768F8678fB5802,
-                        0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A
-                    )
-                ),
-                address(new IsolatedEigenLayerVault{salt: salt}()),
-                address(
-                    new IsolatedEigenLayerWstETHVault{salt: salt}(
-                        0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0
-                    )
-                )
+                prevLib.withdrawalQueueImplementation(),
+                prevLib.isolatedEigenLayerVaultImplementation(),
+                prevLib.isolatedEigenLayerWstETHVaultImplementation(),
+                address(new EigenLayerDeployLibraryHelper())
             )
         );
         DeployScript script = new DeployScript{salt: salt}(
@@ -56,8 +46,8 @@ contract Deploy is Script {
         );
         script.setIsWhitelisted(deployer, true);
 
-        // console2.log(gas - gasleft());
         vm.stopBroadcast();
+        console2.log("Script:", address(script));
         // revert("success");
     }
 }

@@ -3,9 +3,9 @@ pragma solidity 0.8.25;
 
 import "forge-std/Script.sol";
 
+import "../../src/utils/EthWrapper.sol";
 import "./DeployScript.sol";
 import "./libraries/EigenLayerDeployLibrary.sol";
-import "./libraries/SymbioticDeployLibrary.sol";
 
 contract Deploy is Script {
     function run() external {
@@ -13,27 +13,11 @@ contract Deploy is Script {
         address deployer = vm.addr(deployerPk);
         vm.startBroadcast(deployerPk);
 
-        DeployScript script = DeployScript(0x4e0D1Ae69aF32ad07Bd3E96277E377404bFD3344);
-
-        EigenLayerDeployLibrary prevLib = EigenLayerDeployLibrary(script.deployLibraries(1));
-        EigenLayerDeployLibrary elDeployLibrary = new EigenLayerDeployLibrary{
-            salt: bytes32(uint256(0))
-        }(
-            prevLib.wsteth(),
-            prevLib.strategyManager(),
-            prevLib.rewardsCoordinator(),
-            prevLib.delegationManager(),
-            prevLib.withdrawalQueueImplementation(),
-            prevLib.isolatedEigenLayerVaultImplementation(),
-            prevLib.isolatedEigenLayerWstETHVaultImplementation(),
-            address(new EigenLayerDeployLibraryHelper())
-        );
-        script.addDeployLibrary(address(elDeployLibrary));
-
+        DeployScript script = DeployScript(address(0x87795a720F7d11Ab16d04f3Bd2a664BCDD20E71d));
         DeployScript.SubvaultParams[] memory subvaults = new DeployScript.SubvaultParams[](1);
         ISignatureUtils.SignatureWithExpiry memory signature;
         subvaults[0] = DeployScript.SubvaultParams({
-            libraryIndex: 2,
+            libraryIndex: 1,
             data: EigenLayerDeployLibrary(script.deployLibraries(1)).combineOptions(
                 0x93c4b944D05dfe6df7645A86cd2206016c51564D,
                 0xDbEd88D83176316fc46797B43aDeE927Dc2ff2F5,
@@ -80,5 +64,3 @@ contract Deploy is Script {
         // revert("ok");
     }
 }
-
-import "../../src/utils/EthWrapper.sol";
