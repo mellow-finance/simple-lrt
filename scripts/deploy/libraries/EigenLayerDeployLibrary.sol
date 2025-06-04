@@ -2,11 +2,13 @@
 pragma solidity 0.8.25;
 
 import "../../../src/adapters/EigenLayerAdapter.sol";
+import "../../../src/adapters/EigenLayerWstETHAdapter.sol";
 import "../../../src/adapters/IsolatedEigenLayerVault.sol";
 import "../../../src/adapters/IsolatedEigenLayerVaultFactory.sol";
 import "../../../src/adapters/IsolatedEigenLayerWstETHVault.sol";
 import "../../../src/vaults/MultiVault.sol";
 import "./AbstractDeployLibrary.sol";
+import "./EigenLayerDeployLibraryHelper.sol";
 
 contract EigenLayerDeployLibrary is AbstractDeployLibrary {
     struct DeployParams {
@@ -29,6 +31,7 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
     address public immutable withdrawalQueueImplementation;
     address public immutable isolatedEigenLayerWstETHVaultImplementation;
     address public immutable isolatedEigenLayerVaultImplementation;
+    EigenLayerDeployLibraryHelper public immutable helper;
 
     constructor(
         address wsteth_,
@@ -37,7 +40,8 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
         address delegationManager_,
         address withdrawalQueueImplementation_,
         address isolatedEigenLayerVaultImplementation_,
-        address isolatedEigenLayerWstETHVaultImplementation_
+        address isolatedEigenLayerWstETHVaultImplementation_,
+        address helper_
     ) AbstractDeployLibrary() {
         wsteth = wsteth_;
         strategyManager = strategyManager_;
@@ -46,6 +50,7 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
         withdrawalQueueImplementation = withdrawalQueueImplementation_;
         isolatedEigenLayerVaultImplementation = isolatedEigenLayerVaultImplementation_;
         isolatedEigenLayerWstETHVaultImplementation = isolatedEigenLayerWstETHVaultImplementation_;
+        helper = EigenLayerDeployLibraryHelper(helper_);
     }
 
     // View functions
@@ -70,15 +75,14 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
     function deployAndSetAdapter(
         address multiVault,
         DeployScript.Config calldata config,
-        bytes calldata /* data */
+        bytes calldata, /* data */
+        bytes32 salt
     ) external override onlyDelegateCall {
         bool isWstETH = config.asset == wsteth;
         address factory = _contractStorage().factories[config.vaultProxyAdmin][isWstETH];
         if (factory == address(0)) {
             factory = address(
-                new IsolatedEigenLayerVaultFactory{
-                    salt: keccak256(abi.encodePacked(config.vaultProxyAdmin, isWstETH))
-                }(
+                new IsolatedEigenLayerVaultFactory{salt: salt}(
                     delegationManager,
                     isWstETH
                         ? isolatedEigenLayerWstETHVaultImplementation
@@ -92,13 +96,8 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
         if (address(MultiVault(multiVault).eigenLayerAdapter()) != address(0)) {
             return;
         }
-        address adapter = address(
-            new EigenLayerAdapter{salt: bytes32(bytes20(multiVault))}(
-                factory,
-                multiVault,
-                IStrategyManager(strategyManager),
-                IRewardsCoordinator(rewardsCoordinator)
-            )
+        address adapter = helper.deployEigenLayerAdapter(
+            isWstETH, salt, factory, multiVault, strategyManager, rewardsCoordinator, wsteth
         );
         MultiVault(multiVault).setEigenLayerAdapter(adapter);
     }
@@ -106,7 +105,8 @@ contract EigenLayerDeployLibrary is AbstractDeployLibrary {
     function deploySubvault(
         address multiVault,
         DeployScript.Config calldata config,
-        bytes calldata data
+        bytes calldata data,
+        bytes32 /* salt */
     ) external override onlyDelegateCall returns (address isolatedVault) {
         DeployParams memory params = abi.decode(data, (DeployParams));
         address factory =

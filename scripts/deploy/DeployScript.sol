@@ -170,7 +170,7 @@ contract DeployScript is Ownable {
                     deployLibrary,
                     abi.encodeCall(
                         AbstractDeployLibrary.deployAndSetAdapter,
-                        (address(multiVault), config, subvaultParams.data)
+                        (address(multiVault), config, subvaultParams.data, salt)
                     )
                 );
 
@@ -178,7 +178,7 @@ contract DeployScript is Ownable {
                     deployLibrary,
                     abi.encodeCall(
                         AbstractDeployLibrary.deploySubvault,
-                        (address(multiVault), config, subvaultParams.data)
+                        (address(multiVault), config, subvaultParams.data, salt)
                     )
                 );
 

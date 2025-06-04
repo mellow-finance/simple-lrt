@@ -20,12 +20,14 @@ abstract contract AbstractDeployLibrary {
     function deployAndSetAdapter(
         address multiVault,
         DeployScript.Config calldata config,
-        bytes calldata data
+        bytes calldata data,
+        bytes32 salt
     ) external virtual;
 
     function deploySubvault(
         address multiVault,
         DeployScript.Config calldata config,
-        bytes calldata data
+        bytes calldata data,
+        bytes32 salt
     ) external virtual returns (address);
 }

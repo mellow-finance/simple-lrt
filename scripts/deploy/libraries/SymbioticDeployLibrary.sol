@@ -81,13 +81,14 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
     function deployAndSetAdapter(
         address multiVault,
         DeployScript.Config calldata config,
-        bytes calldata /* data */
+        bytes calldata, /* data */
+        bytes32 salt
     ) external override onlyDelegateCall {
         if (address(MultiVault(multiVault).symbioticAdapter()) != address(0)) {
             return;
         }
         address adapter = address(
-            new SymbioticAdapter{salt: bytes32(bytes20(multiVault))}(
+            new SymbioticAdapter{salt: salt}(
                 multiVault,
                 symbioticVaultFactory,
                 withdrawalQueueImplementation,
@@ -100,7 +101,8 @@ contract SymbioticDeployLibrary is AbstractDeployLibrary {
     function deploySubvault(
         address, /* multiVault */
         DeployScript.Config calldata config,
-        bytes calldata data
+        bytes calldata data,
+        bytes32 /* salt */
     ) external override onlyDelegateCall returns (address symbioticVault) {
         DeployParams memory params = abi.decode(data, (DeployParams));
         address burner = IBurnerRouterFactory(burnerRouterFactory).create(

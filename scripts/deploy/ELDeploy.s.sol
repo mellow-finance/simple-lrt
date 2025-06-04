@@ -14,10 +14,26 @@ contract Deploy is Script {
         vm.startBroadcast(deployerPk);
 
         DeployScript script = DeployScript(0x4e0D1Ae69aF32ad07Bd3E96277E377404bFD3344);
+
+        EigenLayerDeployLibrary prevLib = EigenLayerDeployLibrary(script.deployLibraries(1));
+        EigenLayerDeployLibrary elDeployLibrary = new EigenLayerDeployLibrary{
+            salt: bytes32(uint256(0))
+        }(
+            prevLib.wsteth(),
+            prevLib.strategyManager(),
+            prevLib.rewardsCoordinator(),
+            prevLib.delegationManager(),
+            prevLib.withdrawalQueueImplementation(),
+            prevLib.isolatedEigenLayerVaultImplementation(),
+            prevLib.isolatedEigenLayerWstETHVaultImplementation(),
+            address(new EigenLayerDeployLibraryHelper())
+        );
+        script.addDeployLibrary(address(elDeployLibrary));
+
         DeployScript.SubvaultParams[] memory subvaults = new DeployScript.SubvaultParams[](1);
         ISignatureUtils.SignatureWithExpiry memory signature;
         subvaults[0] = DeployScript.SubvaultParams({
-            libraryIndex: 1,
+            libraryIndex: 2,
             data: EigenLayerDeployLibrary(script.deployLibraries(1)).combineOptions(
                 0x93c4b944D05dfe6df7645A86cd2206016c51564D,
                 0xDbEd88D83176316fc46797B43aDeE927Dc2ff2F5,
@@ -50,8 +66,19 @@ contract Deploy is Script {
             })
         );
 
+        EthWrapper w = EthWrapper(payable(0x7A69820e9e7410098f766262C326E211BFa5d1B1));
+        w.deposit{value: 1 gwei}(w.ETH(), 1 gwei, address(vault), deployer, deployer);
+
+        // roundings
+        require(
+            vault.totalAssets() + 2 wei == vault.totalSupply(),
+            "Total assets should equal total supply"
+        );
+
         console2.log("MultiVault with EigenLayer pair:", address(vault));
         vm.stopBroadcast();
         // revert("ok");
     }
 }
+
+import "../../src/utils/EthWrapper.sol";

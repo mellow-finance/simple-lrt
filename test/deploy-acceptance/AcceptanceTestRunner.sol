@@ -75,18 +75,17 @@ contract AcceptanceTestRunner {
         assembly {
             mstore(contractCode, metadataIndex)
         }
-        console2.log(metadataIndex);
-        if (metadataIndex == 0x4b09) {
+        if (metadataIndex == 9783) {
             // cleaning EigenLayerDeployLibrary
             for (uint256 i = 0; i < 20; i++) {
-                contractCode[i + 618] = bytes1(0); // this_
-                contractCode[i + 1670] = bytes1(0); // modifier
+                contractCode[i + 684] = bytes1(0); // this_
+                contractCode[i + 1221] = bytes1(0); // modifier
             }
-        } else if (metadataIndex == 0x3544) {
+        } else if (metadataIndex == 0x3541) {
             // cleaning SymbioticDeployLibrary
             for (uint256 i = 0; i < 20; i++) {
-                contractCode[i + 767] = bytes1(0); // this_
-                contractCode[i + 1253] = bytes1(0); // modifier
+                contractCode[i + 768] = bytes1(0); // this_
+                contractCode[i + 2158] = bytes1(0); // modifier
             }
         } else if (metadataIndex == 0x41e) {
             // cleaning TransparentUpgradeableProxy
@@ -104,6 +103,20 @@ contract AcceptanceTestRunner {
             if (a.length != b.length) {
                 revert(string.concat("validateBytecode: bytecode length mismatch for ", name));
             } else {
+                for (uint256 i = 0; i < a.length; i++) {
+                    if (a[i] != b[i]) {
+                        revert(
+                            string.concat(
+                                "validateBytecode: bytecode mismatch at index ",
+                                Strings.toString(a.length),
+                                " ",
+                                Strings.toString(i),
+                                " for ",
+                                name
+                            )
+                        );
+                    }
+                }
                 revert(string.concat("validateBytecode: bytecode mismatch for ", name));
             }
         }
@@ -444,10 +457,16 @@ contract AcceptanceTestRunner {
                                 EigenLayerDeployLibrary(deployLibrary)
                                     .isolatedEigenLayerVaultImplementation(),
                                 EigenLayerDeployLibrary(deployLibrary)
-                                    .isolatedEigenLayerWstETHVaultImplementation()
+                                    .isolatedEigenLayerWstETHVaultImplementation(),
+                                address(EigenLayerDeployLibrary(deployLibrary).helper())
                             )
                         ).code,
                         "EigenLayerDeployLibrary"
+                    );
+                    validateBytecode(
+                        address(EigenLayerDeployLibrary(deployLibrary).helper()).code,
+                        address(new EigenLayerDeployLibraryHelper()).code,
+                        "EigenLayerDeployLibraryHelper"
                     );
                 }
             }
