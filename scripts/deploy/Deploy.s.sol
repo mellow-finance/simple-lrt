@@ -3,8 +3,9 @@ pragma solidity 0.8.25;
 
 import "forge-std/Script.sol";
 
-import "../../src/deploy/DeployScript.sol";
-import "../../src/deploy/libraries/EigenLayerDeployLibrary.sol";
+import "./DeployScript.sol";
+import "./libraries/EigenLayerDeployLibrary.sol";
+import "./libraries/SymbioticDeployLibrary.sol";
 
 contract Deploy is Script {
     function run() external {
@@ -35,7 +36,7 @@ contract Deploy is Script {
                 prevLib.withdrawalQueueImplementation(),
                 prevLib.isolatedEigenLayerVaultImplementation(),
                 prevLib.isolatedEigenLayerWstETHVaultImplementation(),
-                address(new EigenLayerDeployLibraryHelper())
+                address(prevLib.helper())
             )
         );
         DeployScript script = new DeployScript{salt: salt}(

@@ -36,9 +36,6 @@ contract DeployScript is Ownable {
     struct DeployParams {
         Config config;
         SubvaultParams[] subvaults;
-        // initial deposit params
-        address initialDepositAsset;
-        uint256 initialDepositAmount;
         // salt
         bytes32 salt;
     }

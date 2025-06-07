@@ -60,7 +60,7 @@ contract AcceptanceTest is Test, AcceptanceTestRunner {
         subvaults[0] = DeployScript.SubvaultParams({
             libraryIndex: 0,
             data: SymbioticDeployLibrary(script.deployLibraries(0)).combineOptions(
-                address(0xdead), 7 days, 3 days, 15 days
+                address(0xdead), 7 days, 3 days, 15 days, address(0), new address[](0), new address[](0)
             ),
             minRatioD18: 0.45 ether,
             maxRatioD18: 0.5 ether
@@ -69,7 +69,7 @@ contract AcceptanceTest is Test, AcceptanceTestRunner {
         subvaults[1] = DeployScript.SubvaultParams({
             libraryIndex: 0,
             data: SymbioticDeployLibrary(script.deployLibraries(0)).combineOptions(
-                address(0xdead), 7 days, 3 days, 15 days
+                address(0xdead), 7 days, 3 days, 15 days, address(0), new address[](0), new address[](0)
             ),
             minRatioD18: 0.45 ether,
             maxRatioD18: 0.5 ether
@@ -116,8 +116,6 @@ contract AcceptanceTest is Test, AcceptanceTestRunner {
                     symbol: "EMV"
                 }),
                 subvaults: subvaults,
-                initialDepositAsset: address(0),
-                initialDepositAmount: 0,
                 salt: bytes32(0)
             })
         );

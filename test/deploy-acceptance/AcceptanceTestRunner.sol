@@ -81,11 +81,11 @@ contract AcceptanceTestRunner {
                 contractCode[i + 684] = bytes1(0); // this_
                 contractCode[i + 1221] = bytes1(0); // modifier
             }
-        } else if (metadataIndex == 0x3541) {
+        } else if (metadataIndex == 14807) {
             // cleaning SymbioticDeployLibrary
             for (uint256 i = 0; i < 20; i++) {
-                contractCode[i + 768] = bytes1(0); // this_
-                contractCode[i + 2158] = bytes1(0); // modifier
+                contractCode[i + 896] = bytes1(0); // this_
+                contractCode[i + 2560] = bytes1(0); // modifier
             }
         } else if (metadataIndex == 0x41e) {
             // cleaning TransparentUpgradeableProxy
