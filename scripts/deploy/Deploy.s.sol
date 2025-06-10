@@ -9,7 +9,7 @@ import "./libraries/SymbioticDeployLibrary.sol";
 
 contract Deploy is Script {
     function run() external {
-        uint256 deployerPk = vm.envUint("DEPLOYER_PRIVATE_KEY");
+        uint256 deployerPk = uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER")));
         address deployer = vm.addr(deployerPk);
         vm.startBroadcast(deployerPk);
 
@@ -49,7 +49,9 @@ contract Deploy is Script {
         script.setIsWhitelisted(deployer, true);
 
         vm.stopBroadcast();
-        console2.log("Script:", address(script));
+        console2.log("           DeployScript:", address(script));
+        console2.log(" SymbioticDeployLibrary:", deployLibraries[0]);
+        console2.log("EigenLayerDeployLibrary:", deployLibraries[1]);
         revert("success");
     }
 }
