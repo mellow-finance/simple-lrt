@@ -66,7 +66,7 @@ contract AcceptanceTestRunner {
         // src: https://docs.soliditylang.org/en/v0.8.25/metadata.html#encoding-of-the-metadata-hash-in-the-bytecode
         bytes1 b1 = 0xa2;
         bytes1 b2 = 0x64;
-        for (uint256 i = contractCode.length - 2; i >= 0; i--) {
+        for (uint256 i = 0; i < contractCode.length; i++) {
             if (contractCode[i] == b1 && contractCode[i + 1] == b2) {
                 metadataIndex = i;
                 break;
@@ -75,13 +75,13 @@ contract AcceptanceTestRunner {
         assembly {
             mstore(contractCode, metadataIndex)
         }
-        if (metadataIndex == 9783) {
+        if (metadataIndex == 8358) {
             // cleaning EigenLayerDeployLibrary
             for (uint256 i = 0; i < 20; i++) {
                 contractCode[i + 684] = bytes1(0); // this_
                 contractCode[i + 1221] = bytes1(0); // modifier
             }
-        } else if (metadataIndex == 14807) {
+        } else if (metadataIndex == 13414) {
             // cleaning SymbioticDeployLibrary
             for (uint256 i = 0; i < 20; i++) {
                 contractCode[i + 896] = bytes1(0); // this_
