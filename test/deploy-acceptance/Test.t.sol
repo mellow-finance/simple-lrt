@@ -5,6 +5,14 @@ import "./AcceptanceTestRunner.sol";
 import "forge-std/Test.sol";
 
 contract AcceptanceTest is Test, AcceptanceTestRunner {
+    /// @dev acceptance for fact deployment
+    function testAcceptanceDeployWithConfigFact() external {
+        DeployScript script = DeployScript(address(0xC70F0A380D5Bc02d237C46CEF92C6174Db496969));
+
+        validateState(script, 0);
+    }
+
+    /// @dev just test for acceptance
     function testAcceptanceDeployWithConfig() external {
         address deployer = address(this);
 
