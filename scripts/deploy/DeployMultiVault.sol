@@ -6,6 +6,8 @@ import "forge-std/Script.sol";
 import "../../src/utils/EthWrapper.sol";
 import "./DeployScript.sol";
 import "./libraries/SymbioticDeployLibrary.sol";
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "test/deploy-acceptance/AcceptanceTestRunner.sol";
 
 contract Deploy is Script, AcceptanceTestRunner {
@@ -43,9 +45,6 @@ contract Deploy is Script, AcceptanceTestRunner {
     mapping(address => address) burner;
     /// @dev https://docs.symbiotic.fi/deployments/mainnet/#vaults
     mapping(address => address) defaultCollateral;
-
-    uint256 deployerPk = uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER")));
-    address deployer = vm.addr(deployerPk);
 
     DeployScript script;
     address ethDepositWrapper;
@@ -91,7 +90,7 @@ contract Deploy is Script, AcceptanceTestRunner {
                     burner[asset], // burner
                     10 days, // epoch duration
                     3 days, // veto duration
-                    15 days, // burner delay
+                    21 days, // burner delay = 2 * (epoch duration) + 1
                     hook[HOOK.NetworkRestakeDecreaseHook],
                     networks,
                     receivers
@@ -110,7 +109,7 @@ contract Deploy is Script, AcceptanceTestRunner {
                 limit: 1000 ether,
                 depositPause: false,
                 withdrawalPause: false,
-                name: "Restaked tBTC",
+                name: "restaked tBTC",
                 symbol: "rtBTC"
             });
 
@@ -131,6 +130,8 @@ contract Deploy is Script, AcceptanceTestRunner {
     }
 
     function run() external {
+        uint256 deployerPk = uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER")));
+        address deployer = vm.addr(deployerPk);
         vm.startBroadcast(deployerPk);
 
         (DeployScript.Config memory config, DeployScript.SubvaultParams[] memory subvaults) =
@@ -144,8 +145,9 @@ contract Deploy is Script, AcceptanceTestRunner {
             EthWrapper w = EthWrapper(payable(config.depositWrapper));
             w.deposit{value: 1 gwei}(w.ETH(), 1 gwei, address(vault), deployer, deployer);
         } else {
-            IERC20(config.asset).approve(address(vault), 1 gwei);
-            vault.deposit(1 gwei, deployer, deployer);
+            uint256 amount = 10 ** (ERC20(config.asset).decimals() / 2);
+            IERC20(config.asset).approve(address(vault), amount);
+            vault.deposit(amount, deployer, deployer);
         }
 
         // roundings
