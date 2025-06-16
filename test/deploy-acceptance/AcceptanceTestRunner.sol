@@ -9,6 +9,10 @@ import "../../src/utils/Claimer.sol";
 import "@openzeppelin/contracts/access/extensions/IAccessControlEnumerable.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+
+import "@symbiotic/core/interfaces/IDelegatorFactory.sol";
+import "@symbiotic/core/interfaces/ISlasherFactory.sol";
+import "@symbiotic/core/interfaces/vault/IVaultStorage.sol";
 import "forge-std/console2.sol";
 
 contract AcceptanceTestRunner {
@@ -59,6 +63,72 @@ contract AcceptanceTestRunner {
         validateStrategyState(deployScript, deployIndex, deployParams);
         validateVaultPermissions(deployScript, deployIndex, deployParams);
         validateVaultState(deployScript, deployIndex, deployParams);
+    }
+
+    function validateSymbioticVaultParams(
+        DeployScript deployScript,
+        DeployScript.DeployParams memory deployParams,
+        MultiVault multiVault,
+        uint256 subvaultIndex
+    ) internal view {
+        IMultiVault.Subvault memory subvault = multiVault.subvaultAt(subvaultIndex);
+        address symbioticVault = subvault.vault;
+
+        console2.log("\nValidate symbiotic subvault", symbioticVault);
+        require(
+            subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC, "subvault is not symbiotic"
+        );
+
+        DeployScript.Config memory config = deployParams.config;
+
+        SymbioticDeployLibrary symbioticDeployLibrary =
+            SymbioticDeployLibrary(deployScript.deployLibraries(0));
+
+        IBurnerRouterFactory burnerRouterFactory =
+            IBurnerRouterFactory(symbioticDeployLibrary.burnerRouterFactory());
+
+        ISlasherFactory slasherFactory = ISlasherFactory(
+            IVaultConfigurator(symbioticDeployLibrary.vaultConfigurator()).SLASHER_FACTORY()
+        );
+
+        IDelegatorFactory delegatorFactory = IDelegatorFactory(
+            IVaultConfigurator(symbioticDeployLibrary.vaultConfigurator()).DELEGATOR_FACTORY()
+        );
+
+        DeployScript.SubvaultParams memory subvaultParams = deployParams.subvaults[subvaultIndex];
+
+        SymbioticDeployLibrary.DeployParams memory symbioticDeployParams =
+            abi.decode(subvaultParams.data, (SymbioticDeployLibrary.DeployParams));
+
+        require(IVaultStorage(symbioticVault).depositWhitelist(), "invalid depositWhitelist value");
+        require(IVaultStorage(symbioticVault).isDepositLimit(), "invalid isDepositLimit value");
+        require(IVaultStorage(symbioticVault).collateral() == config.asset, "invalid collateral");
+        require(
+            burnerRouterFactory.isEntity(IVaultStorage(symbioticVault).burner()), "invalid burner"
+        );
+        require(IVaultStorage(symbioticVault).isSlasherInitialized(), "slasher is not initilaized");
+        require(slasherFactory.isEntity(IVaultStorage(symbioticVault).slasher()), "invalid slasher");
+        require(
+            IVaultStorage(symbioticVault).isDelegatorInitialized(), "delegator is not initilaized"
+        );
+        require(
+            delegatorFactory.isEntity(IVaultStorage(symbioticVault).delegator()),
+            "invalid delegator"
+        );
+        require(IVaultStorage(symbioticVault).depositLimit() == 0, "depositLimit is not zero");
+        require(
+            IVaultStorage(symbioticVault).epochDuration() == symbioticDeployParams.epochDuration,
+            "invalid epochDuration"
+        );
+
+        require(
+            IVaultStorage(symbioticVault).epochDurationInit() <= block.timestamp,
+            "invalid epochDurationInit"
+        );
+
+        console2.log("burner   ", address(IVaultStorage(symbioticVault).burner()));
+        console2.log("slasher  ", address(IVaultStorage(symbioticVault).slasher()));
+        console2.log("delegator", address(IVaultStorage(symbioticVault).delegator()));
     }
 
     function getCleanBytecode(bytes memory contractCode) internal pure returns (bytes memory) {
@@ -207,6 +277,10 @@ contract AcceptanceTestRunner {
                     require(
                         ISymbioticVault(subvault.vault).collateral() == multiVault.asset(),
                         "validateVaultState: invalid symbioticVault collateral"
+                    );
+
+                    validateSymbioticVaultParams(
+                        deployScript, deployParams, multiVault, subvaultIndex
                     );
                 } else {
                     protocols |= 2;
