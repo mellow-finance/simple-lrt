@@ -27,7 +27,8 @@ contract Deploy is Script {
                 0xaB253B304B0BfBe38Ef7EA1f086D01A6cE1c5028
             )
         );
-        EigenLayerDeployLibrary prevLib = EigenLayerDeployLibrary(0x0653EE9315eAe918430e061D38246832311F81A7);
+        EigenLayerDeployLibrary prevLib =
+            EigenLayerDeployLibrary(0x0653EE9315eAe918430e061D38246832311F81A7);
         deployLibraries[1] = address(
             new EigenLayerDeployLibrary{salt: salt}(
                 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0,
