@@ -154,8 +154,7 @@ contract AcceptanceTestRunner {
             "invalid slasher vault factory"
         );
         require(
-            IVetoSlasher(slasher).isBurnerHook() == (address(burner) != address(0)),
-            "invalid slasher isBurnerHook"
+            IVetoSlasher(slasher).FACTORY() == address(slasherFactory), "invalid slasher factory"
         );
 
         console2.log("delegator", delegator);
@@ -166,6 +165,10 @@ contract AcceptanceTestRunner {
         require(
             INetworkRestakeDelegator(delegator).VAULT_FACTORY() == SYMBIOTIC_VAULT_FACTORY,
             "invalid delegator vault factory"
+        );
+        require(
+            INetworkRestakeDelegator(delegator).FACTORY() == address(delegatorFactory),
+            "invalid delegator factory"
         );
         require(
             INetworkRestakeDelegator(delegator).hook() == symbioticDeployParams.hook,

@@ -32,7 +32,7 @@ contract AcceptanceDeployTest is Test, AcceptanceTestRunner, DeployMultiVault {
                 10 days, // epoch duration
                 3 days, // veto duration
                 21 days, // burner delay = 2 * (epoch duration) + 1
-                hook[HOOK.NetworkRestakeDecreaseHook],
+                hook(HOOK.NetworkRestakeDecreaseHook),
                 networks,
                 receivers
             ),
