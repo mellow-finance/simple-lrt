@@ -19,14 +19,16 @@ contract Deploy is Script {
             new SymbioticDeployLibrary{salt: salt}(
                 0x29300b1d3150B4E2b12fE80BE72f365E200441EC,
                 0x99F2B89fB3C363fBafD8d826E5AA77b28bAB70a0,
+                1, // vaultVersion
+                3, // resolverSetEpochsDelay
                 1,
-                3,
-                1,
-                0,
+                0, // delegation type
                 0xAEb6bdd95c502390db8f52c8909F703E9Af6a346,
                 0xaB253B304B0BfBe38Ef7EA1f086D01A6cE1c5028
             )
         );
+        EigenLayerDeployLibrary prevLib =
+            EigenLayerDeployLibrary(0x0653EE9315eAe918430e061D38246832311F81A7);
         deployLibraries[1] = address(
             new EigenLayerDeployLibrary{salt: salt}(
                 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0,
@@ -48,7 +50,9 @@ contract Deploy is Script {
         script.setIsWhitelisted(deployer, true);
 
         vm.stopBroadcast();
-        console2.log("Script:", address(script));
-        // revert("success");
+        console2.log("           DeployScript:", address(script));
+        console2.log(" SymbioticDeployLibrary:", deployLibraries[0]);
+        console2.log("EigenLayerDeployLibrary:", deployLibraries[1]);
+        revert("success");
     }
 }
