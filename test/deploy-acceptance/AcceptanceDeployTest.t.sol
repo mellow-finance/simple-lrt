@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
+import "./AcceptanceTest.t.sol";
 import "./AcceptanceTestRunner.sol";
 
 import "forge-std/Test.sol";
 import "scripts/deploy/DeployMultiVault.sol";
 
-contract AcceptanceDeployTest is Test, AcceptanceTestRunner, DeployMultiVault {
+contract AcceptanceDeployTest is AcceptanceTest, DeployMultiVault {
     /// @dev acceptance for fact deployment
     function testAcceptanceDeploy() external {
         uint256 vaultIndex = deploy();

@@ -492,10 +492,12 @@ contract AcceptanceTestRunner {
 
             IEthWrapper wrapper = IEthWrapper(payable(deployParams.config.depositWrapper));
 
+            /// @dev check type of depositWrapper
             try WhitelistedEthWrapper(payable(deployParams.config.depositWrapper))
                 .SET_DEPOSIT_WHITELIST_ROLE() returns (bytes32 role) {
                 require(role == keccak256("SET_DEPOSIT_WHITELIST_ROLE"));
 
+                /// @dev depositWrapper should be WhitelistedEthWrapper entity
                 validateBytecode(
                     address(deployParams.config.depositWrapper).code,
                     address(
@@ -504,6 +506,7 @@ contract AcceptanceTestRunner {
                     "WhitelistedEthWrapper"
                 );
             } catch (bytes memory) {
+                /// @dev depositWrapper should be EthWrapper entity
                 validateBytecode(
                     address(deployParams.config.depositWrapper).code,
                     address(new EthWrapper(wrapper.WETH(), wrapper.wstETH(), wrapper.stETH())).code,
