@@ -48,6 +48,9 @@ contract AcceptanceTestRunner {
     address public constant SYMBIOTIC_VAULT_FACTORY = 0xAEb6bdd95c502390db8f52c8909F703E9Af6a346;
     address public constant SYMBIOTIC_SLASHER_FACTORY = 0x685c2eD7D59814d2a597409058Ee7a92F21e48Fd;
 
+    address public constant DEPOSIT_WRAPPER = 0x7A69820e9e7410098f766262C326E211BFa5d1B1;
+    address public constant WHITELISTED_DEPOSIT_WRAPPER = 0xfD4a4922d1AFe70000Ce0Ec6806454e78256504e;
+
     // RatiosStrategy roles:
     bytes32 private constant RATIOS_STRATEGY_SET_RATIOS_ROLE =
         keccak256("RATIOS_STRATEGY_SET_RATIOS_ROLE");
@@ -490,29 +493,11 @@ contract AcceptanceTestRunner {
                 "Invalid depositWrapper whitelist status"
             );
 
-            IEthWrapper wrapper = IEthWrapper(payable(deployParams.config.depositWrapper));
-
-            /// @dev check type of depositWrapper
-            try WhitelistedEthWrapper(payable(deployParams.config.depositWrapper))
-                .SET_DEPOSIT_WHITELIST_ROLE() returns (bytes32 role) {
-                require(role == keccak256("SET_DEPOSIT_WHITELIST_ROLE"));
-
-                /// @dev depositWrapper should be WhitelistedEthWrapper entity
-                validateBytecode(
-                    address(deployParams.config.depositWrapper).code,
-                    address(
-                        new WhitelistedEthWrapper(wrapper.WETH(), wrapper.wstETH(), wrapper.stETH())
-                    ).code,
-                    "WhitelistedEthWrapper"
-                );
-            } catch (bytes memory) {
-                /// @dev depositWrapper should be EthWrapper entity
-                validateBytecode(
-                    address(deployParams.config.depositWrapper).code,
-                    address(new EthWrapper(wrapper.WETH(), wrapper.wstETH(), wrapper.stETH())).code,
-                    "EthWrapper"
-                );
-            }
+            require(
+                deployParams.config.depositWrapper == DEPOSIT_WRAPPER
+                    || deployParams.config.depositWrapper == WHITELISTED_DEPOSIT_WRAPPER,
+                "invalid depositWrapper"
+            );
         } else {
             require(!multiVault.depositWhitelist(), "Invalid depositWhitelist");
         }
