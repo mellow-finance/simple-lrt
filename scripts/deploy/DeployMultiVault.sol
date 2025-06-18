@@ -27,6 +27,19 @@ abstract contract DeployMultiVault is Script, AcceptanceTestRunner {
         CAPs
     }
 
+    enum CURATOR {
+        MEV,
+        Mellow_uniBTC,
+        Mellow_Ethena,
+        Mellow_BTC,
+        Mellow_cp0x,
+        Mellow_MEV_Bima,
+        Mellow_iBTC,
+        Mellow_Re7_Resolv,
+        Mellow_Symbiosis,
+        Mellow_Re7_Lisk
+    }
+
     /// @dev list of ETH based assets
     address immutable wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address immutable rETH = 0xae78736Cd615f374D3085123A210448E74Fc6393;
@@ -37,8 +50,14 @@ abstract contract DeployMultiVault is Script, AcceptanceTestRunner {
     /// @dev list of other assets
     address immutable tBTC = 0x18084fbA666a33d37592fA2633fD49a74DD93a88;
 
-    DeployScript internal script;
-    address ethDepositWrapper;
+    address internal immutable ethDepositWrapper = 0xfD4a4922d1AFe70000Ce0Ec6806454e78256504e;
+    DeployScript internal immutable script =
+        DeployScript(0xC70F0A380D5Bc02d237C46CEF92C6174Db496969);
+
+    function getDeployParams()
+        internal
+        virtual
+        returns (DeployScript.Config memory config, DeployScript.SubvaultParams[] memory subvaults);
 
     function run() external {
         uint256 vaultIndex = deploy();
@@ -47,11 +66,6 @@ abstract contract DeployMultiVault is Script, AcceptanceTestRunner {
         validateState(script, vaultIndex);
 
         revert("ok");
-    }
-
-    function setUp() public {
-        script = DeployScript(address(0xC70F0A380D5Bc02d237C46CEF92C6174Db496969));
-        ethDepositWrapper = 0xfD4a4922d1AFe70000Ce0Ec6806454e78256504e;
     }
 
     /// @dev https://docs.symbiotic.fi/deployments/mainnet/#hooks
@@ -70,17 +84,68 @@ abstract contract DeployMultiVault is Script, AcceptanceTestRunner {
     }
 
     /// @dev returns default vaultAdmin and vaultProxyAdmin
-    function vaultAndProxyAdmin(address asset) internal view returns (address, address) {
+    function vaultAndProxyAdmin(address asset, CURATOR curator)
+        internal
+        view
+        returns (address vaultAdmin, address vaultProxyAdmin)
+    {
         if (asset == wstETH) {
             return (
-                0x9437B2a8cF3b69D782a61f9814baAbc172f72003, // vaultAdmin
-                0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0 // vaultProxyAdmin
+                0x9437B2a8cF3b69D782a61f9814baAbc172f72003,
+                0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0
             );
-        } else if (asset == tBTC) {
-            return (
-                0x53980f83eCB2516168812A10cb8aCeC79B55718b,
-                0x994e2478Df26E9F076D6F50b6cA18c39aa6bD6Ca
-            );
+        } else {
+            if (curator == CURATOR.MEV) {
+                return (
+                    0x53980f83eCB2516168812A10cb8aCeC79B55718b,
+                    0x994e2478Df26E9F076D6F50b6cA18c39aa6bD6Ca
+                );
+            } else if (curator == CURATOR.Mellow_uniBTC) {
+                return (
+                    0x296Ef13265c2682a338bC31AfF90150E707853c4,
+                    0xf86E9c52cb0a97E70Eed554C8eDb278996c860f3
+                );
+            } else if (curator == CURATOR.Mellow_Ethena) {
+                return (
+                    0xa5136542ECF3dCAFbb3bd213Cd7024B4741dBDE6,
+                    0x27a907d1F809E8c03d806Dc31c8E0C545A3187fC
+                );
+            } else if (curator == CURATOR.Mellow_BTC) {
+                return (
+                    0x6aD30f260c5081Cae68962e2f1730a3727987Deb,
+                    0x002910769444bd0D715CC4c6f2A90D92C5e6695e
+                );
+            } else if (curator == CURATOR.Mellow_cp0x) {
+                return (
+                    0x1B7C5FfAe79b456fe1eEE47503253cbaC55bA287,
+                    0xa4E41e38FbBC176BB4f79aB9d4528CA8335950a6
+                );
+            } else if (curator == CURATOR.Mellow_MEV_Bima) {
+                return (
+                    0xf7688aFdf0A90fbfa4F483DDB951D90326caF065,
+                    0x9C97AE2b1bAACad1240C34BF013225eE4dabEDB4
+                );
+            } else if (curator == CURATOR.Mellow_iBTC) {
+                return (
+                    0xe92931C82cD709A65a37fF87740Ba6930C54200f,
+                    0xD0Ad0f374e6312F0700C3C2119e7cd3204236e06
+                );
+            } else if (curator == CURATOR.Mellow_Re7_Resolv) {
+                return (
+                    0xf1eFa099819ED4288Cf4BAAF0D3fF6c5Cc011F62,
+                    0x630f0c6372cFE6C915c4C127c328df18bD5Ca981
+                );
+            } else if (curator == CURATOR.Mellow_Symbiosis) {
+                return (
+                    0x372142a666e13784c6f7cf6795a8e5aF4ED2d3B7,
+                    0x843065A71d1D3045c980ee954248FeF23c199f09
+                );
+            } else if (curator == CURATOR.Mellow_Re7_Lisk) {
+                return (
+                    0xa62243c7a36e74d8280781242a3B0e019ce74E64,
+                    0xC7e8b00a61adB658c49D2d8a377FC44572e9ECb5
+                );
+            }
         }
         revert("unknown vaultAdmin and vaultProxyAdmin");
     }
@@ -123,6 +188,13 @@ abstract contract DeployMultiVault is Script, AcceptanceTestRunner {
         revert("unknown default collateral");
     }
 
+    function depositWrapper(address asset) public view returns (address) {
+        if (asset == wstETH) {
+            return ethDepositWrapper;
+        }
+        return address(0);
+    }
+
     function getNetworksReceivers(NETWORK network)
         internal
         pure
@@ -137,11 +209,6 @@ abstract contract DeployMultiVault is Script, AcceptanceTestRunner {
             revert("unknown network");
         }
     }
-
-    function getDeployParams()
-        internal
-        virtual
-        returns (DeployScript.Config memory config, DeployScript.SubvaultParams[] memory subvaults);
 
     function deploy() public returns (uint256) {
         uint256 deployerPk = uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER")));

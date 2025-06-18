@@ -22,16 +22,23 @@ contract AcceptanceDeployTest is Test, AcceptanceTestRunner, DeployMultiVault {
         DeployScript.SubvaultParams[] memory subvaults = new DeployScript.SubvaultParams[](1);
         (address[] memory networks, address[] memory receivers) =
             getNetworksReceivers(NETWORK.PRIMEV);
-
+        
+        string name = "restaked tBTC";
+        string symbol = "rtBTC";
         address asset = tBTC;
+
+        uint48 epochDuration = 10 days;
+        uint48 vetoDuration = 3 days;
+        uint48 burnerDelay = 21 days; // 2 * (epoch duration) + 1
+        uint256 limit = 1000 ether;
 
         subvaults[0] = DeployScript.SubvaultParams({
             libraryIndex: 0,
             data: SymbioticDeployLibrary(script.deployLibraries(0)).combineOptions(
-                burner(asset), // burner
-                10 days, // epoch duration
-                3 days, // veto duration
-                21 days, // burner delay = 2 * (epoch duration) + 1
+                burner(asset),
+                epochDuration,
+                vetoDuration,
+                burnerDelay,
                 hook(HOOK.NetworkRestakeDecreaseHook),
                 networks,
                 receivers
@@ -40,20 +47,20 @@ contract AcceptanceDeployTest is Test, AcceptanceTestRunner, DeployMultiVault {
             maxRatioD18: 0.95 ether
         });
 
-        (address vaultAdmin, address vaultProxyAdmin) = vaultAndProxyAdmin(asset);
+        (address vaultAdmin, address vaultProxyAdmin) = vaultAndProxyAdmin(asset, CURATOR.MEV);
 
         config = DeployScript.Config({
-            vaultAdmin: 0x53980f83eCB2516168812A10cb8aCeC79B55718b,
-            vaultProxyAdmin: 0x994e2478Df26E9F076D6F50b6cA18c39aa6bD6Ca,
+            vaultAdmin: vaultAdmin,
+            vaultProxyAdmin: vaultProxyAdmin,
             curator: 0xA1E38210B06A05882a7e7Bfe167Cd67F07FA234A,
             asset: asset,
             defaultCollateral: defaultCollateral(asset),
-            depositWrapper: address(0),
-            limit: 1000 ether,
+            depositWrapper: depositWrapper(asset),
+            limit: limit,
             depositPause: false,
             withdrawalPause: false,
-            name: "restaked tBTC",
-            symbol: "rtBTC"
+            name: name,
+            symbol: symbol
         });
 
         return (config, subvaults);
