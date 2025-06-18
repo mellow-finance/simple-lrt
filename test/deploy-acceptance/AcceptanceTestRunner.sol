@@ -5,6 +5,7 @@ import "../../scripts/deploy/DeployScript.sol";
 import "../../scripts/deploy/libraries/EigenLayerDeployLibrary.sol";
 import "../../scripts/deploy/libraries/SymbioticDeployLibrary.sol";
 import "../../src/utils/Claimer.sol";
+import "../../src/utils/WhitelistedEthWrapper.sol";
 
 import "@openzeppelin/contracts-upgradeable//access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/access/extensions/IAccessControlEnumerable.sol";
@@ -488,6 +489,27 @@ contract AcceptanceTestRunner {
                 multiVault.isDepositorWhitelisted(deployParams.config.depositWrapper),
                 "Invalid depositWrapper whitelist status"
             );
+
+            IEthWrapper wrapper = IEthWrapper(payable(deployParams.config.depositWrapper));
+
+            try WhitelistedEthWrapper(payable(deployParams.config.depositWrapper))
+                .SET_DEPOSIT_WHITELIST_ROLE() returns (bytes32 role) {
+                require(role == keccak256("SET_DEPOSIT_WHITELIST_ROLE"));
+
+                validateBytecode(
+                    address(deployParams.config.depositWrapper).code,
+                    address(
+                        new WhitelistedEthWrapper(wrapper.WETH(), wrapper.wstETH(), wrapper.stETH())
+                    ).code,
+                    "WhitelistedEthWrapper"
+                );
+            } catch (bytes memory) {
+                validateBytecode(
+                    address(deployParams.config.depositWrapper).code,
+                    address(new EthWrapper(wrapper.WETH(), wrapper.wstETH(), wrapper.stETH())).code,
+                    "EthWrapper"
+                );
+            }
         } else {
             require(!multiVault.depositWhitelist(), "Invalid depositWhitelist");
         }

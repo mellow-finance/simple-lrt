@@ -16,38 +16,36 @@ contract AcceptanceDeployTest is Test, AcceptanceTestRunner, DeployMultiVault {
 
     function getDeployParams()
         internal
+        view
         override
         returns (DeployScript.Config memory config, DeployScript.SubvaultParams[] memory subvaults)
     {
-        DeployScript.SubvaultParams[] memory subvaults = new DeployScript.SubvaultParams[](1);
+        string memory name = "restaked tBTC";
+        string memory symbol = "rtBTC";
+        address asset = tBTC;
+        uint256 limit = 1000 ether;
+
+        subvaults = new DeployScript.SubvaultParams[](1);
+
         (address[] memory networks, address[] memory receivers) =
             getNetworksReceivers(NETWORK.PRIMEV);
-        
-        string name = "restaked tBTC";
-        string symbol = "rtBTC";
-        address asset = tBTC;
 
         uint48 epochDuration = 10 days;
         uint48 vetoDuration = 3 days;
         uint48 burnerDelay = 21 days; // 2 * (epoch duration) + 1
-        uint256 limit = 1000 ether;
+        address hook = hook(HOOK.NetworkRestakeDecreaseHook);
 
         subvaults[0] = DeployScript.SubvaultParams({
             libraryIndex: 0,
             data: SymbioticDeployLibrary(script.deployLibraries(0)).combineOptions(
-                burner(asset),
-                epochDuration,
-                vetoDuration,
-                burnerDelay,
-                hook(HOOK.NetworkRestakeDecreaseHook),
-                networks,
-                receivers
+                burner(asset), epochDuration, vetoDuration, burnerDelay, hook, networks, receivers
             ),
             minRatioD18: 0.9 ether,
             maxRatioD18: 0.95 ether
         });
 
-        (address vaultAdmin, address vaultProxyAdmin) = vaultAndProxyAdmin(asset, CURATOR.MEV);
+        (address vaultAdmin, address vaultProxyAdmin) =
+            vaultAndProxyAdmin(asset, ADMIN.Mellow_MEV_tBTC);
 
         config = DeployScript.Config({
             vaultAdmin: vaultAdmin,
@@ -55,7 +53,7 @@ contract AcceptanceDeployTest is Test, AcceptanceTestRunner, DeployMultiVault {
             curator: 0xA1E38210B06A05882a7e7Bfe167Cd67F07FA234A,
             asset: asset,
             defaultCollateral: defaultCollateral(asset),
-            depositWrapper: depositWrapper(asset),
+            depositWrapper: address(0),
             limit: limit,
             depositPause: false,
             withdrawalPause: false,
