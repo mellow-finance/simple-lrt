@@ -130,7 +130,6 @@ contract AcceptanceTestRunner {
             "invalid epochDurationInit"
         );
 
-        console2.log("burner   ", burner);
         require(burnerRouterFactory.isEntity(burner), "invalid burner");
         require(IBurnerRouter(burner).collateral() == config.asset, "invalid burner collateral");
         require(
@@ -146,7 +145,6 @@ contract AcceptanceTestRunner {
         }
         require(OwnableUpgradeable(burner).owner() == config.vaultAdmin, "invalid burner owner");
 
-        console2.log("slasher  ", slasher);
         require(slasherFactory.isEntity(slasher), "invalid slasher");
         require(
             IVetoSlasher(slasher).vetoDuration() == symbioticDeployParams.vetoDuration,
@@ -161,7 +159,6 @@ contract AcceptanceTestRunner {
             IVetoSlasher(slasher).FACTORY() == address(slasherFactory), "invalid slasher factory"
         );
 
-        console2.log("delegator", delegator);
         require(delegatorFactory.isEntity(delegator), "invalid delegator");
         require(
             INetworkRestakeDelegator(delegator).vault() == symbioticVault, "invalid delegator vault"

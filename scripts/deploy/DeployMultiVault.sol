@@ -28,6 +28,7 @@ abstract contract DeployMultiVault is Script, AcceptanceTestRunner {
     }
 
     enum ADMIN {
+        Undefined,
         Mellow_MEV_tBTC,
         Mellow_uniBTC,
         Mellow_Ethena,
