@@ -13,15 +13,22 @@ contract Deploy is Script {
         address deployer = vm.addr(deployerPk);
         vm.startBroadcast(deployerPk);
 
-        DeployScript script = DeployScript(address(0x87795a720F7d11Ab16d04f3Bd2a664BCDD20E71d));
+        DeployScript script = DeployScript(address(0xC70F0A380D5Bc02d237C46CEF92C6174Db496969));
         DeployScript.SubvaultParams[] memory subvaults = new DeployScript.SubvaultParams[](1);
+        address[] memory networks = new address[](1);
+        address[] memory receivers = new address[](1);
+        networks[0] = 0x9101eda106A443A0fA82375936D0D1680D5a64F5;
+        receivers[0] = 0xD5881f91270550B8850127f05BD6C8C203B3D33f;
         subvaults[0] = DeployScript.SubvaultParams({
             libraryIndex: 0,
             data: SymbioticDeployLibrary(script.deployLibraries(0)).combineOptions(
                 0xdCaC890b14121FD5D925E2589017Be68C2B5B324, // wsteth burner
-                7 days, // epoch
+                7 days, // epoch duration
                 3 days, // veto duration
-                15 days // burner delay
+                15 days, // burner delay
+                address(0),  // hook
+                networks,
+                receivers
             ),
             minRatioD18: 0.9 ether,
             maxRatioD18: 0.95 ether
@@ -43,8 +50,8 @@ contract Deploy is Script {
                     symbol: "oblETH"
                 }),
                 subvaults: subvaults,
-                initialDepositAsset: address(0),
-                initialDepositAmount: 0,
+                //initialDepositAsset: address(0),
+                //initialDepositAmount: 0,
                 salt: bytes32(0)
             })
         );

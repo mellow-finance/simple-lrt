@@ -5,7 +5,9 @@ import "../../scripts/deploy/DeployScript.sol";
 import "../../scripts/deploy/libraries/EigenLayerDeployLibrary.sol";
 import "../../scripts/deploy/libraries/SymbioticDeployLibrary.sol";
 import "../../src/utils/Claimer.sol";
+import "../../src/utils/WhitelistedEthWrapper.sol";
 
+import "@openzeppelin/contracts-upgradeable//access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/access/extensions/IAccessControlEnumerable.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -42,6 +44,12 @@ contract AcceptanceTestRunner {
     bytes32 private constant REBALANCE_ROLE = keccak256("REBALANCE_ROLE");
     bytes32 private constant SET_DEFAULT_COLLATERAL_ROLE = keccak256("SET_DEFAULT_COLLATERAL_ROLE");
     bytes32 private constant SET_ADAPTER_ROLE = keccak256("SET_ADAPTER_ROLE");
+
+    address public constant SYMBIOTIC_VAULT_FACTORY = 0xAEb6bdd95c502390db8f52c8909F703E9Af6a346;
+    address public constant SYMBIOTIC_SLASHER_FACTORY = 0x685c2eD7D59814d2a597409058Ee7a92F21e48Fd;
+
+    address public constant DEPOSIT_WRAPPER = 0x7A69820e9e7410098f766262C326E211BFa5d1B1;
+    address public constant WHITELISTED_DEPOSIT_WRAPPER = 0xfD4a4922d1AFe70000Ce0Ec6806454e78256504e;
 
     // RatiosStrategy roles:
     bytes32 private constant RATIOS_STRATEGY_SET_RATIOS_ROLE =
@@ -81,8 +89,9 @@ contract AcceptanceTestRunner {
 
         DeployScript.Config memory config = deployParams.config;
 
-        SymbioticDeployLibrary symbioticDeployLibrary =
-            SymbioticDeployLibrary(deployScript.deployLibraries(0));
+        SymbioticDeployLibrary symbioticDeployLibrary = SymbioticDeployLibrary(
+            deployScript.deployLibraries(deployParams.subvaults[subvaultIndex].libraryIndex)
+        );
 
         IBurnerRouterFactory burnerRouterFactory =
             IBurnerRouterFactory(symbioticDeployLibrary.burnerRouterFactory());
@@ -100,35 +109,72 @@ contract AcceptanceTestRunner {
         SymbioticDeployLibrary.DeployParams memory symbioticDeployParams =
             abi.decode(subvaultParams.data, (SymbioticDeployLibrary.DeployParams));
 
+        address burner = IVaultStorage(symbioticVault).burner(); // IBurnerRouter
+        address slasher = IVaultStorage(symbioticVault).slasher(); // IVetoSlasher
+        address delegator = IVaultStorage(symbioticVault).delegator(); // INetworkRestakeDelegator
+
         require(IVaultStorage(symbioticVault).depositWhitelist(), "invalid depositWhitelist value");
         require(IVaultStorage(symbioticVault).isDepositLimit(), "invalid isDepositLimit value");
         require(IVaultStorage(symbioticVault).collateral() == config.asset, "invalid collateral");
-        require(
-            burnerRouterFactory.isEntity(IVaultStorage(symbioticVault).burner()), "invalid burner"
-        );
         require(IVaultStorage(symbioticVault).isSlasherInitialized(), "slasher is not initilaized");
-        require(slasherFactory.isEntity(IVaultStorage(symbioticVault).slasher()), "invalid slasher");
         require(
             IVaultStorage(symbioticVault).isDelegatorInitialized(), "delegator is not initilaized"
-        );
-        require(
-            delegatorFactory.isEntity(IVaultStorage(symbioticVault).delegator()),
-            "invalid delegator"
         );
         require(IVaultStorage(symbioticVault).depositLimit() == 0, "depositLimit is not zero");
         require(
             IVaultStorage(symbioticVault).epochDuration() == symbioticDeployParams.epochDuration,
             "invalid epochDuration"
         );
-
         require(
             IVaultStorage(symbioticVault).epochDurationInit() <= block.timestamp,
             "invalid epochDurationInit"
         );
 
-        console2.log("burner   ", address(IVaultStorage(symbioticVault).burner()));
-        console2.log("slasher  ", address(IVaultStorage(symbioticVault).slasher()));
-        console2.log("delegator", address(IVaultStorage(symbioticVault).delegator()));
+        require(burnerRouterFactory.isEntity(burner), "invalid burner");
+        require(IBurnerRouter(burner).collateral() == config.asset, "invalid burner collateral");
+        require(
+            IBurnerRouter(burner).delay() == symbioticDeployParams.burnerDelay,
+            "invalid burner delay"
+        );
+        for (uint256 index = 0; index < symbioticDeployParams.networks.length; index++) {
+            require(
+                IBurnerRouter(burner).networkReceiver(symbioticDeployParams.networks[index])
+                    == symbioticDeployParams.receivers[index],
+                "invalid network receiver"
+            );
+        }
+        require(OwnableUpgradeable(burner).owner() == config.vaultAdmin, "invalid burner owner");
+
+        require(slasherFactory.isEntity(slasher), "invalid slasher");
+        require(
+            IVetoSlasher(slasher).vetoDuration() == symbioticDeployParams.vetoDuration,
+            "invalid slasher vetoDuration"
+        );
+        require(IVetoSlasher(slasher).vault() == symbioticVault, "invalid slasher vault");
+        require(
+            IVetoSlasher(slasher).VAULT_FACTORY() == SYMBIOTIC_VAULT_FACTORY,
+            "invalid slasher vault factory"
+        );
+        require(
+            IVetoSlasher(slasher).FACTORY() == address(slasherFactory), "invalid slasher factory"
+        );
+
+        require(delegatorFactory.isEntity(delegator), "invalid delegator");
+        require(
+            INetworkRestakeDelegator(delegator).vault() == symbioticVault, "invalid delegator vault"
+        );
+        require(
+            INetworkRestakeDelegator(delegator).VAULT_FACTORY() == SYMBIOTIC_VAULT_FACTORY,
+            "invalid delegator vault factory"
+        );
+        require(
+            INetworkRestakeDelegator(delegator).FACTORY() == address(delegatorFactory),
+            "invalid delegator factory"
+        );
+        require(
+            INetworkRestakeDelegator(delegator).hook() == symbioticDeployParams.hook,
+            "invalid delegator vault"
+        );
     }
 
     function getCleanBytecode(bytes memory contractCode) internal pure returns (bytes memory) {
@@ -442,6 +488,12 @@ contract AcceptanceTestRunner {
             require(
                 multiVault.isDepositorWhitelisted(deployParams.config.depositWrapper),
                 "Invalid depositWrapper whitelist status"
+            );
+
+            require(
+                deployParams.config.depositWrapper == DEPOSIT_WRAPPER
+                    || deployParams.config.depositWrapper == WHITELISTED_DEPOSIT_WRAPPER,
+                "invalid depositWrapper"
             );
         } else {
             require(!multiVault.depositWhitelist(), "Invalid depositWhitelist");
