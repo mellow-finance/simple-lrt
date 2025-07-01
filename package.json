@@ -10,6 +10,7 @@
     "test:migrations:mainnet": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20760000 --contracts ./migration-test",
     "test:dvv": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --gas-limit 1000000000000000 --fork-block-number 22170095 --match-path test/unit/DVVTest.t.sol",
     "test:acceptance:migration:holesky": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 3682000 --match-test testAcceptanceMigrationOnlyDeployment",
+    "test:dvv:migration": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --evm-version shanghai --fork-block-number 22825500 --match-test testDVVMigration",
     "test:holesky:multi-vault:acceptance": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --evm-version shanghai --fork-block-number 3390406 --match-test testDeployScriptTestDeployment",
     "test:mainnet:multi-vault:acceptance:batch1": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --evm-version cancun --fork-block-number 21887183 --match-test testDeployScriptMainnetDeploymentBatch1",
     "test:mainnet:multi-vault:acceptance:batch2": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --evm-version cancun --fork-block-number 21966465 --match-test testDeployScriptMainnetDeploymentBatch2",
@@ -28,5 +29,5 @@
     "deploy:dvv": "forge script --use 0.8.25 scripts/mainnet/DVV.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:collector": "forge script --use 0.8.25 scripts/collector/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:factory": "forge script --use 0.8.25 scripts/deploy/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)"
- }
+  }
 }
