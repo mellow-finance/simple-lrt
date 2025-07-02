@@ -6,6 +6,8 @@ import "../../scripts/deploy/libraries/EigenLayerDeployLibrary.sol";
 import "../../scripts/deploy/libraries/SymbioticDeployLibrary.sol";
 import "../../src/utils/Claimer.sol";
 
+import "@openzeppelin/contracts/access/IAccessControl.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/extensions/IAccessControlEnumerable.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -19,11 +21,12 @@ import "forge-std/console2.sol";
 
 import "../../src/utils/Migrator.sol";
 
-/*
-    1. какие-то пользователи будут с pending or claimable assets - нужно проверить частично
-    2. totalSupply, tvl symbiotic deposits, default collateral не должны поменяться
-    3. пользователи, стейт системы, коил
-*/
+interface ISafe {
+    function getOwners() external view returns (address[] memory);
+
+    function getThreshold() external view returns (uint256);
+}
+
 interface IMellowSymbioticVaultQueue {
     function withdrawalQueue() external view returns (address);
 }
@@ -151,10 +154,12 @@ abstract contract AcceptanceTestRunner is StdAssertions {
         return ProxyAdmin(proxyAdmin).owner();
     }
 
-    function validateState(address vaultAddress, State memory before_, State memory after_)
-        internal
-        view
-    {
+    function validateState(
+        address vaultAddress,
+        address curator,
+        State memory before_,
+        State memory after_
+    ) internal view {
         assertNotEq(vaultAddress, address(0), "validateState: vault address is zero");
         assertTrue(migrator.isEntity(vaultAddress), "validateState: vault is not a migrated entity");
         assertEq(
@@ -182,6 +187,15 @@ abstract contract AcceptanceTestRunner is StdAssertions {
             "Symbiotic withdrawal queue **should** change"
         );
         assertEq(before_.limit, after_.limit, "Limit should not change");
+        if (before_.symbioticWithdrawalQueue == after_.symbioticWithdrawalQueue) {
+            // afer migration test
+            assertEq(
+                before_.permissions.length,
+                after_.permissions.length,
+                "Permissions length should not change"
+            );
+        }
+
         assertEq(
             before_.permissions.length,
             after_.permissions.length,
@@ -228,5 +242,39 @@ abstract contract AcceptanceTestRunner is StdAssertions {
             uint256(0),
             "Subvault protocol should be set to 0 (Symbiotic)"
         );
+
+        {
+            IVault symbioticVault = IVault(vault.subvaultAt(0).vault);
+            IAccessControl delegator = IAccessControl(symbioticVault.delegator());
+            assertTrue(
+                delegator.hasRole(keccak256("NETWORK_LIMIT_SET_ROLE"), curator),
+                "curator should have NETWORK_LIMIT_SET_ROLE"
+            );
+            assertTrue(
+                delegator.hasRole(keccak256("OPERATOR_NETWORK_SHARES_SET_ROLE"), curator),
+                "curator should have OPERATOR_NETWORK_SHARES_SET_ROLE"
+            );
+
+            address burner = symbioticVault.burner();
+            assertEq(Ownable(burner).owner(), VAULT_ADMIN, "Burner owner should be VAULT_ADMIN");
+            assertTrue(
+                IAccessControl(address(symbioticVault)).hasRole(0x00, VAULT_ADMIN),
+                "VAULT_ADMIN should have DEFAULT_ADMIN_ROLE in symbiotic vault"
+            );
+
+            address owner = Ownable(address(symbioticVault)).owner();
+            if (owner != VAULT_PROXY_ADMIN) {
+                assertTrue(
+                    ISafe(owner).getThreshold() == 1
+                        && ISafe(owner).getOwners()[0] == VAULT_PROXY_ADMIN,
+                    "Owner should be a Safe with VAULT_PROXY_ADMIN as the only owner"
+                );
+            } else {
+                assertTrue(
+                    Ownable(address(symbioticVault)).owner() == VAULT_PROXY_ADMIN,
+                    "Owner should be VAULT_PROXY_ADMIN in symbiotic vault"
+                );
+            }
+        }
     }
 }
