@@ -154,7 +154,7 @@ contract Unit is Test {
                 WhitelistedEthWrapper wrapper =
                     WhitelistedEthWrapper(payable(migratorDVV.DEPOSIT_WRAPPER()));
                 uint256 expectedValue = IWSTETH(wsteth).getWstETHByStETH(amount);
-                uint256 expecterdShares = dvv.previewDeposit(expectedValue);
+                uint256 expectedShares = dvv.previewDeposit(expectedValue);
                 uint256 shares = wrapper.deposit{value: amount}(
                     wrapper.ETH(), amount, address(dvv), user, address(0)
                 );
@@ -165,12 +165,12 @@ contract Unit is Test {
                     "Total assets mismatch after deposit"
                 );
                 assertEq(
-                    totalSupplyBefore + expecterdShares,
+                    totalSupplyBefore + expectedShares,
                     dvv.totalSupply(),
                     "Total supply mismatch after deposit"
                 );
 
-                assertEq(shares, expecterdShares, "Shares mismatch after deposit");
+                assertEq(shares, expectedShares, "Shares mismatch after deposit");
                 assertEq(dvv.balanceOf(user), shares, "Balance mismatch after deposit");
                 uint256 assets = dvv.redeem(shares, user, user);
                 assertApproxEqAbs(assets, expectedValue, 1 wei, "Assets mismatch after redeem");
@@ -201,7 +201,7 @@ contract Unit is Test {
                 deal(weth, user, amount);
                 IERC20(weth).approve(address(wrapper), amount);
                 uint256 expectedValue = IWSTETH(wsteth).getWstETHByStETH(amount);
-                uint256 expecterdShares = dvv.previewDeposit(expectedValue);
+                uint256 expectedShares = dvv.previewDeposit(expectedValue);
                 uint256 shares =
                     wrapper.deposit(wrapper.WETH(), amount, address(dvv), user, address(0));
 
@@ -211,12 +211,12 @@ contract Unit is Test {
                     "Total assets mismatch after deposit"
                 );
                 assertEq(
-                    totalSupplyBefore + expecterdShares,
+                    totalSupplyBefore + expectedShares,
                     dvv.totalSupply(),
                     "Total supply mismatch after deposit"
                 );
 
-                assertEq(shares, expecterdShares, "Shares mismatch after deposit");
+                assertEq(shares, expectedShares, "Shares mismatch after deposit");
                 assertEq(dvv.balanceOf(user), shares, "Balance mismatch after deposit");
                 uint256 assets = dvv.redeem(shares, user, user);
                 assertApproxEqAbs(assets, expectedValue, 1 wei, "Assets mismatch after redeem");
