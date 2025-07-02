@@ -114,9 +114,10 @@ contract CollectorV4 is Ownable {
         r.totalETH = oracle.getValue(r.asset, r.totalUnderlying);
         r.totalUSD = oracle.getValue(r.asset, usd, r.totalUnderlying);
 
-        r.limitLP = vault.limit();
-        r.limitUnderlying =
-            r.limitLP < type(uint224).max ? vault.convertToAssets(r.limitLP) : type(uint256).max;
+        r.limitUnderlying = vault.limit();
+        r.limitLP = vault.limit() > type(uint224).max
+            ? type(uint256).max
+            : vault.previewRedeem(r.limitUnderlying);
         r.limitETH = oracle.getValue(r.asset, r.limitUnderlying);
         r.limitUSD = oracle.getValue(r.asset, usd, r.limitUnderlying);
 
