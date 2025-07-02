@@ -57,6 +57,7 @@ contract Unit is Test {
         vm.startPrank(migratorDVV.PROXY_ADMIN_OWNER());
         ProxyAdmin(migratorDVV.PROXY_ADMIN()).transferOwnership(address(migratorDVV));
         migratorDVV.migrateDVV();
+        migratorDVV.renounceOwnership();
         vm.stopPrank();
 
         uint256 wstethBalanceAfter = IERC20(wsteth).balanceOf(dvsteth);
@@ -73,11 +74,13 @@ contract Unit is Test {
             IWSTETH(wsteth).getStETHByWstETH(wstethBalanceBefore) + wethBalanceBefore;
         uint256 withdrawnValue =
             Math.mulDiv(selfBalanceBefore - selfBalanceAfter, valueBefore, totalSupplyBefore);
-        uint256 valueAfter = IWSTETH(wsteth).getStETHByWstETH(wstethBalanceAfter) + wethBalanceAfter;
-        assertApproxEqAbs(
-            valueBefore, valueAfter + withdrawnValue, 1 wei, "Value mismatch after migration"
-        ); // roundings due to mellow-lrt evaluation logic with wsteth
-
+        {
+            uint256 valueAfter =
+                IWSTETH(wsteth).getStETHByWstETH(wstethBalanceAfter) + wethBalanceAfter;
+            assertApproxEqAbs(
+                valueBefore, valueAfter + withdrawnValue, 1 wei, "Value mismatch after migration"
+            ); // roundings due to mellow-lrt evaluation logic with wsteth
+        }
         assertEq(wethBalanceAfter, 0, "WETH balance mismatch after migration");
         assertEq(
             IERC4626(dvsteth).totalAssets(),
@@ -96,5 +99,41 @@ contract Unit is Test {
             uint256 balanceAfter = IERC20(dvsteth).balanceOf(holders[i]);
             assertEq(balanceAfter, balancesBefore[i], "Holder balance mismatch after migration");
         }
+
+        assertTrue(
+            ProxyAdmin(migratorDVV.PROXY_ADMIN()).owner() == migratorDVV.PROXY_ADMIN_OWNER(),
+            "ProxyAdmin owner mismatch after migration"
+        );
+
+        assertEq(
+            migratorDVV.DVSTETH(),
+            0x5E362eb2c0706Bd1d134689eC75176018385430B,
+            "DVSTETH address mismatch after migration"
+        );
+        assertEq(
+            migratorDVV.PROXY_ADMIN_OWNER(),
+            0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0,
+            "PROXY_ADMIN_OWNER address mismatch after migration"
+        );
+        assertEq(
+            migratorDVV.ADMIN(),
+            0x9437B2a8cF3b69D782a61f9814baAbc172f72003,
+            "ADMIN address mismatch after migration"
+        );
+        assertEq(
+            migratorDVV.PROXY_ADMIN(),
+            0x8E6C80c41450D3fA7B1Fd0196676b99Bfb34bF48,
+            "PROXY_ADMIN address mismatch after migration"
+        );
+        assertEq(
+            migratorDVV.DEPOSIT_WRAPPER(),
+            0xfD4a4922d1AFe70000Ce0Ec6806454e78256504e,
+            "DEPOSIT_WRAPPER address mismatch after migration"
+        );
+        assertEq(
+            migratorDVV.SIMPLE_DVT_STAKING_STRATEGY(),
+            0x078b1C03d14652bfeeDFadf7985fdf2D8a2e8108,
+            "SIMPLE_DVT_STAKING_STRATEGY address mismatch after migration"
+        );
     }
 }
