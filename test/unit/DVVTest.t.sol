@@ -18,14 +18,14 @@ contract Unit is Test {
         MigratorDVV migratorDVV = MigratorDVV(0x0000003cE4397E957a5634f1402D29Ca5D239319);
         {
             // tx 1
-            vm.startPrank(migratorDVV.ADMIN());
-            IAccessControl(migratorDVV.SIMPLE_DVT_STAKING_STRATEGY()).grantRole(
-                keccak256("admin_delegate"), migratorDVV.ADMIN()
-            );
-            IAccessControl(migratorDVV.SIMPLE_DVT_STAKING_STRATEGY()).grantRole(
-                keccak256("operator"), address(migratorDVV)
-            );
-            vm.stopPrank();
+            // vm.startPrank(migratorDVV.ADMIN());
+            // IAccessControl(migratorDVV.SIMPLE_DVT_STAKING_STRATEGY()).grantRole(
+            //     keccak256("admin_delegate"), migratorDVV.ADMIN()
+            // );
+            // IAccessControl(migratorDVV.SIMPLE_DVT_STAKING_STRATEGY()).grantRole(
+            //     keccak256("operator"), address(migratorDVV)
+            // );
+            // vm.stopPrank();
 
             address dvsteth = migratorDVV.DVSTETH();
             uint256 wstethBalanceBefore = IERC20(wsteth).balanceOf(dvsteth);
