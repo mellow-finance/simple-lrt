@@ -15,7 +15,6 @@ contract Unit is Test {
     function testDVVMigration() external {
         DVV dvvSingleton = new DVV();
         MigratorDVV migratorDVV = new MigratorDVV(address(dvvSingleton), 11679 ether);
-
         // tx 1
         vm.startPrank(migratorDVV.ADMIN());
         IAccessControl(migratorDVV.SIMPLE_DVT_STAKING_STRATEGY()).grantRole(
@@ -31,6 +30,29 @@ contract Unit is Test {
         uint256 wethBalanceBefore = IERC20(weth).balanceOf(dvsteth);
         uint256 totalSupplyBefore = IERC20(dvsteth).totalSupply();
         uint256 selfBalanceBefore = IERC20(dvsteth).balanceOf(dvsteth);
+
+        address[12] memory holders = [
+            0x757dB7C1D65b1d3144E2AfB3dE8AA3D6Ee87594C,
+            0xaCA98383f1262AFbA2b9702D763f6B3fA7288887,
+            0xfB155533C76C877c6acc2C4b6D2341744F61B5f6,
+            0x0C706Bd201903db654f748B824D4cFDE63EDb4c2,
+            0xb867416A190C0d9050E941d4c19C7Ac77CEFa747,
+            0xCfdc7f77c37268c14293ebD466768F6068D99461,
+            0x77D0dce4286022aD5Ebd171F6e3a5D6Ac629F1AB,
+            0xBb8311Ea9Ac8c1C9eFBc1A401B7e83927aee5b2B,
+            0xBc334785d79836043A647E1EE686Bd36d6cF27c4,
+            0x96E3c03358C8e39945eddEbAeac758389C215a26,
+            0x357Db7aB93Eef87334f12Aa4D02bfaA548C27514,
+            0xA19265bADD946329A8A8F84f25403E44Ab185aB8
+        ];
+
+        uint256[] memory balancesBefore = new uint256[](holders.length);
+        for (uint256 i = 0; i < holders.length; i++) {
+            balancesBefore[i] = IERC20(dvsteth).balanceOf(holders[i]);
+            if (balancesBefore[i] == 0) {
+                revert("Not a holder");
+            }
+        }
 
         // tx 2
         vm.startPrank(migratorDVV.PROXY_ADMIN_OWNER());
@@ -70,5 +92,10 @@ contract Unit is Test {
             "DVV name mismatch after migration"
         );
         assertEq(IERC4626(dvsteth).symbol(), "DVstETH", "DVV symbol mismatch after migration");
+
+        for (uint256 i = 0; i < holders.length; i++) {
+            uint256 balanceAfter = IERC20(dvsteth).balanceOf(holders[i]);
+            assertEq(balanceAfter, balancesBefore[i], "Holder balance mismatch after migration");
+        }
     }
 }
