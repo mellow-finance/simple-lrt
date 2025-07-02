@@ -76,14 +76,12 @@ contract Acceptance is AcceptanceTestRunner, Test {
 
     function testMultiMigration() external {
         address[14] memory vaults = [
-            // batch 1
             0x4f3Cc6359364004b245ad5bE36E6ad4e805dC961,
             0x49cd586dd9BA227Be9654C735A659a1dB08232a9,
             0x82dc3260f599f4fC4307209A1122B6eAa007163b,
             0x375A8eE22280076610cA2B4348d37cB1bEEBeba0,
             0xd6E09a5e6D719d1c881579C9C8670a210437931b,
             0x8c9532a60E0E7C6BbD2B2c1303F63aCE1c3E9811,
-            // batch 2
             0xBEEF69Ac7870777598A04B2bd4771c71212E6aBc,
             0x84631c0d0081FDe56DeB72F6DE77abBbF6A9f93a,
             0x5fD13359Ba15A84B76f7F87568309040176167cd,
@@ -95,14 +93,12 @@ contract Acceptance is AcceptanceTestRunner, Test {
         ];
 
         address[14] memory curators = [
-            // batch 1
             0x013B33aAdae8aBdc7c2B1529BB28a37299D6EadE,
             0x7d69615DDD0207ffaD3D89493f44362B471Cfc5C,
             0x5dbb14865609574ABE0d701B1E23E11dF8312548,
             0x323B1370eC7D17D0c70b2CbebE052b9ed0d8A289,
             0xD36BE1D5d02ffBFe7F9640C3757999864BB84979,
             0x6e5CaD73D00Bc8340f38afb61Fc5E34f7193F599,
-            // batch 2
             0x2E93913A796a6C6b2bB76F41690E78a2E206Be54,
             0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433,
             0xA1E38210B06A05882a7e7Bfe167Cd67F07FA234A,
