@@ -26,8 +26,7 @@ contract Acceptance is AcceptanceTestRunner, Test {
             validateState(vault, curator, before_, after_);
         } else if (stageTimestamp != 0 && !migrator.isEntity(vault)) {
             State memory before_ = loadSimpleLRTState(vault);
-            skip(stageTimestamp - block.timestamp);
-
+            skip(4 hours);
             // tx 2
             ProxyAdmin(proxyAdmin).transferOwnership(address(migrator));
             migrator.executeMigration(ProxyAdmin(proxyAdmin), VAULT_ADMIN);
