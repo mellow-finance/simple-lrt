@@ -181,21 +181,12 @@ abstract contract AcceptanceTestRunner is StdAssertions {
             "Default collateral should not change"
         );
         assertEq(before_.symbioticVault, after_.symbioticVault, "Symbiotic vault should not change");
-        assertNotEq(
-            before_.symbioticWithdrawalQueue,
-            after_.symbioticWithdrawalQueue,
-            "Symbiotic withdrawal queue **should** change"
-        );
         assertEq(before_.limit, after_.limit, "Limit should not change");
-        if (before_.symbioticWithdrawalQueue == after_.symbioticWithdrawalQueue) {
-            // afer migration test
-            assertEq(
-                before_.permissions.length,
-                after_.permissions.length,
-                "Permissions length should not change"
-            );
-        }
-
+        assertEq(
+            before_.permissions.length,
+            after_.permissions.length,
+            "Permissions length should not change"
+        );
         assertEq(
             before_.permissions.length,
             after_.permissions.length,

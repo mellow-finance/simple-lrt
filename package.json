@@ -6,7 +6,7 @@
   "scripts": {
     "prettier": "forge fmt && forge fmt ./test/** && forge fmt ./scripts/**",
     "test": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --gas-limit 1000000000000000 --fork-block-number 3682000",
-    "test:migration": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --evm-version cancun --match-test testMultiMigration --fork-block-number 22838872",
+    "test:migration": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --evm-version cancun --match-test testMultiMigration --fork-block-number 22840114",
     "compile": "forge build --use 0.8.25 --cache-path cache",
     "sizes": "forge build --sizes --force",
     "scc:report": "scc src --sort names --no-cocomo --exclude-dir interfaces --by-file --format wide > scc-report.txt",
