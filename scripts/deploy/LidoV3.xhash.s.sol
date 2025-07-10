@@ -48,7 +48,7 @@ contract AcceptanceDeployTest is DeployMultiVault {
         config = DeployScript.Config({
             vaultAdmin: vaultAdmin,
             vaultProxyAdmin: vaultProxyAdmin,
-            curator: 0x1CB7B54AAB4283782b8aF70d07F88AD795c952E9,
+            curator: 0xD1f59ba974E828dF68cB2592C16b967B637cB4e4,
             asset: asset,
             defaultCollateral: defaultCollateral(asset),
             depositWrapper: 0xfD4a4922d1AFe70000Ce0Ec6806454e78256504e,
