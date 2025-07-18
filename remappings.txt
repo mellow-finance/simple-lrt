@@ -1,7 +1,7 @@
-@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
-@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
-@symbiotic/core/=lib/core/src/
-@symbiotic/core-test/=lib/core/test/
+@openzeppelin/contracts/=lib/rewards/lib/core/lib/openzeppelin-contracts/contracts/
+@openzeppelin/contracts-upgradeable/=lib/rewards/lib/core/lib/openzeppelin-contracts-upgradeable/contracts/
+forge-std/=lib/rewards/lib/core/lib/forge-std/src/
 @symbiotic/rewards/=lib/rewards/src/
+@symbiotic/core/=lib/rewards/lib/core/src/
 @symbiotic/burners/=lib/burners/src/
 @eigenlayer-interfaces/=src/interfaces/external/eigen-layer/
