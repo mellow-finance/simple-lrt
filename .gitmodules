@@ -1,6 +1,3 @@
 [submodule "lib/rewards"]
 	path = lib/rewards
 	url = https://github.com/symbioticfi/rewards
-[submodule "lib/burners"]
-	path = lib/burners
-	url = https://github.com/symbioticfi/burners

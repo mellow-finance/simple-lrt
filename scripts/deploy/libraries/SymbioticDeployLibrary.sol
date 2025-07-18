@@ -6,8 +6,8 @@ import "../../../src/vaults/MultiVault.sol";
 import "./AbstractDeployLibrary.sol";
 
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
-import {IBurnerRouter} from "@symbiotic/burners/interfaces/router/IBurnerRouter.sol";
-import {IBurnerRouterFactory} from "@symbiotic/burners/interfaces/router/IBurnerRouterFactory.sol";
+// import {IBurnerRouter} from "@symbiotic/burners/interfaces/router/IBurnerRouter.sol";
+// import {IBurnerRouterFactory} from "@symbiotic/burners/interfaces/router/IBurnerRouterFactory.sol";
 import {IVaultConfigurator} from "@symbiotic/core/interfaces/IVaultConfigurator.sol";
 import {IBaseDelegator} from "@symbiotic/core/interfaces/delegator/IBaseDelegator.sol";
 import {INetworkRestakeDelegator} from
@@ -15,6 +15,34 @@ import {INetworkRestakeDelegator} from
 import {IBaseSlasher} from "@symbiotic/core/interfaces/slasher/IBaseSlasher.sol";
 import {IVetoSlasher} from "@symbiotic/core/interfaces/slasher/IVetoSlasher.sol";
 import {IVault} from "@symbiotic/core/interfaces/vault/IVault.sol";
+
+interface IBurnerRouter {
+    struct NetworkReceiver {
+        address network;
+        address receiver;
+    }
+
+    struct OperatorNetworkReceiver {
+        address network;
+        address operator;
+        address receiver;
+    }
+
+    struct InitParams {
+        address owner;
+        address collateral;
+        uint48 delay;
+        address globalReceiver;
+        NetworkReceiver[] networkReceivers;
+        OperatorNetworkReceiver[] operatorNetworkReceivers;
+    }
+}
+
+interface IBurnerRouterFactory {
+    function create(IBurnerRouter.InitParams calldata params) external returns (address);
+
+    function isEntity(address) external view returns (bool);
+}
 
 contract SymbioticDeployLibrary is AbstractDeployLibrary {
     struct DeployParams {
