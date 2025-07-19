@@ -2,30 +2,28 @@
 pragma solidity 0.8.25;
 
 import "./IOracle.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract Oracle {
-    uint256 public constant Q96 = 2 ** 96;
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
+contract Oracle is Ownable {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    uint256 private constant Q96 = 2 ** 96;
 
     struct TokenOracle {
         uint256 constValue;
         address oracle;
     }
 
-    address public owner;
     mapping(address token => TokenOracle) public oracles;
+    EnumerableSet.AddressSet private _assets;
 
-    constructor(address owner_) {
-        owner = owner_;
-    }
+    constructor(address owner_) Ownable(owner_) {}
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "EthOracle: not owner");
-        _;
-    }
-
-    function setOwner(address owner_) external onlyOwner {
-        owner = owner_;
+    function assets() public view returns (address[] memory) {
+        return _assets.values();
     }
 
     function setOracles(address[] calldata tokens_, TokenOracle[] calldata oracles_)
@@ -35,6 +33,11 @@ contract Oracle {
         require(tokens_.length == oracles_.length, "EthOracle: invalid input");
         for (uint256 i = 0; i < tokens_.length; i++) {
             oracles[tokens_[i]] = oracles_[i];
+            if (oracles_[i].constValue > 0 || oracles_[i].oracle != address(0)) {
+                _assets.add(tokens_[i]);
+            } else {
+                _assets.remove(tokens_[i]);
+            }
         }
     }
 
@@ -56,7 +59,7 @@ contract Oracle {
     }
 
     function getValue(address token, uint256 amount) public view returns (uint256) {
-        if (amount > type(uint224).max) {
+        if (amount > type(uint128).max) {
             return type(uint256).max;
         }
         return Math.mulDiv(priceX96(token), amount, Q96);
@@ -67,7 +70,7 @@ contract Oracle {
         view
         returns (uint256)
     {
-        if (amount > type(uint224).max) {
+        if (amount > type(uint128).max) {
             return type(uint256).max;
         }
         return Math.mulDiv(priceX96(token, priceToken), amount, Q96);
