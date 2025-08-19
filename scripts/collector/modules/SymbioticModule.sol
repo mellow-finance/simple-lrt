@@ -8,9 +8,12 @@ import "@symbiotic/core/interfaces/IOperatorRegistry.sol";
 import "@symbiotic/core/interfaces/ISlasherFactory.sol";
 import "@symbiotic/core/interfaces/IVaultConfigurator.sol";
 import "@symbiotic/core/interfaces/IVaultFactory.sol";
+
+import "@symbiotic/core/interfaces/common/IEntity.sol";
 import "@symbiotic/core/interfaces/common/IRegistry.sol";
 import "@symbiotic/core/interfaces/delegator/IFullRestakeDelegator.sol";
 import "@symbiotic/core/interfaces/delegator/INetworkRestakeDelegator.sol";
+import "@symbiotic/core/interfaces/delegator/IOperatorNetworkSpecificDelegator.sol";
 import "@symbiotic/core/interfaces/service/INetworkMiddlewareService.sol";
 import "@symbiotic/core/interfaces/service/IOptInService.sol";
 import "@symbiotic/core/interfaces/vault/IVault.sol";
@@ -144,14 +147,70 @@ contract SymbioticModule {
         return b;
     }
 
+    function getOperatorSpecificData(address symbioticVault)
+        public
+        view
+        returns (SubnetworkData[] memory response, uint256 totalStake, uint256 totalDelegatedStake)
+    {
+        totalStake = IVault(symbioticVault).totalStake();
+        totalDelegatedStake = 0;
+        IOperatorNetworkSpecificDelegator delegator =
+            IOperatorNetworkSpecificDelegator(IVault(symbioticVault).delegator());
+        address network = delegator.network();
+        address operator = delegator.operator();
+
+        uint256 iterator = 0;
+        uint96[] memory ids = new uint96[](50);
+        for (uint256 i = 0;; i++) {
+            uint96 identifier = uint96(i);
+            bytes32 subnetwork = bytes32(uint256(uint160(network)) << 96 | identifier);
+            if (delegator.maxNetworkLimit(subnetwork) != 0) {
+                ids[iterator++] = identifier;
+            }
+            if (i < 50) {
+                continue;
+            }
+            if (iterator == 0) {
+                ids[iterator++] = 0;
+                break;
+            }
+            if (i - ids[iterator - 1] > 10) {
+                break;
+            }
+        }
+        assembly {
+            mstore(ids, iterator)
+        }
+        response = new SubnetworkData[](ids.length);
+        address[] memory operators = new address[](1);
+        operators[0] = operator;
+        uint256[] memory operatorShares = new uint256[](1);
+        operatorShares[0] = 1 ether;
+        for (uint256 i = 0; i < ids.length; i++) {
+            bytes32 subnetwork = bytes32(uint256(uint160(network)) << 96 | ids[i]);
+            response[i] = SubnetworkData({
+                network: network,
+                id: ids[i],
+                subnetwork: subnetwork,
+                operators: operators,
+                operatorShares: operatorShares,
+                maxNetworkLimit: delegator.maxNetworkLimit(subnetwork),
+                slashableStake: delegator.stake(subnetwork, operator)
+            });
+        }
+    }
+
     function getSubnetworkData(address symbioticVault)
         external
         view
         returns (SubnetworkData[] memory response, uint256 totalStake, uint256 totalDelegatedStake)
     {
-        totalStake = IVault(symbioticVault).totalStake();
         INetworkRestakeDelegator delegator =
             INetworkRestakeDelegator(IVault(symbioticVault).delegator());
+        if (IEntity(address(delegator)).TYPE() == 3) {
+            return getOperatorSpecificData(symbioticVault);
+        }
+        totalStake = IVault(symbioticVault).totalStake();
         address[] memory operators = new address[](16);
         {
             uint256 n = IRegistry(operatorRegistry).totalEntities();
