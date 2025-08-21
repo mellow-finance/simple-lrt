@@ -451,11 +451,13 @@ contract AcceptanceTestRunner {
                 == address(deployParams.config.defaultCollateral),
             "validateVaultState: invalid defaultCollateral"
         );
-
-        require(
-            address(multiVault.defaultCollateral().asset()) == multiVault.asset(),
-            "validateVaultState: invalid defaultCollateral asset"
-        );
+        
+        if (address(multiVault.defaultCollateral()) != address(0)) {
+            require(
+                address(multiVault.defaultCollateral().asset()) == multiVault.asset(),
+                "validateVaultState: invalid defaultCollateral asset"
+            );
+        }
 
         require(multiVault.farmCount() == 0, "validateVaultState: invalid farm count");
 

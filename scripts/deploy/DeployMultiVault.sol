@@ -50,6 +50,7 @@ abstract contract DeployMultiVault is Script, AcceptanceTestRunner {
     address immutable ETHx = 0xA35b1B31Ce002FBF2058D22F30f95D405200A15b;
     /// @dev list of other assets
     address immutable tBTC = 0x18084fbA666a33d37592fA2633fD49a74DD93a88;
+    address immutable sYUSD = 0xfE0ccc9942E98C963Fe6b4e5194EB6e3Baa4cb64;
 
     address internal immutable ethDepositWrapper = 0xfD4a4922d1AFe70000Ce0Ec6806454e78256504e;
     DeployScript internal immutable script =
@@ -185,6 +186,8 @@ abstract contract DeployMultiVault is Script, AcceptanceTestRunner {
             return 0xBdea8e677F9f7C294A4556005c640Ee505bE6925;
         } else if (asset == tBTC) {
             return 0x0C969ceC0729487d264716e55F232B404299032c;
+        } else if (asset == sYUSD) {
+            return address(0);
         }
         revert("unknown default collateral");
     }
@@ -212,10 +215,12 @@ abstract contract DeployMultiVault is Script, AcceptanceTestRunner {
         (DeployScript.Config memory config, DeployScript.SubvaultParams[] memory subvaults) =
             getDeployParams();
 
-        require(
-            IDefaultCollateral(defaultCollateral(config.asset)).asset() == config.asset,
-            "invalid asset and defaultCollateral"
-        );
+        if (defaultCollateral(config.asset) != address(0)) {
+            require(
+                IDefaultCollateral(defaultCollateral(config.asset)).asset() == config.asset,
+                "invalid asset and defaultCollateral"
+            );
+        }
 
         (uint256 index, MultiVault vault) = script.deploy(
             DeployScript.DeployParams({config: config, subvaults: subvaults, salt: bytes32(0)})

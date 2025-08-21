@@ -29,6 +29,7 @@
     "deploy:dvv": "forge script --use 0.8.25 scripts/mainnet/DVV.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:collector": "forge script --use 0.8.25 scripts/collector/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:factory": "forge script --use 0.8.25 scripts/deploy/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
+    "deploy:multi-vault:aegis": "forge script --use 0.8.25 scripts/deploy/Aegis.s.sol --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:multi-vault:xhash": "forge script --use 0.8.25 scripts/deploy/LidoV3.xhash.s.sol --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow --evm-version cancun -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)"
  }
 }
