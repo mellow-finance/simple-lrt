@@ -17,7 +17,7 @@ contract Deploy is Script {
 
     string private symbol = "mstManta";
     string private name = "Manta Restaking Vault";
-    uint256 public constant limit = 20e6 ether;
+    uint256 public constant limit = type(uint256).max;
 
     function run() external {
         uint256 deployerPk = uint256(bytes32(vm.envBytes("HOT_DEPLOYER")));
