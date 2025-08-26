@@ -45,20 +45,17 @@ contract SymbioticModule {
     address public immutable operatorRegistry;
     address public immutable operatorOptInService;
     address public immutable operatorOptInNetworkService;
-    uint256 public immutable MAX_RESPONSE;
 
     constructor(
         address networkRegistry_,
         address operatorRegistry_,
         address operatorOptInService_,
-        address operatorOptInNetworkService_,
-        uint256 maxResponse_
+        address operatorOptInNetworkService_
     ) {
         networkRegistry = networkRegistry_;
         operatorRegistry = operatorRegistry_;
         operatorOptInService = operatorOptInService_;
         operatorOptInNetworkService = operatorOptInNetworkService_;
-        MAX_RESPONSE = maxResponse_;
     }
 
     function getLimits(address symbioticVault)
@@ -66,59 +63,20 @@ contract SymbioticModule {
         view
         returns (NetworkData[] memory networks)
     {
+        (SubnetworkData[] memory response,,) = getSubnetworkData(symbioticVault);
         IBaseDelegator delegator = IBaseDelegator(IVault(symbioticVault).delegator());
-        address[] memory operators = new address[](IRegistry(operatorRegistry).totalEntities());
-        {
-            uint256 index = 0;
-            for (uint256 i = 0; i < operators.length; i++) {
-                address operator = IRegistry(operatorRegistry).entity(i);
-                if (IOptInService(operatorOptInService).isOptedIn(operator, symbioticVault)) {
-                    operators[index++] = operator;
-                }
-            }
-            assembly {
-                mstore(operators, index)
-            }
-        }
-
-        {
-            uint256 n = IRegistry(networkRegistry).totalEntities();
-            networks = new NetworkData[](Math.min(n, MAX_RESPONSE));
-            uint256 index = 0;
-
-            OperatorData[] memory operators_ = new OperatorData[](operators.length);
-            for (uint256 i = 0; i < n; i++) {
-                address network = IRegistry(networkRegistry).entity(i);
-                for (uint96 identifier = 0;; identifier++) {
-                    bytes32 subnetwork = bytes32(uint256(uint160(network)) << 96 | identifier);
-                    uint256 limit = delegator.maxNetworkLimit(subnetwork);
-                    if (limit == 0 && identifier >= 2) {
-                        break;
-                    }
-                    limit = Math.min(
-                        limit, INetworkRestakeDelegator(address(delegator)).networkLimit(subnetwork)
-                    );
-                    if (limit == 0) {
-                        continue;
-                    }
-                    networks[index] = NetworkData(network, identifier, limit, new OperatorData[](0));
-                    uint256 j = 0;
-                    for (uint256 k = 0; k < operators.length; k++) {
-                        address operator = operators[k];
-                        uint256 slashableStake = delegator.stake(subnetwork, operator);
-                        if (slashableStake != 0) {
-                            operators_[j++] = OperatorData(operator, slashableStake);
-                        }
-                    }
-                    networks[index].operators = new OperatorData[](j);
-                    for (uint256 k = 0; k < j; k++) {
-                        networks[index].operators[k] = operators_[k];
-                    }
-                    index++;
-                }
-            }
-            assembly {
-                mstore(networks, index)
+        networks = new NetworkData[](response.length);
+        for (uint256 i = 0; i < response.length; i++) {
+            networks[i].network = response[i].network;
+            networks[i].subnetwork = response[i].id;
+            networks[i].limit = response[i].maxNetworkLimit;
+            uint256 n = response[i].operators.length;
+            networks[i].operators = new OperatorData[](n);
+            for (uint256 j = 0; j < n; j++) {
+                networks[i].operators[j] = OperatorData(
+                    response[i].operators[j],
+                    delegator.stake(response[i].subnetwork, response[i].operators[j])
+                );
             }
         }
     }
@@ -161,6 +119,14 @@ contract SymbioticModule {
 
         uint256 iterator = 0;
         uint96[] memory ids = new uint96[](50);
+        {
+            //
+            uint96 capId = uint96(uint256(keccak256(abi.encodePacked(operator))));
+            bytes32 subnetwork = bytes32(uint256(uint160(network)) << 96 | capId);
+            if (delegator.maxNetworkLimit(subnetwork) != 0) {
+                ids[iterator++] = capId;
+            }
+        }
         for (uint256 i = 0;; i++) {
             uint96 identifier = uint96(i);
             bytes32 subnetwork = bytes32(uint256(uint160(network)) << 96 | identifier);
@@ -174,10 +140,15 @@ contract SymbioticModule {
                 ids[iterator++] = 0;
                 break;
             }
-            if (i - ids[iterator - 1] > 10) {
+            if (ids[iterator - 1] > i) {
+                if (i > 50) {
+                    break;
+                }
+            } else if (i - ids[iterator - 1] > 10) {
                 break;
             }
         }
+
         assembly {
             mstore(ids, iterator)
         }
@@ -197,11 +168,12 @@ contract SymbioticModule {
                 maxNetworkLimit: delegator.maxNetworkLimit(subnetwork),
                 slashableStake: delegator.stake(subnetwork, operator)
             });
+            totalDelegatedStake += response[i].slashableStake;
         }
     }
 
     function getSubnetworkData(address symbioticVault)
-        external
+        public
         view
         returns (SubnetworkData[] memory response, uint256 totalStake, uint256 totalDelegatedStake)
     {
