@@ -117,7 +117,7 @@ contract CollectorV4 is Ownable {
         r.limitUnderlying = vault.limit();
         r.limitLP = vault.limit() > type(uint224).max
             ? type(uint256).max
-            : vault.previewRedeem(r.limitUnderlying);
+            : vault.previewWithdraw(r.limitUnderlying);
         r.limitETH = oracle.getValue(r.asset, r.limitUnderlying);
         r.limitUSD = oracle.getValue(r.asset, usd, r.limitUnderlying);
 
@@ -126,9 +126,9 @@ contract CollectorV4 is Ownable {
         r.userETH = oracle.getValue(r.asset, r.userUnderlying);
         r.userUSD = oracle.getValue(r.asset, usd, r.userUnderlying);
 
-        r.lpPriceUSD = Math.mulDiv(1 ether, r.totalUSD, r.totalLP);
-        r.lpPriceETH = Math.mulDiv(1 ether, r.totalETH, r.totalLP);
-        r.lpPriceUnderlying = Math.mulDiv(1 ether, r.totalUnderlying, r.totalLP);
+        r.lpPriceUnderlying = vault.previewRedeem(1 ether);
+        r.lpPriceETH = oracle.getValue(r.asset, r.lpPriceUnderlying);
+        r.lpPriceUSD = oracle.getValue(r.asset, usd, r.lpPriceUnderlying);
         r.blockNumber = block.number;
         r.timestamp = block.timestamp;
 

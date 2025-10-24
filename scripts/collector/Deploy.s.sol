@@ -11,11 +11,19 @@ contract Deploy is Script {
         uint256 deployerPk = uint256(0);
         address deployer = vm.addr(deployerPk);
         vm.startBroadcast(deployerPk);
-        CollectorV3 prevCollector = CollectorV3(0x33134822BB77a4F4d51f01b34DEbB2A6068A2F18);
+        CollectorV4 prevCollector = CollectorV4(0x5701D94543B500B8d032a0c67755c312016a2a39);
         CollectorV4 collector =
             new CollectorV4(prevCollector.wsteth(), prevCollector.weth(), deployer);
         collector.setOracle(address(prevCollector.oracle()));
+
+        console2.log(address(collector));
+
+        // collector.collect(
+        //     0x5E362eb2c0706Bd1d134689eC75176018385430B,
+        //     IERC4626(0x5E362eb2c0706Bd1d134689eC75176018385430B)
+        // );
+
         vm.stopBroadcast();
-        // revert("ok");
+        revert("ok");
     }
 }
