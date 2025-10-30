@@ -9,8 +9,8 @@ import "./libraries/SymbioticDeployLibrary.sol";
 
 contract Deploy is Script {
     DeployScript public constant script = DeployScript(0xC70F0A380D5Bc02d237C46CEF92C6174Db496969);
-    address public constant mellowOFT = 0xb79956D87D887Ba850efaFdefe387458f463750c; // +
-    address public constant targetCore = 0xf1390f694f34bFE1aa651e8a0313fDc485A39132; // +
+    address public constant mellowOFT = 0x080cCaa313B0e0Bac744C090B5894d75d853518D; // +
+    address public constant targetCore = 0x927F0604c60924399EB44f54C4c333Ed1Ef21B45; // +
     address public constant curator = 0x0c2Bc4d2698820e12E6eBe863E7b9E2650CD5b7D; // +
     address public constant vaultAdmin = 0x258Ea2008C1aae005F75F1D43D4dC51d5c6c46F0; // +
     address public constant vaultProxyAdmin = 0x7377344FCD33844541cb6966ffa7FcAB05641183; // +
@@ -42,7 +42,6 @@ contract Deploy is Script {
             maxRatioD18: 1 ether
         });
 
-        uint256 g = gasleft();
         (, MultiVault vault) = script.deploy(
             DeployScript.DeployParams({
                 config: DeployScript.Config({
@@ -63,7 +62,8 @@ contract Deploy is Script {
             })
         );
 
-        console2.log(address(vault));
+        console2.log("SOLV Vault: %s",address(vault));
         vm.stopBroadcast();
+        revert("ok");
     }
 }
