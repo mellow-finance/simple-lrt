@@ -62,7 +62,7 @@ contract Deploy is Script {
             })
         );
 
-        console2.log("SOLV Vault: %s",address(vault));
+        console2.log("SOLV Vault: %s", address(vault));
         vm.stopBroadcast();
         revert("ok");
     }
