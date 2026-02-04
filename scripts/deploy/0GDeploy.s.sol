@@ -13,9 +13,9 @@ contract Deploy is Script {
     address public constant targetMellowOFT = address(0);
     address public constant targetCore = address(0);
 
-    address public constant curator = address(0);
-    address public constant vaultAdmin = address(0);
-    address public constant vaultProxyAdmin = address(0);
+    address public constant curator = 0xc6eA3826A7a357162d01e22044D845522f62BB4c; // 0G 3/4 
+    address public constant vaultAdmin = 0xfc7350b0d7a358Db58875148faF3bDEAaFC82911; // 5/8 Mellow+0g 4+4 Ethereum+0G
+    address public constant vaultProxyAdmin = 0xEF1c19bDEE7fE61a1B2b98375D2003f57e4B2B8a; // 5/8 Mellow+0g 4+4 Ethereum+0G
 
     string private name = "Staked OG";
     string private symbol = "stOG";
